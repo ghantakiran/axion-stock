@@ -26,6 +26,34 @@ def select_top_stocks(
     return top
 
 
+def _apply_risk_constraints(weights: pd.Series) -> pd.Series:
+    """Apply position size caps and renormalize weights.
+
+    Caps individual positions at MAX_POSITION_WEIGHT and redistributes excess.
+    """
+    max_weight = config.MAX_POSITION_WEIGHT
+    constrained = weights.copy()
+
+    # Iteratively cap and redistribute until stable
+    for _ in range(10):  # Max iterations to prevent infinite loop
+        excess = constrained[constrained > max_weight] - max_weight
+        if excess.sum() == 0:
+            break
+
+        # Cap overweight positions
+        constrained = constrained.clip(upper=max_weight)
+
+        # Redistribute excess proportionally to uncapped positions
+        uncapped_mask = constrained < max_weight
+        if uncapped_mask.sum() > 0:
+            uncapped_weights = constrained[uncapped_mask]
+            redistribution = excess.sum() * (uncapped_weights / uncapped_weights.sum())
+            constrained.loc[uncapped_mask] += redistribution
+
+    # Final normalization
+    return constrained / constrained.sum()
+
+
 def compute_allocations(
     top_scores: pd.DataFrame,
     fundamentals: pd.DataFrame,
@@ -34,10 +62,14 @@ def compute_allocations(
 ) -> pd.DataFrame:
     """Compute score-weighted allocation and share quantities.
 
+    Applies risk constraints (max position size) before allocation.
     Returns DataFrame with columns: ticker, score, weight, allocation, price, shares.
     """
     scores = top_scores["composite"]
-    weights = scores / scores.sum()
+    raw_weights = scores / scores.sum()
+
+    # Apply risk constraints
+    weights = _apply_risk_constraints(raw_weights)
 
     allocations = weights * amount
 
@@ -63,6 +95,8 @@ def compute_allocations(
         total_invested = result["invested"].sum()
         print(f"  Total invested: ${total_invested:,.2f} / ${amount:,.2f}")
         print(f"  Cash remaining: ${amount - total_invested:,.2f}")
+        if (raw_weights > config.MAX_POSITION_WEIGHT).any():
+            print(f"  Risk constraints applied (max position: {config.MAX_POSITION_WEIGHT*100:.0f}%)")
 
     return result
 

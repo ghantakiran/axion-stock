@@ -26,6 +26,10 @@ CACHE_EXPIRY_HOURS = 24
 TOP_N_STOCKS = 9
 MIN_PERCENTILE = 0.90  # must be in top 10th percentile
 
+# Risk management
+MAX_POSITION_WEIGHT = 0.25  # Max 25% in single position
+MAX_SECTOR_WEIGHT = 0.40  # Max 40% in single sector
+
 # Backtest
 BACKTEST_MONTHS = 24
 BENCHMARK_TICKER = "SPY"

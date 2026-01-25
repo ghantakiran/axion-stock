@@ -63,22 +63,30 @@ def run_backtest(
         top_n = scores.nlargest(config.TOP_N_STOCKS, "composite")
         selected = top_n.index.tolist()
 
-        # Equal-weight for backtest simplicity
+        # Score-weighted portfolio (matches live allocation)
         period_prices = prices.loc[date_start:date_end]
         if len(period_prices) < 2:
             continue
 
-        # Portfolio return (equal-weighted)
-        stock_returns = []
+        # Compute score-based weights
+        composite_scores = top_n["composite"]
+        weights = composite_scores / composite_scores.sum()
+
+        # Portfolio return (score-weighted)
+        weighted_return = 0.0
+        total_weight = 0.0
         for ticker in selected:
             if ticker in period_prices.columns:
                 t_prices = period_prices[ticker].dropna()
                 if len(t_prices) >= 2:
                     ret = t_prices.iloc[-1] / t_prices.iloc[0] - 1
-                    stock_returns.append(ret)
+                    w = weights.get(ticker, 0)
+                    weighted_return += ret * w
+                    total_weight += w
 
-        if stock_returns:
-            port_ret = np.mean(stock_returns)
+        if total_weight > 0:
+            # Normalize in case some stocks were missing
+            port_ret = weighted_return / total_weight
             portfolio_returns.append(port_ret)
         else:
             portfolio_returns.append(0.0)

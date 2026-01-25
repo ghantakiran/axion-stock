@@ -1,7 +1,19 @@
 """Claude API integration with tool use for stock analysis chat."""
 
+import os
+
 import anthropic
+from dotenv import load_dotenv
+
 from app.tools import TOOL_DEFINITIONS, execute_tool
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+def get_api_key() -> str | None:
+    """Get Anthropic API key from environment."""
+    return os.getenv("ANTHROPIC_API_KEY")
 
 SYSTEM_PROMPT = """You are an AI stock market research assistant. You help users analyze stocks, \
 build portfolios, trade options, and understand market trends using a quantitative multi-factor model.

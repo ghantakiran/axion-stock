@@ -569,14 +569,69 @@ def render_charts(tool_calls: list):
                 pass
 
         elif name == "recommend_top_picks":
-            # Show price charts for top 3 picks
-            pass
+            # Show price charts for top picks
+            try:
+                picks = call.get("input", {}).get("category", "growth")
+                scores_df = _get_cached_scores()
+                if scores_df is not None:
+                    # Get top 3 by composite score
+                    top_tickers = scores_df.nlargest(3, "composite").index.tolist()
+                    cols = st.columns(len(top_tickers))
+                    for col, ticker in zip(cols, top_tickers):
+                        with col:
+                            fig = create_stock_chart(ticker, period="6mo")
+                            st.plotly_chart(fig, use_container_width=True, key=f"top_pick_{ticker}_{id(call)}")
+            except Exception:
+                pass
 
         elif name == "screen_stocks":
-            pass
+            # Show factor chart for screened stocks
+            try:
+                factor = call.get("input", {}).get("factor", "composite")
+                top_n = call.get("input", {}).get("top_n", 10)
+                scores_df = _get_cached_scores()
+                if scores_df is not None:
+                    top_stocks = scores_df.nlargest(min(top_n, 5), factor)
+                    for ticker in top_stocks.index[:3]:
+                        factor_scores = {
+                            "value": scores_df.loc[ticker, "value"],
+                            "momentum": scores_df.loc[ticker, "momentum"],
+                            "quality": scores_df.loc[ticker, "quality"],
+                            "growth": scores_df.loc[ticker, "growth"],
+                        }
+                        fig = create_factor_chart(factor_scores, ticker)
+                        st.plotly_chart(fig, use_container_width=True, key=f"screen_{ticker}_{id(call)}")
+            except Exception:
+                pass
 
         elif name == "recommend_portfolio":
-            pass
+            # Show allocation pie chart
+            try:
+                scores_df = _get_cached_scores()
+                if scores_df is not None:
+                    import plotly.graph_objects as go
+                    top_stocks = scores_df.nlargest(9, "composite")
+                    weights = top_stocks["composite"] / top_stocks["composite"].sum()
+
+                    fig = go.Figure(data=[go.Pie(
+                        labels=top_stocks.index.tolist(),
+                        values=weights.values,
+                        hole=0.4,
+                        marker=dict(colors=['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd',
+                                           '#ddd6fe', '#ede9fe', '#f5f3ff', '#faf5ff', '#fdf4ff']),
+                        textinfo='label+percent',
+                        textfont=dict(color='white'),
+                    )])
+                    fig.update_layout(
+                        title="Portfolio Allocation",
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#e2e8f0'),
+                        showlegend=False,
+                    )
+                    st.plotly_chart(fig, use_container_width=True, key=f"portfolio_pie_{id(call)}")
+            except Exception:
+                pass
 
 
 def render_chat():
