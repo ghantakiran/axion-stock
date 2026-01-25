@@ -5,9 +5,10 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
-from app.chat import get_chat_response
+from app.chat import get_chat_response, get_api_key
 from app.charts import create_stock_chart, create_comparison_chart, create_factor_chart
 from app.tools import _get_cached_scores
+from app.ai_picks import get_ai_picks, PICK_CATEGORIES
 
 # Page config
 st.set_page_config(
@@ -274,6 +275,10 @@ def init_session_state():
         st.session_state.messages = []
     if "api_messages" not in st.session_state:
         st.session_state.api_messages = []
+    if "show_ai_picks" not in st.session_state:
+        st.session_state.show_ai_picks = False
+    if "ai_picks_category" not in st.session_state:
+        st.session_state.ai_picks_category = "balanced_picks"
 
 
 def render_sidebar():
@@ -318,6 +323,40 @@ def render_sidebar():
 
         if st.button("Top Growth", use_container_width=True, key="btn_grow"):
             add_user_message("Screen for the top 10 growth stocks in the S&P 500")
+
+        st.divider()
+
+        # AI Picks section
+        st.markdown('<div class="sidebar-section">AI Stock Picks</div>', unsafe_allow_html=True)
+
+        if st.button("🎯 Today's AI Picks", use_container_width=True, key="btn_ai_picks"):
+            st.session_state.show_ai_picks = True
+            st.session_state.ai_picks_category = "balanced_picks"
+            st.rerun()
+
+        col_ai1, col_ai2 = st.columns(2)
+        with col_ai1:
+            if st.button("Growth", use_container_width=True, key="btn_ai_growth"):
+                st.session_state.show_ai_picks = True
+                st.session_state.ai_picks_category = "growth_champions"
+                st.rerun()
+        with col_ai2:
+            if st.button("Value", use_container_width=True, key="btn_ai_value"):
+                st.session_state.show_ai_picks = True
+                st.session_state.ai_picks_category = "value_gems"
+                st.rerun()
+
+        col_ai3, col_ai4 = st.columns(2)
+        with col_ai3:
+            if st.button("Quality", use_container_width=True, key="btn_ai_quality"):
+                st.session_state.show_ai_picks = True
+                st.session_state.ai_picks_category = "quality_compounders"
+                st.rerun()
+        with col_ai4:
+            if st.button("Momentum", use_container_width=True, key="btn_ai_momentum"):
+                st.session_state.show_ai_picks = True
+                st.session_state.ai_picks_category = "momentum_leaders"
+                st.rerun()
 
         st.divider()
 
@@ -423,6 +462,34 @@ def render_welcome():
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Featured: AI Picks card
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: center;">
+        <div style="font-size: 32px; margin-bottom: 8px;">🎯</div>
+        <h3 style="color: white; margin: 0 0 8px 0; font-size: 22px;">AI Stock Picks</h3>
+        <p style="color: rgba(255,255,255,0.8); margin: 0 0 16px 0; font-size: 14px;">
+            Claude analyzes 500+ stocks and selects the best opportunities with detailed investment thesis
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_picks = st.columns(5)
+    pick_categories = [
+        ("🏆", "Balanced", "balanced_picks"),
+        ("🚀", "Growth", "growth_champions"),
+        ("💎", "Value", "value_gems"),
+        ("⭐", "Quality", "quality_compounders"),
+        ("📈", "Momentum", "momentum_leaders"),
+    ]
+    for i, (emoji, label, cat) in enumerate(pick_categories):
+        with col_picks[i]:
+            if st.button(f"{emoji} {label}", use_container_width=True, key=f"w_pick_{cat}"):
+                st.session_state.show_ai_picks = True
+                st.session_state.ai_picks_category = cat
+                st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -688,9 +755,117 @@ def process_response(api_key: str):
                     st.error(f"Something went wrong: {error_msg}")
 
 
+def render_ai_picks(api_key: str):
+    """Render AI Stock Picks section like Rallies.ai."""
+    category = st.session_state.get("ai_picks_category", "balanced_picks")
+    cat_config = PICK_CATEGORIES.get(category, PICK_CATEGORIES["balanced_picks"])
+
+    # Header
+    st.markdown(f"""
+    <div style="text-align: center; padding: 20px 0;">
+        <h1 style="font-size: 32px; margin-bottom: 8px;">🎯 AI Stock Picks</h1>
+        <p style="color: #64748b; font-size: 16px;">{cat_config['name']}: {cat_config['description']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Category tabs
+    cols = st.columns(5)
+    categories = list(PICK_CATEGORIES.keys())
+    for i, cat in enumerate(categories):
+        with cols[i]:
+            is_active = cat == category
+            btn_style = "primary" if is_active else "secondary"
+            if st.button(PICK_CATEGORIES[cat]["name"].split()[0], key=f"cat_{cat}", type=btn_style, use_container_width=True):
+                st.session_state.ai_picks_category = cat
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Get picks
+    try:
+        scores_df, fundamentals_df, _ = _get_cached_scores()
+        if scores_df is None:
+            st.warning("Loading stock data... Please wait.")
+            return
+
+        with st.spinner("AI is analyzing stocks..."):
+            picks_data = get_ai_picks(scores_df, fundamentals_df, category, num_picks=5, api_key=api_key)
+
+        # Render each pick as a card
+        for i, pick in enumerate(picks_data["picks"]):
+            conviction_color = {"high": "#22c55e", "medium": "#eab308", "low": "#ef4444"}.get(pick["conviction"], "#6b7280")
+            conviction_label = pick["conviction"].upper()
+
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #4c1d95;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div>
+                        <span style="font-size: 24px; font-weight: 700; color: white;">{pick['ticker']}</span>
+                        <span style="background: {conviction_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 12px;">{conviction_label} CONVICTION</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 20px; font-weight: 600; color: white;">${pick['price']:.2f if pick['price'] else 'N/A'}</div>
+                        <div style="color: #a5b4fc; font-size: 12px;">P/E: {pick['pe_ratio']:.1f if pick['pe_ratio'] else 'N/A'} | MCap: ${pick['market_cap_B']:.0f}B</div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="color: #e2e8f0; font-size: 15px; line-height: 1.6;">{pick['thesis']}</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px;">
+                        <div style="color: #22c55e; font-size: 12px; font-weight: 600; margin-bottom: 4px;">📈 BULL CASE</div>
+                        <div style="color: #e2e8f0; font-size: 13px;">{pick['bull_case']}</div>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px;">
+                        <div style="color: #ef4444; font-size: 12px; font-weight: 600; margin-bottom: 4px;">⚠️ BEAR CASE</div>
+                        <div style="color: #e2e8f0; font-size: 13px;">{pick['bear_case']}</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <span style="background: #7c3aed; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Value {pick['scores']['value']:.0%}</span>
+                    <span style="background: #2563eb; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Momentum {pick['scores']['momentum']:.0%}</span>
+                    <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Quality {pick['scores']['quality']:.0%}</span>
+                    <span style="background: #d97706; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Growth {pick['scores']['growth']:.0%}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Add mini price chart
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                fig = create_stock_chart(pick["ticker"], period="3mo", chart_type="line", show_ma=False)
+                st.plotly_chart(fig, use_container_width=True, key=f"ai_chart_{pick['ticker']}_{i}")
+            with col2:
+                fig_factors = create_factor_chart(pick["scores"], pick["ticker"])
+                st.plotly_chart(fig_factors, use_container_width=True, key=f"ai_factors_{pick['ticker']}_{i}")
+
+    except Exception as e:
+        st.error(f"Error loading AI picks: {str(e)}")
+
+    # Back button
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("← Back to Chat", use_container_width=True, key="back_to_chat"):
+        st.session_state.show_ai_picks = False
+        st.rerun()
+
+    st.markdown("""
+    <p style="text-align: center; color: #64748b; font-size: 12px; margin-top: 24px;">
+        AI-generated analysis based on multi-factor scoring. Not financial advice.
+    </p>
+    """, unsafe_allow_html=True)
+
+
 def main():
     init_session_state()
     api_key = render_sidebar()
+
+    # Check for AI Picks view
+    if st.session_state.get("show_ai_picks"):
+        render_ai_picks(api_key)
+        return
 
     # Show welcome or chat
     if not st.session_state.messages:
