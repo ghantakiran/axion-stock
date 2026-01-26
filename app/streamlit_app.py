@@ -796,6 +796,11 @@ def render_ai_picks(api_key: str):
             conviction_color = {"high": "#22c55e", "medium": "#eab308", "low": "#ef4444"}.get(pick["conviction"], "#6b7280")
             conviction_label = pick["conviction"].upper()
 
+            # Format values safely
+            price_str = f"${pick['price']:.2f}" if pick['price'] else "N/A"
+            pe_str = f"{pick['pe_ratio']:.1f}" if pick['pe_ratio'] else "N/A"
+            mcap_str = f"${pick['market_cap_B']:.0f}B" if pick['market_cap_B'] else "N/A"
+
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #4c1d95;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -804,8 +809,8 @@ def render_ai_picks(api_key: str):
                         <span style="background: {conviction_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 12px;">{conviction_label} CONVICTION</span>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 20px; font-weight: 600; color: white;">${pick['price']:.2f if pick['price'] else 'N/A'}</div>
-                        <div style="color: #a5b4fc; font-size: 12px;">P/E: {pick['pe_ratio']:.1f if pick['pe_ratio'] else 'N/A'} | MCap: ${pick['market_cap_B']:.0f}B</div>
+                        <div style="font-size: 20px; font-weight: 600; color: white;">{price_str}</div>
+                        <div style="color: #a5b4fc; font-size: 12px;">P/E: {pe_str} | MCap: {mcap_str}</div>
                     </div>
                 </div>
 
