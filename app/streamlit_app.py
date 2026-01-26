@@ -791,61 +791,54 @@ def render_ai_picks(api_key: str):
         with st.spinner("AI is analyzing stocks..."):
             picks_data = get_ai_picks(scores_df, fundamentals_df, category, num_picks=5, api_key=api_key)
 
-        # Render each pick as a card
+        # Render each pick as a card using Streamlit components
         for i, pick in enumerate(picks_data["picks"]):
-            conviction_color = {"high": "#22c55e", "medium": "#eab308", "low": "#ef4444"}.get(pick["conviction"], "#6b7280")
-            conviction_label = pick["conviction"].upper()
+            conviction_emoji = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(pick["conviction"], "⚪")
 
             # Format values safely
             price_str = f"${pick['price']:.2f}" if pick['price'] else "N/A"
             pe_str = f"{pick['pe_ratio']:.1f}" if pick['pe_ratio'] else "N/A"
             mcap_str = f"${pick['market_cap_B']:.0f}B" if pick['market_cap_B'] else "N/A"
 
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #4c1d95;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <div>
-                        <span style="font-size: 24px; font-weight: 700; color: white;">{pick['ticker']}</span>
-                        <span style="background: {conviction_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 12px;">{conviction_label} CONVICTION</span>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 20px; font-weight: 600; color: white;">{price_str}</div>
-                        <div style="color: #a5b4fc; font-size: 12px;">P/E: {pe_str} | MCap: {mcap_str}</div>
-                    </div>
-                </div>
+            with st.container():
+                # Header row
+                col_ticker, col_price = st.columns([2, 1])
+                with col_ticker:
+                    st.markdown(f"### {pick['ticker']} {conviction_emoji} {pick['conviction'].upper()}")
+                with col_price:
+                    st.markdown(f"**{price_str}** · P/E: {pe_str} · MCap: {mcap_str}")
 
-                <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                    <div style="color: #e2e8f0; font-size: 15px; line-height: 1.6;">{pick['thesis']}</div>
-                </div>
+                # Thesis
+                st.info(f"💡 **Investment Thesis:** {pick['thesis']}")
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px;">
-                        <div style="color: #22c55e; font-size: 12px; font-weight: 600; margin-bottom: 4px;">📈 BULL CASE</div>
-                        <div style="color: #e2e8f0; font-size: 13px;">{pick['bull_case']}</div>
-                    </div>
-                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px;">
-                        <div style="color: #ef4444; font-size: 12px; font-weight: 600; margin-bottom: 4px;">⚠️ BEAR CASE</div>
-                        <div style="color: #e2e8f0; font-size: 13px;">{pick['bear_case']}</div>
-                    </div>
-                </div>
+                # Bull/Bear cases
+                col_bull, col_bear = st.columns(2)
+                with col_bull:
+                    st.success(f"📈 **Bull Case:** {pick['bull_case']}")
+                with col_bear:
+                    st.error(f"⚠️ **Bear Case:** {pick['bear_case']}")
 
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <span style="background: #7c3aed; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Value {pick['scores']['value']:.0%}</span>
-                    <span style="background: #2563eb; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Momentum {pick['scores']['momentum']:.0%}</span>
-                    <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Quality {pick['scores']['quality']:.0%}</span>
-                    <span style="background: #d97706; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Growth {pick['scores']['growth']:.0%}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                # Factor scores as metrics
+                score_cols = st.columns(4)
+                with score_cols[0]:
+                    st.metric("Value", f"{pick['scores']['value']:.0%}")
+                with score_cols[1]:
+                    st.metric("Momentum", f"{pick['scores']['momentum']:.0%}")
+                with score_cols[2]:
+                    st.metric("Quality", f"{pick['scores']['quality']:.0%}")
+                with score_cols[3]:
+                    st.metric("Growth", f"{pick['scores']['growth']:.0%}")
 
-            # Add mini price chart
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                fig = create_stock_chart(pick["ticker"], period="3mo", chart_type="line", show_ma=False)
-                st.plotly_chart(fig, use_container_width=True, key=f"ai_chart_{pick['ticker']}_{i}")
-            with col2:
-                fig_factors = create_factor_chart(pick["scores"], pick["ticker"])
-                st.plotly_chart(fig_factors, use_container_width=True, key=f"ai_factors_{pick['ticker']}_{i}")
+                # Charts
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    fig = create_stock_chart(pick["ticker"], period="3mo", chart_type="line", show_ma=False)
+                    st.plotly_chart(fig, use_container_width=True, key=f"ai_chart_{pick['ticker']}_{i}")
+                with col2:
+                    fig_factors = create_factor_chart(pick["scores"], pick["ticker"])
+                    st.plotly_chart(fig_factors, use_container_width=True, key=f"ai_factors_{pick['ticker']}_{i}")
+
+                st.divider()
 
     except Exception as e:
         st.error(f"Error loading AI picks: {str(e)}")
