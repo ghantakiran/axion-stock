@@ -17,7 +17,7 @@ env/
 .env.local
 
 # Cache
-cache/
+/cache/
 *.pkl
 
 # Jupyter

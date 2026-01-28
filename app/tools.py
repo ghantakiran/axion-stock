@@ -186,9 +186,17 @@ TOOL_DEFINITIONS = [
 def _get_cached_scores():
     """Load or compute factor scores for the SP500 universe."""
     if "scores_cache" not in _get_cached_scores.__dict__:
-        tickers = build_universe()
-        prices = download_price_data(tickers, use_cache=True)
-        fundamentals = download_fundamentals(tickers, use_cache=True)
+        # Try new DataService backend
+        try:
+            from src.services.sync_adapter import sync_data_service
+            tickers = sync_data_service.build_universe()
+            prices = sync_data_service.download_price_data(tickers)
+            fundamentals = sync_data_service.download_fundamentals(tickers)
+        except Exception:
+            # Fallback to original path
+            tickers = build_universe()
+            prices = download_price_data(tickers, use_cache=True)
+            fundamentals = download_fundamentals(tickers, use_cache=True)
 
         # Restrict to universe
         fundamentals = fundamentals.loc[fundamentals.index.isin(tickers)]

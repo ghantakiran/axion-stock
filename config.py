@@ -34,3 +34,23 @@ MAX_SECTOR_WEIGHT = 0.40  # Max 40% in single sector
 BACKTEST_MONTHS = 24
 BENCHMARK_TICKER = "SPY"
 RISK_FREE_RATE = 0.05  # annualized, for Sharpe ratio
+
+# Infrastructure settings (loaded from environment when available)
+try:
+    from src.settings import get_settings as _get_settings
+    _s = _get_settings()
+    DATABASE_URL = _s.database_url
+    DATABASE_SYNC_URL = _s.database_sync_url
+    REDIS_URL = _s.redis_url
+    POLYGON_API_KEY = _s.polygon_api_key
+    FRED_API_KEY = _s.fred_api_key
+    USE_DATABASE = _s.use_database
+    USE_REDIS = _s.use_redis
+except ImportError:
+    DATABASE_URL = ""
+    DATABASE_SYNC_URL = ""
+    REDIS_URL = ""
+    POLYGON_API_KEY = ""
+    FRED_API_KEY = ""
+    USE_DATABASE = False
+    USE_REDIS = False

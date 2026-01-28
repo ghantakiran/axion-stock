@@ -13,6 +13,16 @@ from tqdm import tqdm
 import config
 
 
+def _use_new_backend() -> bool:
+    """Check if the new DataService backend is available and enabled."""
+    try:
+        from src.settings import get_settings
+        settings = get_settings()
+        return settings.use_database or settings.use_redis
+    except Exception:
+        return False
+
+
 def _cache_path(name: str) -> str:
     os.makedirs(config.CACHE_DIR, exist_ok=True)
     return os.path.join(config.CACHE_DIR, f"{name}.pkl")
@@ -42,6 +52,14 @@ def download_price_data(
 
     Returns DataFrame with dates as index, tickers as columns.
     """
+    # Try new DataService backend first
+    if _use_new_backend():
+        try:
+            from src.services.sync_adapter import sync_data_service
+            return sync_data_service.download_price_data(tickers, use_cache, verbose)
+        except Exception:
+            pass  # Fall through to original implementation
+
     cache_file = _cache_path("prices")
     if use_cache and _cache_valid(cache_file):
         if verbose:
@@ -94,6 +112,14 @@ def download_fundamentals(
 
     Returns DataFrame with tickers as index, fundamental fields as columns.
     """
+    # Try new DataService backend first
+    if _use_new_backend():
+        try:
+            from src.services.sync_adapter import sync_data_service
+            return sync_data_service.download_fundamentals(tickers, use_cache, verbose)
+        except Exception:
+            pass  # Fall through to original implementation
+
     cache_file = _cache_path("fundamentals")
     if use_cache and _cache_valid(cache_file):
         if verbose:
