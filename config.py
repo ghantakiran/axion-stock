@@ -1,11 +1,41 @@
 """Configuration for Axion - Stock Recommendation System."""
 
-# Factor weights (must sum to 1.0)
+# Factor weights v1 (must sum to 1.0) - 4 factors
 FACTOR_WEIGHTS = {
     "value": 0.25,
     "momentum": 0.30,
     "quality": 0.25,
     "growth": 0.20,
+}
+
+# Factor weights v2 (must sum to 1.0) - 6 factors
+FACTOR_WEIGHTS_V2 = {
+    "value": 0.20,
+    "momentum": 0.25,
+    "quality": 0.20,
+    "growth": 0.15,
+    "volatility": 0.10,
+    "technical": 0.10,
+}
+
+# Regime-specific factor weights for v2 engine
+REGIME_WEIGHTS = {
+    "bull": {
+        "value": 0.10, "momentum": 0.35, "quality": 0.15,
+        "growth": 0.25, "volatility": 0.05, "technical": 0.10,
+    },
+    "bear": {
+        "value": 0.25, "momentum": 0.05, "quality": 0.35,
+        "growth": 0.05, "volatility": 0.25, "technical": 0.05,
+    },
+    "sideways": {
+        "value": 0.25, "momentum": 0.15, "quality": 0.25,
+        "growth": 0.10, "volatility": 0.15, "technical": 0.10,
+    },
+    "crisis": {
+        "value": 0.05, "momentum": 0.00, "quality": 0.40,
+        "growth": 0.00, "volatility": 0.50, "technical": 0.05,
+    },
 }
 
 # Universe settings
@@ -46,6 +76,9 @@ try:
     FRED_API_KEY = _s.fred_api_key
     USE_DATABASE = _s.use_database
     USE_REDIS = _s.use_redis
+    FACTOR_ENGINE_V2 = _s.factor_engine_v2
+    FACTOR_ENGINE_ADAPTIVE_WEIGHTS = _s.factor_engine_adaptive_weights
+    FACTOR_ENGINE_SECTOR_RELATIVE = _s.factor_engine_sector_relative
 except ImportError:
     DATABASE_URL = ""
     DATABASE_SYNC_URL = ""
@@ -54,3 +87,6 @@ except ImportError:
     FRED_API_KEY = ""
     USE_DATABASE = False
     USE_REDIS = False
+    FACTOR_ENGINE_V2 = False
+    FACTOR_ENGINE_ADAPTIVE_WEIGHTS = True
+    FACTOR_ENGINE_SECTOR_RELATIVE = True

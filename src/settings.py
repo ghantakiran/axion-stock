@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     use_redis: bool = True
     fallback_to_yfinance: bool = True
 
+    # --- Factor Engine v2 ---
+    factor_engine_v2: bool = False  # Enable 6-factor model with regime detection
+    factor_engine_adaptive_weights: bool = True  # Use regime-based weight adaptation
+    factor_engine_sector_relative: bool = True  # Apply sector-relative scoring
+    factor_engine_momentum_overlay: bool = True  # Tilt toward performing factors
+
     model_config = {
         "env_prefix": "AXION_",
         "env_file": ".env",

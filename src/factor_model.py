@@ -1,9 +1,21 @@
-"""Factor scoring: value, momentum, quality, growth → composite score."""
+"""Factor scoring: value, momentum, quality, growth → composite score.
+
+This module provides both v1 (4-factor) and v2 (6-factor with regime detection)
+scoring. The v2 engine is used when AXION_FACTOR_ENGINE_V2=true.
+"""
 
 import numpy as np
 import pandas as pd
 
 import config
+
+
+def _use_factor_engine_v2() -> bool:
+    """Check if Factor Engine v2 is enabled."""
+    try:
+        return config.FACTOR_ENGINE_V2
+    except AttributeError:
+        return False
 
 
 def _percentile_rank(series: pd.Series) -> pd.Series:
@@ -60,12 +72,44 @@ def compute_growth_scores(fundamentals: pd.DataFrame) -> pd.Series:
 
 
 def compute_composite_scores(
-    fundamentals: pd.DataFrame, returns: pd.DataFrame, verbose: bool = False
+    fundamentals: pd.DataFrame,
+    returns: pd.DataFrame,
+    verbose: bool = False,
+    prices: pd.DataFrame = None,
 ) -> pd.DataFrame:
     """Compute all factor scores and weighted composite.
 
-    Returns DataFrame with columns: value, momentum, quality, growth, composite.
+    When AXION_FACTOR_ENGINE_V2=true, uses the advanced 6-factor engine with
+    regime detection and adaptive weights. Otherwise uses the classic 4-factor
+    model with static weights.
+
+    Args:
+        fundamentals: DataFrame[tickers x fields] of fundamental data
+        returns: DataFrame[tickers x {ret_6m, ret_12m}] of momentum returns
+        verbose: Print scoring statistics
+        prices: DataFrame[dates x tickers] of prices (optional, for v2 engine)
+
+    Returns:
+        DataFrame with columns: value, momentum, quality, growth, composite
+        (v2 also includes: volatility, technical, regime)
     """
+    # Try v2 engine if enabled
+    if _use_factor_engine_v2():
+        try:
+            return _compute_scores_v2(fundamentals, returns, prices, verbose)
+        except Exception as e:
+            if verbose:
+                print(f"  Factor Engine v2 failed, falling back to v1: {e}")
+            # Fall through to v1
+
+    # V1 implementation (original)
+    return _compute_scores_v1(fundamentals, returns, verbose)
+
+
+def _compute_scores_v1(
+    fundamentals: pd.DataFrame, returns: pd.DataFrame, verbose: bool = False
+) -> pd.DataFrame:
+    """Original v1 factor scoring (4 factors, static weights)."""
     # Align indices
     all_tickers = fundamentals.index.union(returns.index)
 
@@ -93,8 +137,47 @@ def compute_composite_scores(
     }, index=all_tickers)
 
     if verbose:
-        print(f"  Scored {len(scores)} tickers")
+        print(f"  Scored {len(scores)} tickers (v1 engine)")
         print(f"  Composite: mean={scores['composite'].mean():.3f}, "
               f"std={scores['composite'].std():.3f}")
+
+    return scores
+
+
+def _compute_scores_v2(
+    fundamentals: pd.DataFrame,
+    returns: pd.DataFrame,
+    prices: pd.DataFrame = None,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """V2 factor scoring (6 factors, regime detection, adaptive weights).
+
+    Returns DataFrame with v1-compatible columns plus v2 extras.
+    """
+    from src.factor_engine import FactorEngineV2
+
+    # Create engine with settings
+    engine = FactorEngineV2(
+        use_adaptive_weights=config.FACTOR_ENGINE_ADAPTIVE_WEIGHTS,
+        use_sector_relative=config.FACTOR_ENGINE_SECTOR_RELATIVE,
+    )
+
+    # Use empty prices DataFrame if not provided
+    if prices is None:
+        prices = pd.DataFrame()
+
+    # Compute v2 scores
+    scores = engine.compute_all_scores(prices, fundamentals, returns)
+
+    if verbose:
+        regime = engine.last_regime
+        weights = engine.last_weights
+        print(f"  Scored {len(scores)} tickers (v2 engine)")
+        print(f"  Regime: {regime.value if regime else 'unknown'}")
+        print(f"  Composite: mean={scores['composite'].mean():.3f}, "
+              f"std={scores['composite'].std():.3f}")
+        if weights:
+            weight_str = ", ".join(f"{k}={v:.0%}" for k, v in weights.items())
+            print(f"  Weights: {weight_str}")
 
     return scores
