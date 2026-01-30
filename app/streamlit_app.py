@@ -744,7 +744,7 @@ def render_welcome():
         <div style="font-size: 32px; margin-bottom: 8px;">🎯</div>
         <h3 style="color: white; margin: 0 0 8px 0; font-size: 22px;">AI Stock Picks</h3>
         <p style="color: rgba(255,255,255,0.8); margin: 0 0 16px 0; font-size: 14px;">
-            Axion analyzes 500+ stocks and selects the best opportunities with detailed investment thesis
+            Axion analyzes stocks ETFs and Futures and selects the best opportunities with detailed investment thesis
         </p>
     </div>
     """, unsafe_allow_html=True)
