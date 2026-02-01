@@ -1,10 +1,35 @@
 """Options Platform Configuration.
 
 Contains all configurable parameters for options pricing,
-volatility surface, strategy building, and activity detection.
+volatility surface, strategy building, activity detection,
+chain analysis, and flow classification.
 """
 
 from dataclasses import dataclass, field
+from enum import Enum
+
+
+class FlowType(Enum):
+    """Options flow classification."""
+    SWEEP = "sweep"
+    BLOCK = "block"
+    SPLIT = "split"
+    NORMAL = "normal"
+
+
+class ActivityLevel(Enum):
+    """Unusual activity intensity."""
+    NORMAL = "normal"
+    ELEVATED = "elevated"
+    UNUSUAL = "unusual"
+    EXTREME = "extreme"
+
+
+class Sentiment(Enum):
+    """Options sentiment direction."""
+    BULLISH = "bullish"
+    BEARISH = "bearish"
+    NEUTRAL = "neutral"
 
 
 @dataclass
@@ -76,6 +101,28 @@ class BacktestConfig:
 
 
 @dataclass
+class ChainConfig:
+    """Chain analysis configuration."""
+
+    min_volume: int = 10
+    min_open_interest: int = 100
+    skew_otm_range: float = 0.10
+    max_pain_strike_step: float = 1.0
+
+
+@dataclass
+class FlowConfig:
+    """Flow detection configuration."""
+
+    unusual_vol_oi_ratio: float = 2.0
+    elevated_vol_oi_ratio: float = 1.5
+    extreme_vol_oi_ratio: float = 5.0
+    sweep_min_exchanges: int = 2
+    block_min_size: int = 100
+    min_premium: float = 25_000.0
+
+
+@dataclass
 class OptionsConfig:
     """Top-level options platform configuration."""
 
@@ -84,3 +131,5 @@ class OptionsConfig:
     strategy: StrategyConfig = field(default_factory=StrategyConfig)
     activity: ActivityConfig = field(default_factory=ActivityConfig)
     backtest: BacktestConfig = field(default_factory=BacktestConfig)
+    chain: ChainConfig = field(default_factory=ChainConfig)
+    flow: FlowConfig = field(default_factory=FlowConfig)

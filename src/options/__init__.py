@@ -1,7 +1,8 @@
 """Advanced Options Trading Platform.
 
 Provides options pricing, volatility surface modeling, strategy
-building, unusual activity detection, and backtesting.
+building, unusual activity detection, backtesting, chain analysis,
+and flow classification.
 """
 
 from src.options.config import (
@@ -11,6 +12,11 @@ from src.options.config import (
     StrategyConfig,
     ActivityConfig,
     BacktestConfig,
+    ChainConfig,
+    FlowConfig,
+    FlowType,
+    ActivityLevel,
+    Sentiment,
 )
 from src.options.pricing import (
     OptionsPricingEngine,
@@ -43,6 +49,15 @@ from src.options.backtest import (
     EntryRules,
     ExitRules,
 )
+from src.options.models import (
+    OptionGreeks,
+    OptionContract,
+    ChainSummary,
+    OptionsFlow,
+    UnusualActivity,
+)
+from src.options.chain import ChainAnalyzer
+from src.options.flow import FlowDetector
 
 __all__ = [
     # Config
@@ -52,6 +67,11 @@ __all__ = [
     "StrategyConfig",
     "ActivityConfig",
     "BacktestConfig",
+    "ChainConfig",
+    "FlowConfig",
+    "FlowType",
+    "ActivityLevel",
+    "Sentiment",
     # Pricing
     "OptionsPricingEngine",
     "OptionPrice",
@@ -78,4 +98,12 @@ __all__ = [
     "BacktestTrade",
     "EntryRules",
     "ExitRules",
+    # Chain Analysis (PRD-43)
+    "OptionGreeks",
+    "OptionContract",
+    "ChainSummary",
+    "OptionsFlow",
+    "UnusualActivity",
+    "ChainAnalyzer",
+    "FlowDetector",
 ]
