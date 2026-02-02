@@ -12,8 +12,9 @@ benchmark = st.sidebar.selectbox("Benchmark", ["S&P 500", "NASDAQ 100", "Russell
 period = st.sidebar.selectbox("Period", ["YTD", "1M", "3M", "6M", "1Y", "3Y", "Inception"])
 
 # --- Main Content ---
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Summary", "Brinson Attribution", "Factor Attribution", "Tear Sheet",
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "Summary", "Brinson Attribution", "Factor Attribution",
+    "Risk Decomposition", "Performance Contribution", "Tear Sheet",
 ])
 
 # --- Tab 1: Summary ---
@@ -97,8 +98,83 @@ with tab3:
 
     st.markdown(f"**R² = 0.89** — Factor model explains 89% of return variance")
 
-# --- Tab 4: Tear Sheet ---
+# --- Tab 4: Risk Decomposition ---
 with tab4:
+    st.subheader("Risk Decomposition (Euler)")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Portfolio Vol", "14.2%")
+    col2.metric("Positions", "25")
+    col3.metric("Top Risk", "AAPL (18%)")
+    col4.metric("Diversification", "0.72")
+
+    st.markdown("#### Position Risk Contributions")
+    risk_data = pd.DataFrame([
+        {"Position": "AAPL", "Weight": "8.0%", "Vol": "28.5%",
+         "Component Risk": "2.56%", "Marginal Risk": "32.0%", "% of Total": "18.0%"},
+        {"Position": "MSFT", "Weight": "7.0%", "Vol": "24.2%",
+         "Component Risk": "1.98%", "Marginal Risk": "28.3%", "% of Total": "13.9%"},
+        {"Position": "GOOGL", "Weight": "6.5%", "Vol": "26.8%",
+         "Component Risk": "1.82%", "Marginal Risk": "28.0%", "% of Total": "12.8%"},
+        {"Position": "AMZN", "Weight": "6.0%", "Vol": "30.1%",
+         "Component Risk": "1.74%", "Marginal Risk": "29.0%", "% of Total": "12.2%"},
+        {"Position": "NVDA", "Weight": "5.5%", "Vol": "42.3%",
+         "Component Risk": "1.65%", "Marginal Risk": "30.0%", "% of Total": "11.6%"},
+    ])
+    st.dataframe(risk_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Sector Risk")
+    sector_risk_data = pd.DataFrame([
+        {"Sector": "Technology", "Weight": "35%", "Component Risk": "8.2%", "% of Total": "58%"},
+        {"Sector": "Healthcare", "Weight": "18%", "Component Risk": "2.1%", "% of Total": "15%"},
+        {"Sector": "Financials", "Weight": "12%", "Component Risk": "1.5%", "% of Total": "11%"},
+        {"Sector": "Consumer", "Weight": "15%", "Component Risk": "1.2%", "% of Total": "8%"},
+        {"Sector": "Energy", "Weight": "5%", "Component Risk": "0.6%", "% of Total": "4%"},
+    ])
+    st.dataframe(sector_risk_data, use_container_width=True, hide_index=True)
+
+# --- Tab 5: Performance Contribution ---
+with tab5:
+    st.subheader("Performance Contribution")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Return", "+18.5%")
+    col2.metric("Hit Rate", "68%")
+    col3.metric("Concentration", "42%")
+    col4.metric("Positions", "25")
+
+    st.markdown("#### Top Contributors")
+    top_data = pd.DataFrame([
+        {"Symbol": "NVDA", "Weight": "5.5%", "Return": "+85%",
+         "Contribution": "+4.68%", "% of Total": "25.3%"},
+        {"Symbol": "AAPL", "Weight": "8.0%", "Return": "+22%",
+         "Contribution": "+1.76%", "% of Total": "9.5%"},
+        {"Symbol": "META", "Weight": "4.5%", "Return": "+35%",
+         "Contribution": "+1.58%", "% of Total": "8.5%"},
+        {"Symbol": "LLY", "Weight": "3.5%", "Return": "+42%",
+         "Contribution": "+1.47%", "% of Total": "7.9%"},
+        {"Symbol": "MSFT", "Weight": "7.0%", "Return": "+18%",
+         "Contribution": "+1.26%", "% of Total": "6.8%"},
+    ])
+    st.dataframe(top_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Bottom Contributors")
+    bottom_data = pd.DataFrame([
+        {"Symbol": "BA", "Weight": "2.0%", "Return": "-25%",
+         "Contribution": "-0.50%", "% of Total": "-2.7%"},
+        {"Symbol": "DIS", "Weight": "2.5%", "Return": "-12%",
+         "Contribution": "-0.30%", "% of Total": "-1.6%"},
+        {"Symbol": "PFE", "Weight": "3.0%", "Return": "-8%",
+         "Contribution": "-0.24%", "% of Total": "-1.3%"},
+        {"Symbol": "NKE", "Weight": "1.5%", "Return": "-15%",
+         "Contribution": "-0.23%", "% of Total": "-1.2%"},
+        {"Symbol": "INTC", "Weight": "1.0%", "Return": "-18%",
+         "Contribution": "-0.18%", "% of Total": "-1.0%"},
+    ])
+    st.dataframe(bottom_data, use_container_width=True, hide_index=True)
+
+# --- Tab 6: Tear Sheet ---
+with tab6:
     st.subheader("Monthly Returns")
 
     monthly_data = pd.DataFrame([

@@ -52,6 +52,12 @@ from src.attribution.factor_attribution import FactorAnalyzer
 from src.attribution.benchmark import BenchmarkAnalyzer
 from src.attribution.metrics import MetricsCalculator
 from src.attribution.tearsheet import TearSheetGenerator
+from src.attribution.risk import RiskDecomposer
+from src.attribution.performance import (
+    PositionContribution,
+    ContributionSummary,
+    PerformanceContributor,
+)
 
 __all__ = [
     # Config
@@ -77,10 +83,14 @@ __all__ = [
     "PerformanceMetrics",
     "MonthlyReturns",
     "TearSheet",
+    "PositionContribution",
+    "ContributionSummary",
     # Analyzers
     "BrinsonAnalyzer",
     "FactorAnalyzer",
     "BenchmarkAnalyzer",
     "MetricsCalculator",
     "TearSheetGenerator",
+    "RiskDecomposer",
+    "PerformanceContributor",
 ]
