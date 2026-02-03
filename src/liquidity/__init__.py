@@ -51,6 +51,22 @@ from src.liquidity.engine import LiquidityEngine
 from src.liquidity.impact import MarketImpactEstimator
 from src.liquidity.scoring import LiquidityScorer
 
+from src.liquidity.redemption import (
+    RedemptionScenario,
+    LiquidityBuffer,
+    LiquidationItem,
+    LiquidationSchedule,
+    RedemptionRiskModeler,
+)
+
+from src.liquidity.lavar import (
+    VaRResult,
+    LiquidityCost,
+    PositionLaVaR,
+    LaVaR,
+    LaVaRCalculator,
+)
+
 __all__ = [
     # Config
     "LiquidityLevel",
@@ -77,4 +93,16 @@ __all__ = [
     "LiquidityEngine",
     "MarketImpactEstimator",
     "LiquidityScorer",
+    # Redemption Risk (PRD-54)
+    "RedemptionScenario",
+    "LiquidityBuffer",
+    "LiquidationItem",
+    "LiquidationSchedule",
+    "RedemptionRiskModeler",
+    # Liquidity-Adjusted VaR (PRD-54)
+    "VaRResult",
+    "LiquidityCost",
+    "PositionLaVaR",
+    "LaVaR",
+    "LaVaRCalculator",
 ]

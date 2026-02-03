@@ -13,8 +13,9 @@ window = st.sidebar.selectbox("Window", ["1 Week", "1 Month", "3 Months"], index
 trade_size = st.sidebar.number_input("Trade Size (shares)", value=10000, step=1000)
 
 # --- Main Content ---
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Overview", "Spread", "Impact", "Scoring",
+    "Redemption Risk", "LaVaR",
 ])
 
 # --- Tab 1: Overview ---
@@ -116,3 +117,110 @@ with tab4:
         {"Rank": 8, "Symbol": "META", "Score": 75, "Level": "High", "Spread (bps)": 3.5},
     ])
     st.dataframe(ranking_data, use_container_width=True, hide_index=True)
+
+# --- Tab 5: Redemption Risk ---
+with tab5:
+    st.subheader("Redemption Risk Analysis")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Redemption Probability", "12%")
+    col2.metric("Buffer Coverage", "1.8x")
+    col3.metric("Buffer Deficit", "$0")
+    col4.metric("Days to Liquidate", "8.5")
+
+    st.markdown("#### Stress Scenarios")
+    scenario_data = pd.DataFrame([
+        {
+            "Scenario": "Normal (5%)",
+            "Redemption": "$5.0M",
+            "Coverage": "3.60x",
+            "Shortfall": "$0",
+            "Days": 0,
+        },
+        {
+            "Scenario": "Stressed (15%)",
+            "Redemption": "$15.0M",
+            "Coverage": "1.20x",
+            "Shortfall": "$0",
+            "Days": 0,
+        },
+        {
+            "Scenario": "Crisis (30%)",
+            "Redemption": "$30.0M",
+            "Coverage": "0.60x",
+            "Shortfall": "$12.0M",
+            "Days": 7,
+        },
+    ])
+    st.dataframe(scenario_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Liquidity Buffer")
+    buffer_data = pd.DataFrame([
+        {"Metric": "Total AUM", "Value": "$100M"},
+        {"Metric": "Cash on Hand", "Value": "$8M"},
+        {"Metric": "Liquid Assets (< 1 day)", "Value": "$10M"},
+        {"Metric": "Expected Redemption (5%)", "Value": "$5M"},
+        {"Metric": "Required Buffer (1.5x)", "Value": "$7.5M"},
+        {"Metric": "Buffer Coverage", "Value": "2.40x"},
+        {"Metric": "Buffer Deficit", "Value": "$0"},
+    ])
+    st.dataframe(buffer_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Liquidation Schedule")
+    liq_sched = pd.DataFrame([
+        {"Priority": 1, "Symbol": "SPY", "Value": "$15M", "ADV": "$25B",
+         "DTL": "0.1 days", "Cost": "1.2 bps"},
+        {"Priority": 2, "Symbol": "AAPL", "Value": "$12M", "ADV": "$8B",
+         "DTL": "0.2 days", "Cost": "2.5 bps"},
+        {"Priority": 3, "Symbol": "MSFT", "Value": "$10M", "ADV": "$5B",
+         "DTL": "0.2 days", "Cost": "3.0 bps"},
+        {"Priority": 4, "Symbol": "NVDA", "Value": "$8M", "ADV": "$3B",
+         "DTL": "0.3 days", "Cost": "4.5 bps"},
+        {"Priority": 5, "Symbol": "ILLQ", "Value": "$5M", "ADV": "$50M",
+         "DTL": "10.0 days", "Cost": "45.0 bps"},
+    ])
+    st.dataframe(liq_sched, use_container_width=True, hide_index=True)
+
+# --- Tab 6: LaVaR ---
+with tab6:
+    st.subheader("Liquidity-Adjusted VaR")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Standard VaR (95%)", "$1.65M")
+    col2.metric("Liquidity Cost", "$0.35M")
+    col3.metric("LaVaR", "$2.00M")
+    col4.metric("Liquidity Share", "17.5%")
+
+    st.markdown("#### VaR Components")
+    var_data = pd.DataFrame([
+        {"Component": "Standard VaR (95%, 1-day)", "Pct": "1.65%", "Dollar": "$1.65M"},
+        {"Component": "Spread Cost", "Pct": "0.12%", "Dollar": "$0.12M"},
+        {"Component": "Market Impact", "Pct": "0.23%", "Dollar": "$0.23M"},
+        {"Component": "Total Liquidity Cost", "Pct": "0.35%", "Dollar": "$0.35M"},
+        {"Component": "LaVaR (95%, 1-day)", "Pct": "2.00%", "Dollar": "$2.00M"},
+    ])
+    st.dataframe(var_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Position LaVaR Decomposition")
+    pos_lavar = pd.DataFrame([
+        {"Symbol": "ILLQ", "Weight": "5%", "VaR Contrib": "0.08%",
+         "Liq Cost": "0.15%", "LaVaR": "0.23%", "DTL": "10.0 days"},
+        {"Symbol": "AAPL", "Weight": "20%", "VaR Contrib": "0.33%",
+         "Liq Cost": "0.04%", "LaVaR": "0.37%", "DTL": "0.2 days"},
+        {"Symbol": "SPY", "Weight": "30%", "VaR Contrib": "0.50%",
+         "Liq Cost": "0.02%", "LaVaR": "0.52%", "DTL": "0.1 days"},
+        {"Symbol": "MSFT", "Weight": "25%", "VaR Contrib": "0.41%",
+         "Liq Cost": "0.05%", "LaVaR": "0.46%", "DTL": "0.2 days"},
+        {"Symbol": "NVDA", "Weight": "20%", "VaR Contrib": "0.33%",
+         "Liq Cost": "0.09%", "LaVaR": "0.42%", "DTL": "0.3 days"},
+    ])
+    st.dataframe(pos_lavar, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Horizon Sensitivity")
+    horizon_data = pd.DataFrame([
+        {"Horizon": "1 day", "VaR": "1.65%", "Liq Cost": "0.35%", "LaVaR": "2.00%"},
+        {"Horizon": "5 days", "VaR": "3.69%", "Liq Cost": "0.78%", "LaVaR": "4.47%"},
+        {"Horizon": "10 days", "VaR": "5.22%", "Liq Cost": "1.11%", "LaVaR": "6.33%"},
+        {"Horizon": "20 days", "VaR": "7.38%", "Liq Cost": "1.57%", "LaVaR": "8.95%"},
+    ])
+    st.dataframe(horizon_data, use_container_width=True, hide_index=True)
