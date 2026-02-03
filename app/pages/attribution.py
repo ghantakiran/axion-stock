@@ -12,9 +12,10 @@ benchmark = st.sidebar.selectbox("Benchmark", ["S&P 500", "NASDAQ 100", "Russell
 period = st.sidebar.selectbox("Period", ["YTD", "1M", "3M", "6M", "1Y", "3Y", "Inception"])
 
 # --- Main Content ---
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "Summary", "Brinson Attribution", "Factor Attribution",
     "Risk Decomposition", "Performance Contribution", "Tear Sheet",
+    "Multi-Period", "Fama-French", "Geographic", "Risk-Adjusted",
 ])
 
 # --- Tab 1: Summary ---
@@ -209,3 +210,148 @@ with tab6:
         {"Metric": "Win Rate", "Value": "54.2%"},
     ])
     st.dataframe(dist_data, use_container_width=True, hide_index=True)
+
+# --- Tab 7: Multi-Period Attribution ---
+with tab7:
+    st.subheader("Multi-Period Brinson Attribution (Carino Linking)")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Linked Allocation", "+1.9%")
+    col2.metric("Linked Selection", "+3.6%")
+    col3.metric("Linked Interaction", "+0.9%")
+    col4.metric("Residual", "0.01%")
+
+    st.markdown("#### Period-by-Period Decomposition")
+    mp_data = pd.DataFrame([
+        {"Period": "Q1", "Portfolio": "+5.2%", "Benchmark": "+3.8%",
+         "Allocation": "+0.5%", "Selection": "+0.8%", "Interaction": "+0.1%"},
+        {"Period": "Q2", "Portfolio": "+3.1%", "Benchmark": "+2.5%",
+         "Allocation": "+0.3%", "Selection": "+0.2%", "Interaction": "+0.1%"},
+        {"Period": "Q3", "Portfolio": "-1.2%", "Benchmark": "-0.5%",
+         "Allocation": "-0.2%", "Selection": "-0.4%", "Interaction": "-0.1%"},
+        {"Period": "Q4", "Portfolio": "+4.8%", "Benchmark": "+3.2%",
+         "Allocation": "+0.6%", "Selection": "+0.8%", "Interaction": "+0.2%"},
+    ])
+    st.dataframe(mp_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Cumulative Effects")
+    cum_data = pd.DataFrame([
+        {"Period": "Q1", "Cum Allocation": "+0.5%", "Cum Selection": "+0.8%",
+         "Cum Active": "+1.4%"},
+        {"Period": "Q1-Q2", "Cum Allocation": "+0.8%", "Cum Selection": "+1.0%",
+         "Cum Active": "+2.0%"},
+        {"Period": "Q1-Q3", "Cum Allocation": "+0.6%", "Cum Selection": "+0.6%",
+         "Cum Active": "+1.3%"},
+        {"Period": "Q1-Q4", "Cum Allocation": "+1.2%", "Cum Selection": "+1.4%",
+         "Cum Active": "+2.9%"},
+    ])
+    st.dataframe(cum_data, use_container_width=True, hide_index=True)
+
+# --- Tab 8: Fama-French ---
+with tab8:
+    st.subheader("Fama-French Factor Model")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Alpha (ann.)", "+3.2%")
+    col2.metric("Alpha t-stat", "2.15")
+    col3.metric("R-squared", "0.91")
+    col4.metric("Preferred Model", "FF5")
+
+    st.markdown("#### FF5 Factor Exposures")
+    ff_data = pd.DataFrame([
+        {"Factor": "Mkt-RF", "Beta": "1.08", "t-stat": "18.5",
+         "p-value": "0.000", "Significant": "Yes", "Contribution": "12.1%"},
+        {"Factor": "SMB", "Beta": "0.28", "t-stat": "3.2",
+         "p-value": "0.001", "Significant": "Yes", "Contribution": "0.8%"},
+        {"Factor": "HML", "Beta": "-0.15", "t-stat": "-1.8",
+         "p-value": "0.072", "Significant": "No", "Contribution": "-0.5%"},
+        {"Factor": "RMW", "Beta": "0.22", "t-stat": "2.6",
+         "p-value": "0.010", "Significant": "Yes", "Contribution": "0.9%"},
+        {"Factor": "CMA", "Beta": "-0.08", "t-stat": "-0.9",
+         "p-value": "0.368", "Significant": "No", "Contribution": "-0.2%"},
+    ])
+    st.dataframe(ff_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Model Comparison")
+    model_comp = pd.DataFrame([
+        {"Model": "FF3", "R-squared": "0.88", "Adj R-squared": "0.87",
+         "Alpha": "+3.5%", "Alpha t-stat": "2.05"},
+        {"Model": "FF5", "R-squared": "0.91", "Adj R-squared": "0.90",
+         "Alpha": "+3.2%", "Alpha t-stat": "2.15"},
+    ])
+    st.dataframe(model_comp, use_container_width=True, hide_index=True)
+
+# --- Tab 9: Geographic Attribution ---
+with tab9:
+    st.subheader("Geographic Attribution")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Countries", "8")
+    col2.metric("Regions", "3")
+    col3.metric("Allocation Effect", "+1.2%")
+    col4.metric("Currency Effect", "-0.3%")
+
+    st.markdown("#### Region-Level Attribution")
+    region_data = pd.DataFrame([
+        {"Region": "North America", "Port Weight": "62%", "BM Weight": "55%",
+         "Allocation": "+0.8%", "Selection": "+1.5%", "Currency": "0.0%", "Total": "+2.3%"},
+        {"Region": "Europe", "Port Weight": "22%", "BM Weight": "25%",
+         "Allocation": "+0.2%", "Selection": "-0.3%", "Currency": "-0.2%", "Total": "-0.3%"},
+        {"Region": "Asia Pacific", "Port Weight": "16%", "BM Weight": "20%",
+         "Allocation": "+0.2%", "Selection": "+0.1%", "Currency": "-0.1%", "Total": "+0.2%"},
+    ])
+    st.dataframe(region_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Country-Level Breakdown")
+    country_data = pd.DataFrame([
+        {"Country": "US", "Port Wt": "58%", "BM Wt": "50%",
+         "Port Return": "20%", "BM Return": "15%",
+         "Allocation": "+0.7%", "Selection": "+2.5%", "Total": "+3.3%"},
+        {"Country": "GB", "Port Wt": "12%", "BM Wt": "15%",
+         "Port Return": "8%", "BM Return": "10%",
+         "Allocation": "+0.1%", "Selection": "-0.3%", "Total": "-0.2%"},
+        {"Country": "JP", "Port Wt": "10%", "BM Wt": "12%",
+         "Port Return": "6%", "BM Return": "5%",
+         "Allocation": "+0.1%", "Selection": "+0.1%", "Total": "+0.2%"},
+    ])
+    st.dataframe(country_data, use_container_width=True, hide_index=True)
+
+# --- Tab 10: Risk-Adjusted Metrics ---
+with tab10:
+    st.subheader("Advanced Risk-Adjusted Metrics")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("M-squared", "+16.8%")
+    col2.metric("Omega Ratio", "1.85")
+    col3.metric("Ulcer Index", "3.2%")
+    col4.metric("Composite Score", "82")
+
+    st.markdown("#### Standard Metrics")
+    std_data = pd.DataFrame([
+        {"Metric": "Sharpe Ratio", "Value": "1.85"},
+        {"Metric": "Sortino Ratio", "Value": "2.45"},
+        {"Metric": "Calmar Ratio", "Value": "2.23"},
+        {"Metric": "Treynor Ratio", "Value": "0.19"},
+    ])
+    st.dataframe(std_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Advanced Metrics")
+    adv_data = pd.DataFrame([
+        {"Metric": "M-squared", "Value": "16.8%", "Description": "Risk-adjusted return at benchmark volatility"},
+        {"Metric": "Omega Ratio", "Value": "1.85", "Description": "Probability-weighted gain/loss ratio"},
+        {"Metric": "Gain-Loss Ratio", "Value": "1.42", "Description": "Mean gain / mean loss"},
+        {"Metric": "Sterling Ratio", "Value": "3.15", "Description": "Excess return / average drawdown"},
+        {"Metric": "Burke Ratio", "Value": "2.28", "Description": "Excess return / RMS of drawdowns"},
+        {"Metric": "Kappa 3", "Value": "1.95", "Description": "Generalized Sortino (3rd order LPM)"},
+        {"Metric": "Tail Ratio", "Value": "1.35", "Description": "95th percentile / |5th percentile|"},
+        {"Metric": "Prospect Ratio", "Value": "0.0028", "Description": "Loss-aversion adjusted utility"},
+    ])
+    st.dataframe(adv_data, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Drawdown-Based Metrics")
+    dd_metrics = pd.DataFrame([
+        {"Metric": "Ulcer Index", "Value": "3.2%", "Description": "RMS of drawdown percentages"},
+        {"Metric": "Pain Ratio", "Value": "4.25", "Description": "Excess return / mean drawdown"},
+        {"Metric": "Martin Ratio", "Value": "5.78", "Description": "Excess return / ulcer index"},
+    ])
+    st.dataframe(dd_metrics, use_container_width=True, hide_index=True)

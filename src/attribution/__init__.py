@@ -58,6 +58,30 @@ from src.attribution.performance import (
     ContributionSummary,
     PerformanceContributor,
 )
+from src.attribution.multi_period import (
+    PeriodAttribution,
+    LinkedAttribution,
+    CumulativeEffect,
+    MultiPeriodAttribution,
+)
+from src.attribution.fama_french import (
+    FFFactorExposure,
+    FFModelResult,
+    FFComparison,
+    FamaFrenchAnalyzer,
+)
+from src.attribution.geographic import (
+    CountryAttribution,
+    RegionAttribution,
+    GeographicAttribution,
+    GeographicAnalyzer,
+)
+from src.attribution.risk_adjusted import (
+    RiskAdjustedMetrics,
+    MetricComparison,
+    RiskAdjustedReport,
+    RiskAdjustedAnalyzer,
+)
 
 __all__ = [
     # Config
@@ -93,4 +117,24 @@ __all__ = [
     "TearSheetGenerator",
     "RiskDecomposer",
     "PerformanceContributor",
+    # Multi-Period Attribution
+    "PeriodAttribution",
+    "LinkedAttribution",
+    "CumulativeEffect",
+    "MultiPeriodAttribution",
+    # Fama-French
+    "FFFactorExposure",
+    "FFModelResult",
+    "FFComparison",
+    "FamaFrenchAnalyzer",
+    # Geographic Attribution
+    "CountryAttribution",
+    "RegionAttribution",
+    "GeographicAttribution",
+    "GeographicAnalyzer",
+    # Risk-Adjusted Metrics
+    "RiskAdjustedMetrics",
+    "MetricComparison",
+    "RiskAdjustedReport",
+    "RiskAdjustedAnalyzer",
 ]
