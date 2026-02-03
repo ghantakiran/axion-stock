@@ -65,6 +65,30 @@ from src.execution.rebalancer import (
 )
 from src.execution.journal import TradeJournal
 from src.execution.trading_service import TradingService, TradingConfig
+from src.execution.tca import (
+    CostComponent,
+    TCAResult,
+    AggregateTCA,
+    TCAEngine,
+)
+from src.execution.scheduling import (
+    TimeSlice,
+    ExecutionSchedule,
+    ScheduleComparison,
+    ExecutionScheduler,
+)
+from src.execution.broker_compare import (
+    BrokerStats,
+    BrokerComparison,
+    TradeRecord,
+    BrokerComparator,
+)
+from src.execution.fill_quality import (
+    FillMetrics,
+    FillDistribution,
+    SymbolFillProfile,
+    FillQualityAnalyzer,
+)
 
 __all__ = [
     # Models
@@ -106,4 +130,24 @@ __all__ = [
     # Trading Service
     "TradingService",
     "TradingConfig",
+    # TCA
+    "CostComponent",
+    "TCAResult",
+    "AggregateTCA",
+    "TCAEngine",
+    # Scheduling
+    "TimeSlice",
+    "ExecutionSchedule",
+    "ScheduleComparison",
+    "ExecutionScheduler",
+    # Broker Comparison
+    "BrokerStats",
+    "BrokerComparison",
+    "TradeRecord",
+    "BrokerComparator",
+    # Fill Quality
+    "FillMetrics",
+    "FillDistribution",
+    "SymbolFillProfile",
+    "FillQualityAnalyzer",
 ]
