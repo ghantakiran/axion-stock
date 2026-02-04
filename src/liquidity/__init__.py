@@ -66,6 +66,42 @@ from src.liquidity.lavar import (
     LaVaR,
     LaVaRCalculator,
 )
+from src.liquidity.spread_model import (
+    RollSpreadEstimate,
+    SpreadDecomposition,
+    SpreadForecast,
+    SpreadRegimeProfile,
+    SpreadModeler,
+)
+from src.liquidity.depth_analyzer import (
+    DepthLevel,
+    DepthSnapshot,
+    DepthResilience,
+    TopOfBookImbalance,
+    DepthProfile,
+    MarketDepthAnalyzer,
+)
+from src.liquidity.liquidity_premium import (
+    AmihudRatio,
+    PastorStambaughFactor,
+    IlliquidityPremium,
+    CrossSectionalPremium,
+    IlliquidityPremiumEstimator,
+)
+from src.liquidity.concentration import (
+    PositionLiquidity,
+    ConcentrationMetrics,
+    LiquidityLimit,
+    LiquidityRiskReport,
+    LiquidityConcentrationAnalyzer,
+)
+from src.liquidity.cost_curve import (
+    CostPoint,
+    CostCurve,
+    CostComparison,
+    OptimalExecution,
+    CostCurveBuilder,
+)
 
 __all__ = [
     # Config
@@ -105,4 +141,35 @@ __all__ = [
     "PositionLaVaR",
     "LaVaR",
     "LaVaRCalculator",
+    # Spread Modeling (PRD-62)
+    "RollSpreadEstimate",
+    "SpreadDecomposition",
+    "SpreadForecast",
+    "SpreadRegimeProfile",
+    "SpreadModeler",
+    # Market Depth (PRD-62)
+    "DepthLevel",
+    "DepthSnapshot",
+    "DepthResilience",
+    "TopOfBookImbalance",
+    "DepthProfile",
+    "MarketDepthAnalyzer",
+    # Illiquidity Premium (PRD-62)
+    "AmihudRatio",
+    "PastorStambaughFactor",
+    "IlliquidityPremium",
+    "CrossSectionalPremium",
+    "IlliquidityPremiumEstimator",
+    # Concentration (PRD-62)
+    "PositionLiquidity",
+    "ConcentrationMetrics",
+    "LiquidityLimit",
+    "LiquidityRiskReport",
+    "LiquidityConcentrationAnalyzer",
+    # Cost Curves (PRD-62)
+    "CostPoint",
+    "CostCurve",
+    "CostComparison",
+    "OptimalExecution",
+    "CostCurveBuilder",
 ]
