@@ -48,6 +48,33 @@ from src.volatility.models import (
 from src.volatility.engine import VolatilityEngine
 from src.volatility.surface import VolSurfaceAnalyzer
 from src.volatility.regime import VolRegimeDetector
+from src.volatility.svi_model import (
+    SVIParams,
+    SVISurface,
+    CalibrationResult,
+    SVICalibrator,
+)
+from src.volatility.skew_analytics import (
+    RiskReversal,
+    SkewDynamics,
+    SkewTermStructure,
+    SkewRegime,
+    SkewAnalyzer,
+)
+from src.volatility.term_model import (
+    TermStructureFit,
+    CarryRollDown,
+    TermDynamics,
+    TermComparison,
+    TermStructureModeler,
+)
+from src.volatility.vol_regime_signals import (
+    VolOfVol,
+    MeanReversionSignal,
+    RegimeTransitionSignal,
+    VolSignalSummary,
+    VolRegimeSignalGenerator,
+)
 
 __all__ = [
     # Config
@@ -78,4 +105,27 @@ __all__ = [
     "VolatilityEngine",
     "VolSurfaceAnalyzer",
     "VolRegimeDetector",
+    # SVI Surface (PRD-64)
+    "SVIParams",
+    "SVISurface",
+    "CalibrationResult",
+    "SVICalibrator",
+    # Skew Analytics (PRD-64)
+    "RiskReversal",
+    "SkewDynamics",
+    "SkewTermStructure",
+    "SkewRegime",
+    "SkewAnalyzer",
+    # Term Structure Modeling (PRD-64)
+    "TermStructureFit",
+    "CarryRollDown",
+    "TermDynamics",
+    "TermComparison",
+    "TermStructureModeler",
+    # Vol Regime Signals (PRD-64)
+    "VolOfVol",
+    "MeanReversionSignal",
+    "RegimeTransitionSignal",
+    "VolSignalSummary",
+    "VolRegimeSignalGenerator",
 ]

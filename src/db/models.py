@@ -363,3 +363,75 @@ class DataQualityLog(Base):
     message = Column(String(500))
     details = Column(Text)  # JSON string
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------------------
+# PRD-42: Order Flow Analysis
+# ---------------------------------------------------------------------------
+
+
+class OrderbookSnapshotRecord(Base):
+    """Order book imbalance history (PRD-42)."""
+
+    __tablename__ = "orderbook_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(16), nullable=False, index=True)
+    bid_volume = Column(Float)
+    ask_volume = Column(Float)
+    imbalance_ratio = Column(Float)
+    imbalance_type = Column(String(16))
+    signal = Column(String(16))
+    timestamp = Column(DateTime)
+    computed_at = Column(DateTime, server_default=func.now())
+
+
+class BlockTradeRecord(Base):
+    """Detected large block trades (PRD-42)."""
+
+    __tablename__ = "block_trades"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(16), nullable=False, index=True)
+    size = Column(Integer)
+    price = Column(Float)
+    side = Column(String(4))
+    dollar_value = Column(Float)
+    block_size = Column(String(16), index=True)
+    timestamp = Column(DateTime)
+    computed_at = Column(DateTime, server_default=func.now())
+
+
+class FlowPressureRecord(Base):
+    """Buy/sell pressure measurements (PRD-42)."""
+
+    __tablename__ = "flow_pressure"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(16), nullable=False, index=True)
+    buy_volume = Column(Float)
+    sell_volume = Column(Float)
+    net_flow = Column(Float)
+    pressure_ratio = Column(Float)
+    direction = Column(String(16))
+    cumulative_delta = Column(Float)
+    date = Column(Date)
+    computed_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("ix_flow_pressure_symbol_date", "symbol", "date"),)
+
+
+class SmartMoneySignalRecord(Base):
+    """Smart money signal history (PRD-42)."""
+
+    __tablename__ = "smart_money_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(16), nullable=False, index=True)
+    signal = Column(String(16))
+    confidence = Column(Float)
+    block_ratio = Column(Float)
+    institutional_net_flow = Column(Float)
+    institutional_buy_pct = Column(Float)
+    date = Column(Date)
+    computed_at = Column(DateTime, server_default=func.now())

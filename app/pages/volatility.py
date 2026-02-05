@@ -2,6 +2,8 @@
 
 import streamlit as st
 import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Volatility Analysis", layout="wide")
 st.title("Volatility Analysis")
@@ -13,8 +15,9 @@ method = st.sidebar.selectbox("Method", ["Historical", "EWMA", "Parkinson", "Gar
 window = st.sidebar.selectbox("Window", ["1 Week", "1 Month", "3 Months", "6 Months", "1 Year"], index=1)
 
 # --- Main Content ---
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "Overview", "Surface", "Term Structure", "Regime",
+    "SVI Calibration", "Skew Analytics", "Term Model", "Vol Signals",
 ])
 
 # --- Tab 1: Overview ---
@@ -131,3 +134,193 @@ with tab4:
         {"Regime": "Extreme", "Fraction": "4%", "Days": "~11"},
     ])
     st.dataframe(dist_data, use_container_width=True, hide_index=True)
+
+# --- Tab 5: SVI Calibration ---
+with tab5:
+    st.subheader("SVI Surface Calibration")
+    st.markdown("Stochastic Volatility Inspired (SVI) parametric surface fitting.")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Global RMSE", "0.008")
+    col2.metric("Slices Fitted", "5")
+    col3.metric("Points Fitted", "45")
+    col4.metric("Fit Quality", "Excellent")
+
+    svi_df = pd.DataFrame([
+        {"Tenor": "7d", "a": 0.035, "b": 0.12, "rho": -0.35,
+         "m": 0.00, "sigma": 0.18, "ATM Vol": "24.5%", "RMSE": 0.006},
+        {"Tenor": "30d", "a": 0.040, "b": 0.10, "rho": -0.30,
+         "m": 0.00, "sigma": 0.20, "ATM Vol": "22.3%", "RMSE": 0.008},
+        {"Tenor": "60d", "a": 0.045, "b": 0.11, "rho": -0.28,
+         "m": 0.00, "sigma": 0.21, "ATM Vol": "22.8%", "RMSE": 0.007},
+        {"Tenor": "90d", "a": 0.050, "b": 0.10, "rho": -0.27,
+         "m": 0.00, "sigma": 0.22, "ATM Vol": "23.2%", "RMSE": 0.009},
+        {"Tenor": "180d", "a": 0.055, "b": 0.09, "rho": -0.25,
+         "m": 0.00, "sigma": 0.23, "ATM Vol": "24.0%", "RMSE": 0.010},
+    ])
+    st.dataframe(svi_df, use_container_width=True, hide_index=True)
+
+    # SVI surface heatmap
+    moneyness = np.linspace(0.85, 1.15, 20)
+    tenors = np.array([7, 30, 60, 90, 180])
+    k = np.log(moneyness)
+    iv_grid = np.zeros((len(tenors), len(k)))
+    for i, t in enumerate(tenors):
+        a, b, rho, sigma = 0.04 + 0.003 * i, 0.10, -0.30 + 0.02 * i, 0.20
+        var = a + b * (rho * k + np.sqrt(k ** 2 + sigma ** 2))
+        iv_grid[i] = np.sqrt(np.maximum(var, 0.001) / (t / 365.0))
+
+    fig = go.Figure(data=go.Heatmap(
+        z=iv_grid * 100, x=np.round(moneyness, 2), y=tenors,
+        colorscale="Viridis", colorbar_title="IV (%)",
+    ))
+    fig.update_layout(
+        title="Calibrated IV Surface",
+        xaxis_title="Moneyness (K/S)",
+        yaxis_title="Tenor (days)",
+        height=350, margin=dict(l=0, r=0, t=40, b=0),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- Tab 6: Skew Analytics ---
+with tab6:
+    st.subheader("Skew Analytics")
+    st.markdown("Risk reversal, butterfly spreads, and skew regime classification.")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("25d Risk Reversal", "+5.8%")
+    col2.metric("25d Butterfly", "+1.2%")
+    col3.metric("Skew Regime", "Normal")
+    col4.metric("Skew Z-Score", "0.45")
+
+    skew_df = pd.DataFrame([
+        {"Tenor": "7d", "Put Vol": "28.2%", "ATM Vol": "24.5%",
+         "Call Vol": "22.8%", "RR": "+5.4%", "Butterfly": "+0.9%"},
+        {"Tenor": "30d", "Put Vol": "26.5%", "ATM Vol": "22.3%",
+         "Call Vol": "20.7%", "RR": "+5.8%", "Butterfly": "+1.3%"},
+        {"Tenor": "60d", "Put Vol": "27.0%", "ATM Vol": "22.8%",
+         "Call Vol": "21.5%", "RR": "+5.5%", "Butterfly": "+1.5%"},
+        {"Tenor": "90d", "Put Vol": "27.5%", "ATM Vol": "23.2%",
+         "Call Vol": "22.0%", "RR": "+5.5%", "Butterfly": "+1.6%"},
+    ])
+    st.dataframe(skew_df, use_container_width=True, hide_index=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Skew Term Structure**")
+        tenors = [7, 30, 60, 90, 180]
+        rr_vals = [5.4, 5.8, 5.5, 5.5, 4.8]
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=tenors, y=rr_vals, mode="lines+markers", name="Risk Reversal",
+            line=dict(color="steelblue"),
+        ))
+        fig.update_layout(
+            title="Risk Reversal by Tenor",
+            xaxis_title="Tenor (days)", yaxis_title="RR (%)",
+            height=300, margin=dict(l=0, r=0, t=40, b=0),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with col2:
+        st.markdown("**Skew Regime History**")
+        regime_hist = pd.DataFrame([
+            {"Date": "2026-02-03", "Regime": "Normal", "RR": "+5.8%", "Confidence": "50%"},
+            {"Date": "2026-01-15", "Regime": "Panic", "RR": "+9.2%", "Confidence": "82%"},
+            {"Date": "2025-12-20", "Regime": "Normal", "RR": "+5.0%", "Confidence": "55%"},
+        ])
+        st.dataframe(regime_hist, use_container_width=True, hide_index=True)
+
+# --- Tab 7: Term Model ---
+with tab7:
+    st.subheader("Term Structure Model (Nelson-Siegel)")
+    st.markdown("Parametric term structure fitting with carry/roll-down analysis.")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Long-Term Vol (beta0)", "22.5%")
+    col2.metric("Slope (beta1)", "-2.5%")
+    col3.metric("Curvature (beta2)", "+0.8%")
+    col4.metric("Fit RMSE", "0.003")
+
+    # Nelson-Siegel fitted curve
+    tenors_plot = np.linspace(5, 365, 100)
+    beta0, beta1, beta2, tau = 0.225, -0.025, 0.008, 90.0
+    x = tenors_plot / tau
+    ex = np.exp(-x)
+    fitted_vol = beta0 + beta1 * (1 - ex) / x + beta2 * ((1 - ex) / x - ex)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=tenors_plot, y=fitted_vol * 100, mode="lines", name="Fitted",
+        line=dict(color="steelblue"),
+    ))
+    # Observed points
+    obs_tenors = [7, 30, 60, 90, 180, 365]
+    obs_vols = [24.5, 22.3, 22.8, 23.2, 24.0, 22.5]
+    fig.add_trace(go.Scatter(
+        x=obs_tenors, y=obs_vols, mode="markers", name="Observed",
+        marker=dict(size=10, color="red"),
+    ))
+    fig.update_layout(
+        title="Nelson-Siegel Term Structure Fit",
+        xaxis_title="Tenor (days)", yaxis_title="Vol (%)",
+        height=300, margin=dict(l=0, r=0, t=40, b=0),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("**Carry & Roll-Down Analysis**")
+    carry_df = pd.DataFrame([
+        {"Tenor": "30d", "IV": "22.3%", "RV": "18.5%", "Carry": "+3.8%",
+         "Roll-Down": "+0.2%", "Total PnL": "+160 bps", "Signal": "Sell Vol"},
+        {"Tenor": "60d", "IV": "22.8%", "RV": "19.0%", "Carry": "+3.8%",
+         "Roll-Down": "+0.1%", "Total PnL": "+220 bps", "Signal": "Sell Vol"},
+        {"Tenor": "90d", "IV": "23.2%", "RV": "18.8%", "Carry": "+4.4%",
+         "Roll-Down": "+0.0%", "Total PnL": "+270 bps", "Signal": "Sell Vol"},
+    ])
+    st.dataframe(carry_df, use_container_width=True, hide_index=True)
+
+# --- Tab 8: Vol Signals ---
+with tab8:
+    st.subheader("Volatility Regime Signals")
+    st.markdown("Trading signals from vol-of-vol, mean reversion, and regime transitions.")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Vol-of-Vol", "1.2%", "42nd pctl")
+    col2.metric("MR Z-Score", "0.15")
+    col3.metric("MR Signal", "Neutral")
+    col4.metric("Composite", "Neutral")
+
+    signals_df = pd.DataFrame([
+        {"Symbol": "AAPL", "VoV Pctl": "42%", "MR Z": "+0.15",
+         "MR Signal": "Neutral", "Regime": "Normal", "Composite": "Neutral",
+         "Action": "Hold"},
+        {"Symbol": "NVDA", "VoV Pctl": "78%", "MR Z": "+1.8",
+         "MR Signal": "Sell Vol", "Regime": "High", "Composite": "Risk Off",
+         "Action": "Add Hedges"},
+        {"Symbol": "TSLA", "VoV Pctl": "85%", "MR Z": "+2.2",
+         "MR Signal": "Sell Vol", "Regime": "High", "Composite": "Strong Risk Off",
+         "Action": "Reduce Exposure"},
+        {"Symbol": "MSFT", "VoV Pctl": "18%", "MR Z": "-1.6",
+         "MR Signal": "Buy Vol", "Regime": "Low", "Composite": "Risk On",
+         "Action": "Reduce Hedges"},
+    ])
+    st.dataframe(signals_df, use_container_width=True, hide_index=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Transition Signal Map**")
+        trans_df = pd.DataFrame([
+            {"From": "Low", "To": "High", "Type": "Spike", "Signal": "Risk Off", "Strength": 0.7},
+            {"From": "Normal", "To": "Extreme", "Type": "Spike", "Signal": "Risk Off", "Strength": 0.9},
+            {"From": "Extreme", "To": "Normal", "Type": "Normalization", "Signal": "Risk On", "Strength": 0.6},
+            {"From": "High", "To": "Normal", "Type": "De-escalation", "Signal": "Risk On", "Strength": 0.4},
+        ])
+        st.dataframe(trans_df, use_container_width=True, hide_index=True)
+    with col2:
+        st.markdown("**Mean Reversion Half-Life**")
+        st.markdown("- **AAPL**: 18 days")
+        st.markdown("- **NVDA**: 12 days")
+        st.markdown("- **TSLA**: 8 days (fast mean-reverting)")
+        st.markdown("- **MSFT**: 25 days")
+        st.markdown("")
+        st.markdown("*Shorter half-life = faster mean reversion = "
+                     "more actionable signals.*")
