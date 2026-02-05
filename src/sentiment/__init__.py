@@ -46,6 +46,34 @@ from src.sentiment.composite import (
     SentimentComposite,
     SentimentBreakdown,
 )
+from src.sentiment.decay_weighting import (
+    SentimentObservation,
+    DecayedScore,
+    DecayProfile,
+    DecayConfig,
+    DecayWeightingEngine,
+)
+from src.sentiment.fusion import (
+    SourceSignal,
+    FusionResult,
+    SourceReliability,
+    FusionComparison,
+    SentimentFusionEngine,
+)
+from src.sentiment.consensus import (
+    SourceVote,
+    ConsensusResult,
+    ConsensusShift,
+    MarketConsensus,
+    ConsensusScorer,
+)
+from src.sentiment.momentum import (
+    SentimentSnapshot,
+    MomentumResult,
+    TrendReversal,
+    MomentumSummary,
+    SentimentMomentumTracker,
+)
 
 __all__ = [
     # Config
@@ -82,4 +110,28 @@ __all__ = [
     # Composite
     "SentimentComposite",
     "SentimentBreakdown",
+    # Decay Weighting (PRD-63)
+    "SentimentObservation",
+    "DecayedScore",
+    "DecayProfile",
+    "DecayConfig",
+    "DecayWeightingEngine",
+    # Fusion (PRD-63)
+    "SourceSignal",
+    "FusionResult",
+    "SourceReliability",
+    "FusionComparison",
+    "SentimentFusionEngine",
+    # Consensus (PRD-63)
+    "SourceVote",
+    "ConsensusResult",
+    "ConsensusShift",
+    "MarketConsensus",
+    "ConsensusScorer",
+    # Momentum (PRD-63)
+    "SentimentSnapshot",
+    "MomentumResult",
+    "TrendReversal",
+    "MomentumSummary",
+    "SentimentMomentumTracker",
 ]

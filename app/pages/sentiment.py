@@ -264,8 +264,9 @@ def main():
         st.metric("Insider Activity", "Net Buying")
 
     # Tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Overview", "📰 News", "💬 Social", "👔 Insider & Analyst"
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        "📊 Overview", "📰 News", "💬 Social", "👔 Insider & Analyst",
+        "⏱ Decay Weighting", "🔀 Fusion", "🤝 Consensus", "📈 Momentum",
     ])
 
     with tab1:
@@ -283,6 +284,224 @@ def main():
     with tab4:
         insider = get_demo_insider()
         render_insider_signals(insider)
+
+    with tab5:
+        st.markdown("### Time-Decay Weighted Sentiment")
+        st.markdown("Applies exponential half-life decay so recent signals "
+                     "carry more weight than stale observations.")
+
+        decay_df = pd.DataFrame([
+            {"Symbol": "AAPL", "Weighted Score": 0.52, "Unweighted": 0.45,
+             "Avg Age (hrs)": 18.5, "Freshness": 0.75, "Sources": 4},
+            {"Symbol": "NVDA", "Weighted Score": 0.71, "Unweighted": 0.58,
+             "Avg Age (hrs)": 12.0, "Freshness": 0.90, "Sources": 5},
+            {"Symbol": "TSLA", "Weighted Score": -0.15, "Unweighted": -0.05,
+             "Avg Age (hrs)": 36.0, "Freshness": 0.40, "Sources": 4},
+            {"Symbol": "MSFT", "Weighted Score": 0.38, "Unweighted": 0.35,
+             "Avg Age (hrs)": 24.0, "Freshness": 0.60, "Sources": 3},
+            {"Symbol": "AMZN", "Weighted Score": 0.25, "Unweighted": 0.30,
+             "Avg Age (hrs)": 30.0, "Freshness": 0.50, "Sources": 3},
+        ])
+        st.dataframe(
+            decay_df.style.format({
+                "Weighted Score": "{:.2f}", "Unweighted": "{:.2f}",
+                "Avg Age (hrs)": "{:.1f}", "Freshness": "{:.0%}",
+            }).background_gradient(
+                subset=["Weighted Score"], cmap="RdYlGn", vmin=-1, vmax=1,
+            ),
+            use_container_width=True, hide_index=True,
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            hours = np.linspace(0, 200, 100)
+            decay = np.power(2.0, -hours / 48.0)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=hours, y=decay, mode="lines", name="Decay Factor",
+                line=dict(color="steelblue"),
+            ))
+            fig.add_hline(y=0.5, line_dash="dash", annotation_text="Half-life (48h)")
+            fig.update_layout(
+                title="Exponential Decay Curve (48h Half-Life)",
+                xaxis_title="Age (hours)", yaxis_title="Weight",
+                height=300, margin=dict(l=0, r=0, t=40, b=0),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.markdown("**Decay Impact Analysis**")
+            st.markdown("- Fresh obs (<24h) get **75-100%** weight")
+            st.markdown("- 48h old observations get **50%** weight")
+            st.markdown("- 1-week old observations get **~3%** weight")
+            st.markdown("- High-credibility sources get a boost")
+
+    with tab6:
+        st.markdown("### Multi-Source Sentiment Fusion")
+        st.markdown("Combines signals from diverse sources with adaptive "
+                     "weighting and conflict detection.")
+
+        fusion_df = pd.DataFrame([
+            {"Symbol": "AAPL", "Fused Score": 0.55, "Confidence": 0.82,
+             "Agreement": 0.90, "Conflict": 0.08, "Dominant": "news", "Sources": 5},
+            {"Symbol": "NVDA", "Fused Score": 0.72, "Confidence": 0.88,
+             "Agreement": 0.95, "Conflict": 0.04, "Dominant": "analyst", "Sources": 5},
+            {"Symbol": "TSLA", "Fused Score": 0.05, "Confidence": 0.45,
+             "Agreement": 0.50, "Conflict": 0.55, "Dominant": "social", "Sources": 4},
+            {"Symbol": "MSFT", "Fused Score": 0.48, "Confidence": 0.75,
+             "Agreement": 0.80, "Conflict": 0.15, "Dominant": "analyst", "Sources": 4},
+            {"Symbol": "JPM", "Fused Score": -0.12, "Confidence": 0.60,
+             "Agreement": 0.65, "Conflict": 0.30, "Dominant": "insider", "Sources": 3},
+        ])
+        st.dataframe(
+            fusion_df.style.format({
+                "Fused Score": "{:.2f}", "Confidence": "{:.0%}",
+                "Agreement": "{:.0%}", "Conflict": "{:.0%}",
+            }).background_gradient(
+                subset=["Fused Score"], cmap="RdYlGn", vmin=-1, vmax=1,
+            ),
+            use_container_width=True, hide_index=True,
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            fig = go.Figure(go.Bar(
+                x=fusion_df["Symbol"],
+                y=fusion_df["Fused Score"],
+                marker_color=["green" if s > 0.1 else ("red" if s < -0.1 else "gray")
+                              for s in fusion_df["Fused Score"]],
+            ))
+            fig.update_layout(
+                title="Fused Sentiment Scores",
+                height=300, margin=dict(l=0, r=0, t=40, b=0),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.markdown("**Source Weight Allocation**")
+            weights = {"News": 0.25, "Analyst": 0.20, "Insider": 0.20,
+                       "Social": 0.15, "Earnings": 0.10, "Options": 0.10}
+            fig = go.Figure(go.Pie(
+                labels=list(weights.keys()),
+                values=list(weights.values()),
+                hole=0.4,
+            ))
+            fig.update_layout(
+                title="Default Source Weights",
+                height=300, margin=dict(l=0, r=0, t=40, b=0),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    with tab7:
+        st.markdown("### Sentiment Consensus")
+        st.markdown("Measures agreement across sources and tracks "
+                     "consensus shifts over time.")
+
+        consensus_df = pd.DataFrame([
+            {"Symbol": "AAPL", "Direction": "Bullish", "Score": 0.52,
+             "Strength": 0.75, "Unanimity": 0.85, "Bull": 4, "Bear": 0, "Neutral": 1},
+            {"Symbol": "NVDA", "Direction": "Bullish", "Score": 0.68,
+             "Strength": 0.88, "Unanimity": 1.00, "Bull": 5, "Bear": 0, "Neutral": 0},
+            {"Symbol": "TSLA", "Direction": "Neutral", "Score": 0.05,
+             "Strength": 0.20, "Unanimity": 0.40, "Bull": 2, "Bear": 2, "Neutral": 1},
+            {"Symbol": "JPM", "Direction": "Bearish", "Score": -0.22,
+             "Strength": 0.55, "Unanimity": 0.67, "Bull": 1, "Bear": 2, "Neutral": 0},
+        ])
+        st.dataframe(
+            consensus_df.style.format({
+                "Score": "{:.2f}", "Strength": "{:.0%}", "Unanimity": "{:.0%}",
+            }),
+            use_container_width=True, hide_index=True,
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Market Breadth**")
+            breadth_data = {"Bullish": 6, "Neutral": 2, "Bearish": 2}
+            fig = go.Figure(go.Pie(
+                labels=list(breadth_data.keys()),
+                values=list(breadth_data.values()),
+                marker_colors=["green", "gray", "red"],
+                hole=0.5,
+            ))
+            fig.update_layout(
+                title="Consensus Direction Distribution",
+                height=300, margin=dict(l=0, r=0, t=40, b=0),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.markdown("**Recent Consensus Shifts**")
+            shifts = [
+                {"Symbol": "TSLA", "From": "Bearish", "To": "Neutral",
+                 "Change": "+0.25", "Type": "Reversal"},
+                {"Symbol": "JPM", "From": "Neutral", "To": "Bearish",
+                 "Change": "-0.18", "Type": "Shift"},
+            ]
+            st.dataframe(pd.DataFrame(shifts), use_container_width=True,
+                         hide_index=True)
+
+    with tab8:
+        st.markdown("### Sentiment Momentum")
+        st.markdown("Tracks sentiment trends and detects inflection points.")
+
+        momentum_df = pd.DataFrame([
+            {"Symbol": "AAPL", "Current": 0.52, "Momentum": 0.04,
+             "Accel": 0.01, "Trend": "Improving", "Strength": 0.82},
+            {"Symbol": "NVDA", "Current": 0.71, "Momentum": 0.02,
+             "Accel": -0.01, "Trend": "Improving", "Strength": 0.90},
+            {"Symbol": "TSLA", "Current": 0.05, "Momentum": 0.08,
+             "Accel": 0.03, "Trend": "Improving", "Strength": 0.65},
+            {"Symbol": "MSFT", "Current": 0.38, "Momentum": -0.02,
+             "Accel": -0.01, "Trend": "Deteriorating", "Strength": 0.55},
+            {"Symbol": "JPM", "Current": -0.12, "Momentum": -0.05,
+             "Accel": 0.00, "Trend": "Deteriorating", "Strength": 0.70},
+        ])
+        st.dataframe(
+            momentum_df.style.format({
+                "Current": "{:.2f}", "Momentum": "{:+.2f}",
+                "Accel": "{:+.2f}", "Strength": "{:.0%}",
+            }).background_gradient(
+                subset=["Momentum"], cmap="RdYlGn", vmin=-0.1, vmax=0.1,
+            ),
+            use_container_width=True, hide_index=True,
+        )
+
+        # Sentiment trend chart
+        np.random.seed(42)
+        periods = 20
+        trend_data = {}
+        for sym in ["AAPL", "NVDA", "TSLA", "MSFT"]:
+            base = np.random.uniform(-0.2, 0.5)
+            trend = np.random.uniform(-0.02, 0.03)
+            noise = np.random.normal(0, 0.05, periods)
+            trend_data[sym] = np.clip(
+                base + trend * np.arange(periods) + noise, -1, 1
+            )
+        fig = go.Figure()
+        for sym, vals in trend_data.items():
+            fig.add_trace(go.Scatter(
+                x=list(range(periods)), y=vals,
+                mode="lines+markers", name=sym,
+            ))
+        fig.update_layout(
+            title="Sentiment Trend (Last 20 Periods)",
+            xaxis_title="Period", yaxis_title="Sentiment Score",
+            height=350, margin=dict(l=0, r=0, t=40, b=0),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Momentum Summary**")
+            st.metric("Improving", "6/10 stocks")
+            st.metric("Avg Momentum", "+0.015")
+            st.metric("Breadth", "65%")
+        with col2:
+            st.markdown("**Detected Reversals**")
+            reversals = [
+                {"Symbol": "TSLA", "Type": "Bullish Reversal",
+                 "From": "-0.15", "To": "+0.05", "Confidence": "62%"},
+            ]
+            st.dataframe(pd.DataFrame(reversals), use_container_width=True,
+                         hide_index=True)
 
 
 if __name__ == "__main__":
