@@ -71,6 +71,44 @@ from src.risk.monitor import (
     RiskStatus,
 )
 
+# Shock Propagation (PRD-65)
+from src.risk.shock_propagation import (
+    FactorShock,
+    PropagatedShock,
+    PortfolioShockResult,
+    ContagionPath,
+    ShockPropagationEngine,
+)
+
+# Drawdown Analysis (PRD-65)
+from src.risk.drawdown_analysis import (
+    DrawdownEvent,
+    DrawdownMetrics,
+    UnderwaterCurve,
+    ConditionalDrawdown,
+    DrawdownAnalyzer,
+)
+
+# Recovery Estimation (PRD-65)
+from src.risk.recovery_estimation import (
+    RecoveryEstimate,
+    RecoveryPath,
+    RecoveryAnalysis,
+    BreakevenAnalysis,
+    RecoveryEstimator,
+)
+
+# Scenario Builder (PRD-65)
+from src.risk.scenario_builder import (
+    MacroShock,
+    SectorRotation,
+    CorrelationShift,
+    CustomScenario,
+    ScenarioTemplate,
+    ScenarioBuilder,
+    SCENARIO_TEMPLATES,
+)
+
 __all__ = [
     # Config
     "RiskConfig",
@@ -109,4 +147,30 @@ __all__ = [
     "RiskMonitor",
     "RiskDashboardData",
     "RiskStatus",
+    # Shock Propagation (PRD-65)
+    "FactorShock",
+    "PropagatedShock",
+    "PortfolioShockResult",
+    "ContagionPath",
+    "ShockPropagationEngine",
+    # Drawdown Analysis (PRD-65)
+    "DrawdownEvent",
+    "DrawdownMetrics",
+    "UnderwaterCurve",
+    "ConditionalDrawdown",
+    "DrawdownAnalyzer",
+    # Recovery Estimation (PRD-65)
+    "RecoveryEstimate",
+    "RecoveryPath",
+    "RecoveryAnalysis",
+    "BreakevenAnalysis",
+    "RecoveryEstimator",
+    # Scenario Builder (PRD-65)
+    "MacroShock",
+    "SectorRotation",
+    "CorrelationShift",
+    "CustomScenario",
+    "ScenarioTemplate",
+    "ScenarioBuilder",
+    "SCENARIO_TEMPLATES",
 ]

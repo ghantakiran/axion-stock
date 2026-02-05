@@ -39,6 +39,13 @@ try:
         StressTestEngine,
         HYPOTHETICAL_SCENARIOS,
         AttributionAnalyzer,
+        # PRD-65: Portfolio Stress Testing
+        ShockPropagationEngine,
+        FactorShock,
+        DrawdownAnalyzer,
+        RecoveryEstimator,
+        ScenarioBuilder,
+        SCENARIO_TEMPLATES,
     )
     RISK_AVAILABLE = True
 except ImportError as e:
@@ -499,6 +506,392 @@ def render_config_panel():
 
 
 # =============================================================================
+# PRD-65: Shock Propagation
+# =============================================================================
+
+def render_shock_propagation():
+    """Render shock propagation analysis."""
+    st.markdown("### 💥 Shock Propagation Analysis")
+    st.caption("Analyze how factor shocks cascade through portfolio via correlations")
+
+    engine = ShockPropagationEngine()
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.markdown("**Initial Shock**")
+        shock_factor = st.selectbox(
+            "Factor",
+            ["market", "rates", "credit", "volatility", "growth", "value", "momentum", "quality"]
+        )
+        shock_magnitude = st.slider("Magnitude", -0.20, 0.20, -0.10, 0.01, format="%.2f")
+        max_hops = st.slider("Max Propagation Hops", 1, 5, 2)
+
+        # Demo position exposures
+        position_exposures = {
+            "AAPL": {shock_factor: 1.2, "market": 1.1, "growth": 0.8},
+            "MSFT": {shock_factor: 1.0, "market": 1.0, "quality": 0.9},
+            "NVDA": {shock_factor: 1.5, "market": 1.3, "momentum": 1.2},
+            "JPM": {shock_factor: 0.8, "market": 1.0, "value": 1.1},
+            "XOM": {shock_factor: 0.5, "market": 0.9, "value": 1.0},
+        }
+        position_values = {"AAPL": 18500, "MSFT": 15000, "NVDA": 12000, "JPM": 9500, "XOM": 6000}
+        portfolio_value = sum(position_values.values())
+
+    with col2:
+        if st.button("Run Shock Propagation", type="primary"):
+            initial_shocks = [FactorShock(factor=shock_factor, magnitude=shock_magnitude)]
+
+            result = engine.propagate_shock(
+                initial_shocks=initial_shocks,
+                position_exposures=position_exposures,
+                position_values=position_values,
+                portfolio_value=portfolio_value,
+                max_hops=max_hops
+            )
+
+            # Display results
+            col2a, col2b, col2c = st.columns(3)
+            with col2a:
+                st.metric("Total Impact", f"{result.total_impact_pct:.2%}")
+            with col2b:
+                st.metric("Amplification", f"{result.amplification_factor:.2f}x")
+            with col2c:
+                st.metric("Worst Position", f"{result.worst_position}")
+
+            # Position impacts chart
+            impacts = {ps.symbol: ps.total_impact_pct for ps in result.position_shocks}
+            fig = go.Figure(go.Bar(
+                x=list(impacts.keys()),
+                y=list(impacts.values()),
+                marker_color=["red" if v < 0 else "green" for v in impacts.values()]
+            ))
+            fig.update_layout(
+                title="Position Impacts",
+                xaxis_title="Position",
+                yaxis_title="Impact (%)",
+                yaxis_tickformat=".1%",
+                height=300
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Contagion trace
+            st.markdown("**Contagion Paths**")
+            paths = engine.trace_contagion(shock_factor, shock_magnitude, max_hops)
+            for path in paths[:5]:
+                st.write(f"→ {' → '.join(path.path)} (total: {path.total_magnitude:.3f})")
+
+
+# =============================================================================
+# PRD-65: Drawdown Analysis
+# =============================================================================
+
+def render_drawdown_analysis():
+    """Render drawdown analysis."""
+    st.markdown("### 📉 Drawdown Analysis")
+    st.caption("Analyze drawdown patterns, underwater periods, and conditional drawdown")
+
+    analyzer = DrawdownAnalyzer()
+
+    # Generate demo portfolio values
+    np.random.seed(42)
+    n_days = 504  # 2 years
+    dates = pd.date_range(end=datetime.now(), periods=n_days, freq='D')
+    returns = np.random.normal(0.0003, 0.015, n_days)
+
+    # Add some drawdown events
+    returns[100:130] = np.random.normal(-0.01, 0.02, 30)  # First drawdown
+    returns[250:300] = np.random.normal(-0.008, 0.018, 50)  # Second drawdown
+    returns[400:420] = np.random.normal(-0.015, 0.025, 20)  # Third drawdown
+
+    values = 100000 * np.cumprod(1 + returns)
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        # Underwater curve
+        underwater = analyzer.compute_underwater_curve(values.tolist(), "Portfolio")
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=dates,
+            y=underwater.drawdowns,
+            fill='tozeroy',
+            fillcolor='rgba(255, 0, 0, 0.3)',
+            line=dict(color='red'),
+            name='Drawdown'
+        ))
+        fig.update_layout(
+            title="Underwater Curve",
+            xaxis_title="Date",
+            yaxis_title="Drawdown",
+            yaxis_tickformat=".1%",
+            height=300
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Portfolio value with peaks
+        fig2 = go.Figure()
+        fig2.add_trace(go.Scatter(
+            x=dates, y=values, name='Portfolio', line=dict(color='blue')
+        ))
+        fig2.add_trace(go.Scatter(
+            x=dates, y=underwater.peak_values, name='High-Water Mark',
+            line=dict(color='green', dash='dash')
+        ))
+        fig2.update_layout(
+            title="Portfolio Value vs High-Water Mark",
+            yaxis_title="Value ($)",
+            height=300
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+    with col2:
+        # Drawdown metrics
+        metrics = analyzer.compute_metrics(values.tolist(), returns.tolist(), "Portfolio")
+
+        st.metric("Max Drawdown", f"{metrics.max_drawdown:.2%}")
+        st.metric("Current Drawdown", f"{metrics.current_drawdown:.2%}")
+        st.metric("Avg Duration (days)", f"{metrics.avg_duration:.0f}")
+        st.metric("% Time Underwater", f"{metrics.pct_time_underwater:.1%}")
+        st.metric("Calmar Ratio", f"{metrics.calmar_ratio:.2f}")
+        st.metric("Ulcer Index", f"{metrics.ulcer_index:.4f}")
+
+        # Drawdown events
+        st.markdown("**Drawdown Events**")
+        events = analyzer.identify_drawdown_events(values.tolist(), "Portfolio")
+        for i, evt in enumerate(events[:5], 1):
+            st.write(f"{i}. {evt.max_drawdown:.1%} over {evt.duration} days")
+
+
+# =============================================================================
+# PRD-65: Recovery Estimation
+# =============================================================================
+
+def render_recovery_estimation():
+    """Render recovery time estimation."""
+    st.markdown("### 🔄 Recovery Estimation")
+    st.caption("Estimate time to recover from current drawdown")
+
+    estimator = RecoveryEstimator(n_simulations=500)
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.markdown("**Current State**")
+        current_drawdown = st.slider("Current Drawdown %", -50, -1, -15, 1) / 100
+        drift = st.slider("Expected Daily Return (bps)", 0, 20, 3) / 10000
+        volatility = st.slider("Daily Volatility (%)", 0.5, 4.0, 1.5, 0.1) / 100
+
+        method = st.radio("Estimation Method", ["Monte Carlo", "Analytical"])
+
+    with col2:
+        if st.button("Estimate Recovery", type="primary"):
+            if method == "Monte Carlo":
+                estimate = estimator.monte_carlo_estimate(
+                    current_drawdown=current_drawdown,
+                    drift=drift,
+                    volatility=volatility,
+                    symbol="Portfolio"
+                )
+            else:
+                estimate = estimator.analytical_estimate(
+                    current_drawdown=current_drawdown,
+                    drift=drift,
+                    volatility=volatility,
+                    symbol="Portfolio"
+                )
+
+            col2a, col2b, col2c = st.columns(3)
+            with col2a:
+                st.metric("Expected Days", f"{estimate.expected_days:.0f}")
+            with col2b:
+                st.metric("Median Days", f"{estimate.median_days:.0f}")
+            with col2c:
+                st.metric("90th Percentile", f"{estimate.days_90th_pctile:.0f}")
+
+            # Recovery probability chart
+            probs = {
+                "30 days": estimate.probability_30d,
+                "90 days": estimate.probability_90d,
+                "180 days": estimate.probability_180d,
+            }
+            fig = go.Figure(go.Bar(
+                x=list(probs.keys()),
+                y=list(probs.values()),
+                marker_color=['#ff6b6b', '#feca57', '#48dbfb'],
+                text=[f"{v:.0%}" for v in probs.values()],
+                textposition='outside'
+            ))
+            fig.update_layout(
+                title="Recovery Probability by Horizon",
+                yaxis_title="Probability",
+                yaxis_tickformat=".0%",
+                yaxis_range=[0, 1.1],
+                height=300
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.info(f"**Confidence:** {estimate.recovery_confidence.title()} | **Method:** {estimate.method}")
+
+        # Breakeven analysis
+        st.markdown("---")
+        st.markdown("**Breakeven Analysis**")
+        current_value = st.number_input("Current Value ($)", 10000, 1000000, 85000, 1000)
+        peak_value = st.number_input("Peak Value ($)", 10000, 1000000, 100000, 1000)
+
+        if current_value < peak_value:
+            breakeven = estimator.breakeven_analysis(current_value, peak_value, drift)
+            st.write(f"Required Gain: **{breakeven.required_gain_pct:.1%}**")
+            st.write(f"Days to Breakeven: **{breakeven.days_to_breakeven:.0f}**")
+            if breakeven.is_deep_hole:
+                st.warning("Significant compounding effect - recovery may take longer than linear estimate")
+
+
+# =============================================================================
+# PRD-65: Scenario Builder
+# =============================================================================
+
+def render_scenario_builder():
+    """Render custom scenario builder."""
+    st.markdown("### 🔧 Scenario Builder")
+    st.caption("Build custom stress scenarios from templates or macro shocks")
+
+    builder = ScenarioBuilder()
+
+    tab1, tab2, tab3 = st.tabs(["From Template", "Custom Build", "Combined"])
+
+    with tab1:
+        st.markdown("**Build from Pre-defined Template**")
+
+        templates = builder.list_templates()
+        template_names = [t["name"] for t in templates]
+
+        col1, col2 = st.columns([1, 2])
+
+        with col1:
+            selected = st.selectbox("Template", template_names)
+            severity = st.slider("Severity Multiplier", 0.5, 2.0, 1.0, 0.1)
+
+            if st.button("Build Scenario", key="build_template"):
+                # Find template key
+                template_key = [k for k, v in SCENARIO_TEMPLATES.items() if v.name == selected][0]
+                scenario = builder.from_template(template_key, severity)
+
+                st.session_state.built_scenario = scenario
+
+        with col2:
+            if "built_scenario" in st.session_state:
+                scenario = st.session_state.built_scenario
+
+                st.markdown(f"**{scenario.name}**")
+                st.write(scenario.description)
+
+                col2a, col2b, col2c = st.columns(3)
+                with col2a:
+                    st.metric("Market Shock", f"{scenario.market_shock:.1%}")
+                with col2b:
+                    st.metric("Severity Score", f"{scenario.severity_score:.0f}/100")
+                with col2c:
+                    st.metric("Vol Multiplier", f"{scenario.volatility_multiplier:.2f}x")
+
+                # Sector impacts
+                if scenario.sector_rotations:
+                    sectors = {r.sector: r.impact_pct for r in scenario.sector_rotations}
+                    fig = go.Figure(go.Bar(
+                        y=list(sectors.keys()),
+                        x=list(sectors.values()),
+                        orientation='h',
+                        marker_color=["red" if v < 0 else "green" for v in sectors.values()]
+                    ))
+                    fig.update_layout(
+                        title="Sector Impacts",
+                        xaxis_tickformat=".0%",
+                        height=250
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+    with tab2:
+        st.markdown("**Build from Macro Shocks**")
+
+        from src.risk import MacroShock
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            rate_shock = st.slider("Interest Rate Shock (%)", -2.0, 2.0, 0.5, 0.1) / 100
+            inflation = st.slider("Inflation Shock (%)", -2.0, 4.0, 1.0, 0.1) / 100
+
+        with col2:
+            growth = st.slider("Growth Shock (%)", -5.0, 3.0, -1.0, 0.1) / 100
+            dollar = st.slider("Dollar Shock (%)", -10.0, 10.0, 2.0, 0.5) / 100
+
+        if st.button("Build Custom Scenario", key="build_custom"):
+            shocks = []
+            if abs(rate_shock) > 0.001:
+                shocks.append(MacroShock(
+                    variable="interest_rates",
+                    magnitude=abs(rate_shock),
+                    direction="up" if rate_shock > 0 else "down"
+                ))
+            if abs(inflation) > 0.001:
+                shocks.append(MacroShock(
+                    variable="inflation",
+                    magnitude=abs(inflation),
+                    direction="up" if inflation > 0 else "down"
+                ))
+            if abs(growth) > 0.001:
+                shocks.append(MacroShock(
+                    variable="growth",
+                    magnitude=abs(growth),
+                    direction="up" if growth > 0 else "down"
+                ))
+
+            if shocks:
+                custom = builder.from_macro_shocks(shocks, "Custom Macro Scenario")
+                validation = builder.validate_scenario(custom)
+
+                st.markdown(f"**Severity Score:** {validation['severity_score']:.0f}/100")
+                st.markdown(f"**Components:** {validation['n_components']}")
+
+                if not validation['valid']:
+                    for issue in validation['issues']:
+                        st.warning(issue)
+
+                if custom.sector_rotations:
+                    sectors = {r.sector: r.impact_pct for r in custom.sector_rotations}
+                    st.dataframe(pd.DataFrame([
+                        {"Sector": k, "Impact": f"{v:.1%}"}
+                        for k, v in sectors.items()
+                    ]), hide_index=True)
+
+    with tab3:
+        st.markdown("**Combine Multiple Scenarios**")
+        st.info("Select templates to combine with custom weights")
+
+        selected_templates = st.multiselect(
+            "Templates to Combine",
+            list(SCENARIO_TEMPLATES.keys()),
+            default=["recession", "rate_shock"]
+        )
+
+        if len(selected_templates) >= 2:
+            weights = []
+            cols = st.columns(len(selected_templates))
+            for i, (name, col) in enumerate(zip(selected_templates, cols)):
+                with col:
+                    w = st.number_input(f"{name} weight", 0.0, 1.0, 1.0 / len(selected_templates), 0.1, key=f"w_{name}")
+                    weights.append(w)
+
+            if st.button("Combine Scenarios"):
+                scenarios = [builder.from_template(t) for t in selected_templates]
+                combined = builder.combine_scenarios(scenarios, weights, "Combined Stress Scenario")
+
+                st.metric("Combined Market Shock", f"{combined.market_shock:.1%}")
+                st.metric("Combined Severity", f"{combined.severity_score:.0f}/100")
+
+
+# =============================================================================
 # Main Page
 # =============================================================================
 
@@ -570,8 +963,9 @@ def main():
         st.markdown("---")
 
         # Tabs for different views
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "📊 Metrics", "📉 VaR", "🎯 Concentration", "🔥 Stress Tests", "⚙️ Config"
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+            "📊 Metrics", "📉 VaR", "🎯 Concentration", "🔥 Stress Tests",
+            "💥 Shock Propagation", "📉 Drawdown", "🔄 Recovery", "🔧 Scenarios", "⚙️ Config"
         ])
 
         with tab1:
@@ -589,6 +983,18 @@ def main():
             render_stress_tests(dashboard_data, portfolio_value)
 
         with tab5:
+            render_shock_propagation()
+
+        with tab6:
+            render_drawdown_analysis()
+
+        with tab7:
+            render_recovery_estimation()
+
+        with tab8:
+            render_scenario_builder()
+
+        with tab9:
             render_config_panel()
 
         # Alerts at bottom
