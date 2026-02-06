@@ -795,3 +795,173 @@ class EmailVerificationToken(Base):
     created_at = Column(DateTime, server_default=func.now())
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, default=False)
+
+
+# ---------------------------------------------------------------------------
+# PRD-68: Multi-Account Management
+# ---------------------------------------------------------------------------
+
+
+class AccountTypeEnum(enum.Enum):
+    """Account types."""
+    INDIVIDUAL = "individual"
+    IRA_TRADITIONAL = "ira_traditional"
+    IRA_ROTH = "ira_roth"
+    JOINT = "joint"
+    TRUST = "trust"
+    CORPORATE = "corporate"
+    PAPER = "paper"
+
+
+class TaxStatusEnum(enum.Enum):
+    """Account tax status."""
+    TAXABLE = "taxable"
+    TAX_DEFERRED = "tax_deferred"
+    TAX_FREE = "tax_free"
+
+
+class BrokerEnum(enum.Enum):
+    """Supported brokers."""
+    PAPER = "paper"
+    ALPACA = "alpaca"
+    IBKR = "ibkr"
+
+
+class TradingAccount(Base):
+    """Trading account for multi-account management."""
+
+    __tablename__ = "accounts"
+
+    id = Column(String(36), primary_key=True)
+    owner_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    account_type = Column(String(30), nullable=False)
+    broker = Column(String(30), nullable=False, index=True)
+    broker_account_id = Column(String(100), nullable=True)
+
+    # Strategy
+    strategy_id = Column(String(36), nullable=True)
+    strategy_name = Column(String(100), nullable=True)
+    target_allocation = Column(Text)  # JSON
+
+    # Financials
+    cash_balance = Column(Float, default=0)
+    total_value = Column(Float, default=0)
+    cost_basis = Column(Float, default=0)
+
+    # Tax
+    tax_status = Column(String(20), nullable=False)
+
+    # Benchmark
+    benchmark = Column(String(20), default="SPY")
+
+    # Dates
+    inception_date = Column(Date, nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_primary = Column(Boolean, default=False)
+
+    # Permissions
+    permissions = Column(Text)  # JSON array of user IDs
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    snapshots = relationship("AccountSnapshotRecord", back_populates="account", cascade="all, delete-orphan")
+    positions = relationship("AccountPositionRecord", back_populates="account", cascade="all, delete-orphan")
+
+
+class AccountSnapshotRecord(Base):
+    """Daily account snapshot for performance tracking."""
+
+    __tablename__ = "account_snapshots"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    account_id = Column(String(36), nullable=False, index=True)
+    snapshot_date = Column(Date, nullable=False)
+
+    # Values
+    total_value = Column(Float, nullable=False)
+    cash_balance = Column(Float, nullable=False)
+    positions_value = Column(Float, nullable=False)
+
+    # P&L
+    day_pnl = Column(Float, nullable=True)
+    day_return_pct = Column(Float, nullable=True)
+    total_pnl = Column(Float, nullable=True)
+    total_return_pct = Column(Float, nullable=True)
+
+    # Positions snapshot
+    positions = Column(Text)  # JSON
+
+    # Metrics
+    num_positions = Column(Integer, nullable=True)
+    portfolio_beta = Column(Float, nullable=True)
+    portfolio_volatility = Column(Float, nullable=True)
+
+    # Timestamp
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    account = relationship("TradingAccount", back_populates="snapshots")
+
+    __table_args__ = (
+        Index("ix_account_snapshots_account_date", "account_id", "snapshot_date"),
+    )
+
+
+class AccountPositionRecord(Base):
+    """Current position in an account."""
+
+    __tablename__ = "account_positions"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    account_id = Column(String(36), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    quantity = Column(Float, nullable=False)
+    avg_cost = Column(Float, nullable=False)
+    current_price = Column(Float, nullable=True)
+    market_value = Column(Float, nullable=True)
+    unrealized_pnl = Column(Float, nullable=True)
+    unrealized_pnl_pct = Column(Float, nullable=True)
+    weight = Column(Float, nullable=True)  # % of portfolio
+    asset_class = Column(String(30), nullable=True)
+    sector = Column(String(50), nullable=True)
+    updated_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    account = relationship("TradingAccount", back_populates="positions")
+
+
+class AccountLink(Base):
+    """Link between accounts for household view."""
+
+    __tablename__ = "account_links"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    primary_user_id = Column(String(36), nullable=False)
+    linked_account_id = Column(String(36), nullable=False)
+    relationship = Column(String(30), nullable=True)  # spouse, child, trust
+    access_level = Column(String(20), nullable=False)  # view, trade, manage
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class RebalancingHistory(Base):
+    """History of account rebalancing operations."""
+
+    __tablename__ = "rebalancing_history"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    account_id = Column(String(36), nullable=False, index=True)
+    rebalance_date = Column(DateTime, nullable=False)
+    rebalance_type = Column(String(30), nullable=True)  # threshold, scheduled, manual
+    pre_allocation = Column(Text)  # JSON
+    post_allocation = Column(Text)  # JSON
+    trades_executed = Column(Text)  # JSON
+    total_traded_value = Column(Float, nullable=True)
+    status = Column(String(20), nullable=False)  # completed, partial, failed
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
