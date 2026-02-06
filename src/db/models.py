@@ -435,3 +435,188 @@ class SmartMoneySignalRecord(Base):
     institutional_buy_pct = Column(Float)
     date = Column(Date)
     computed_at = Column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------------------
+# PRD-66: Trade Journal Dashboard
+# ---------------------------------------------------------------------------
+
+
+class TradeDirection(enum.Enum):
+    """Trade direction."""
+    LONG = "long"
+    SHORT = "short"
+
+
+class TradeType(enum.Enum):
+    """Trade type by duration."""
+    SCALP = "scalp"
+    DAY = "day"
+    SWING = "swing"
+    POSITION = "position"
+
+
+class EmotionalState(enum.Enum):
+    """Emotional state for trade journaling."""
+    CALM = "calm"
+    CONFIDENT = "confident"
+    ANXIOUS = "anxious"
+    FOMO = "fomo"
+    GREEDY = "greedy"
+    FEARFUL = "fearful"
+    FRUSTRATED = "frustrated"
+    EUPHORIC = "euphoric"
+    REVENGE = "revenge"
+
+
+class TradingStrategy(Base):
+    """User-defined trading strategies with rules."""
+
+    __tablename__ = "trading_strategies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    strategy_id = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    entry_rules = Column(Text)  # JSON array of rules
+    exit_rules = Column(Text)  # JSON array of rules
+    max_risk_per_trade = Column(Float)
+    target_risk_reward = Column(Float)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class TradeSetup(Base):
+    """Categorized trade setups/patterns."""
+
+    __tablename__ = "trade_setups"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    setup_id = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    category = Column(String(50))  # breakout, pullback, reversal, etc.
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class JournalEntry(Base):
+    """Extended trade journal entry with emotions, setup, notes."""
+
+    __tablename__ = "journal_entries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    entry_id = Column(String(50), unique=True, nullable=False, index=True)
+    symbol = Column(String(30), nullable=False, index=True)
+
+    # Direction & Type
+    direction = Column(String(20), nullable=False)  # long, short
+    trade_type = Column(String(30))  # swing, day, scalp, position
+
+    # Entry
+    entry_date = Column(DateTime, nullable=False, index=True)
+    entry_price = Column(Float, nullable=False)
+    entry_quantity = Column(Float, nullable=False)
+    entry_reason = Column(Text)
+
+    # Exit
+    exit_date = Column(DateTime)
+    exit_price = Column(Float)
+    exit_reason = Column(Text)
+
+    # P&L
+    realized_pnl = Column(Float)
+    realized_pnl_pct = Column(Float)
+    fees = Column(Float)
+
+    # Setup & Strategy
+    setup_id = Column(String(50), index=True)
+    strategy_id = Column(String(50), index=True)
+    timeframe = Column(String(20))  # 1m, 5m, 1h, 1d
+
+    # Tags
+    tags = Column(Text)  # JSON array
+
+    # Notes
+    notes = Column(Text)
+    lessons_learned = Column(Text)
+
+    # Emotions
+    pre_trade_emotion = Column(String(30))
+    during_trade_emotion = Column(String(30))
+    post_trade_emotion = Column(String(30))
+
+    # Screenshots
+    screenshots = Column(Text)  # JSON array of paths/URLs
+
+    # Risk management
+    initial_stop = Column(Float)
+    initial_target = Column(Float)
+    risk_reward_planned = Column(Float)
+    risk_reward_actual = Column(Float)
+
+    # Metadata
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class DailyReview(Base):
+    """Daily trading review/self-assessment."""
+
+    __tablename__ = "daily_reviews"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    review_date = Column(Date, unique=True, nullable=False, index=True)
+
+    # Summary
+    trades_taken = Column(Integer)
+    gross_pnl = Column(Float)
+    net_pnl = Column(Float)
+    win_rate = Column(Float)
+
+    # Self-assessment
+    followed_plan = Column(Boolean)
+    mistakes_made = Column(Text)  # JSON array
+    did_well = Column(Text)  # JSON array
+
+    # Goals
+    tomorrow_focus = Column(Text)
+
+    # Rating
+    overall_rating = Column(Integer)  # 1-5
+
+    # Notes
+    notes = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class PeriodicReview(Base):
+    """Weekly/monthly trading reviews."""
+
+    __tablename__ = "periodic_reviews"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    review_type = Column(String(20), nullable=False)  # weekly, monthly
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+
+    # Performance
+    total_trades = Column(Integer)
+    win_rate = Column(Float)
+    profit_factor = Column(Float)
+    net_pnl = Column(Float)
+    max_drawdown = Column(Float)
+
+    # Analysis
+    best_setups = Column(Text)  # JSON
+    worst_setups = Column(Text)  # JSON
+    key_learnings = Column(Text)  # JSON array
+    action_items = Column(Text)  # JSON array
+    strategy_adjustments = Column(Text)
+
+    # Goals
+    goals_achieved = Column(Text)  # JSON array
+    next_period_goals = Column(Text)  # JSON array
+    created_at = Column(DateTime, server_default=func.now())
