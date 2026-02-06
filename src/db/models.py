@@ -1363,3 +1363,265 @@ class ReportBrandingRecord(Base):
     __table_args__ = (
         UniqueConstraint("user_id", name="uq_report_branding_user"),
     )
+
+
+# ---------------------------------------------------------------------------
+# PRD-71: Compliance & Audit
+# ---------------------------------------------------------------------------
+
+
+class ComplianceRuleTypeEnum(enum.Enum):
+    """Types of compliance rules."""
+    POSITION_LIMIT = "position_limit"
+    SECTOR_LIMIT = "sector_limit"
+    CONCENTRATION = "concentration"
+    RESTRICTED_LIST = "restricted_list"
+    DAILY_LOSS_LIMIT = "daily_loss_limit"
+    TRADING_FREQUENCY = "trading_frequency"
+    CUSTOM = "custom"
+
+
+class ComplianceSeverityEnum(enum.Enum):
+    """Compliance violation severity levels."""
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+
+
+class RestrictionTypeEnum(enum.Enum):
+    """Types of trading restrictions."""
+    ALL = "all"
+    BUY_ONLY = "buy_only"
+    SELL_ONLY = "sell_only"
+
+
+class AuditActionEnum(enum.Enum):
+    """Audit log action types."""
+    # Authentication
+    LOGIN = "login"
+    LOGOUT = "logout"
+    LOGIN_FAILED = "login_failed"
+    PASSWORD_CHANGE = "password_change"
+    TOTP_ENABLE = "totp_enable"
+    TOTP_DISABLE = "totp_disable"
+    # Trading
+    ORDER_SUBMIT = "order_submit"
+    ORDER_CANCEL = "order_cancel"
+    ORDER_FILL = "order_fill"
+    REBALANCE = "rebalance"
+    # Account
+    ACCOUNT_CREATE = "account_create"
+    ACCOUNT_UPDATE = "account_update"
+    ACCOUNT_DELETE = "account_delete"
+    # Strategy
+    STRATEGY_CREATE = "strategy_create"
+    STRATEGY_UPDATE = "strategy_update"
+    STRATEGY_DELETE = "strategy_delete"
+    # Compliance
+    COMPLIANCE_VIOLATION = "compliance_violation"
+    RESTRICTED_TRADE = "restricted_trade"
+    RULE_CREATE = "rule_create"
+    RULE_UPDATE = "rule_update"
+    # Admin
+    USER_CREATE = "user_create"
+    USER_UPDATE = "user_update"
+    ROLE_CHANGE = "role_change"
+    SETTING_CHANGE = "setting_change"
+    API_KEY_CREATE = "api_key_create"
+    API_KEY_REVOKE = "api_key_revoke"
+
+
+class ComplianceRuleRecord(Base):
+    """Compliance rule definition."""
+
+    __tablename__ = "compliance_rules"
+
+    id = Column(String(36), primary_key=True)
+    owner_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    rule_type = Column(String(30), nullable=False, index=True)
+
+    # Rule parameters
+    parameters = Column(Text)  # JSON
+    severity = Column(String(20), default="warning")
+
+    # Scope
+    applies_to_accounts = Column(Text)  # JSON array
+    applies_to_symbols = Column(Text)  # JSON array
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_blocking = Column(Boolean, default=False)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    violations = relationship("ComplianceViolationRecord", back_populates="rule")
+
+
+class RestrictedSecurityRecord(Base):
+    """Restricted security entry."""
+
+    __tablename__ = "restricted_securities"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    owner_id = Column(String(36), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    reason = Column(String(100), nullable=False)
+    restriction_type = Column(String(20), nullable=False)
+
+    # Details
+    notes = Column(Text, nullable=True)
+    added_by = Column(String(36), nullable=True)
+    added_by_name = Column(String(100), nullable=True)
+
+    # Validity period
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "symbol", name="uq_restricted_security_active"),
+    )
+
+
+class ComplianceViolationRecord(Base):
+    """Compliance violation record."""
+
+    __tablename__ = "compliance_violations"
+
+    id = Column(String(36), primary_key=True)
+    rule_id = Column(String(36), nullable=True, index=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    account_id = Column(String(36), nullable=True)
+
+    # Violation details
+    rule_name = Column(String(100), nullable=False)
+    violation_type = Column(String(30), nullable=False)
+    severity = Column(String(20), nullable=False)
+    details = Column(Text)  # JSON
+
+    # Context
+    symbol = Column(String(20), nullable=True)
+    action = Column(String(20), nullable=True)
+    quantity = Column(Integer, nullable=True)
+    price = Column(Float, nullable=True)
+
+    # Resolution
+    is_resolved = Column(Boolean, default=False, index=True)
+    resolved_by = Column(String(36), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+
+    # Was trade blocked?
+    trade_blocked = Column(Boolean, default=False)
+
+    # Timestamps
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationship
+    rule = relationship("ComplianceRuleRecord", back_populates="violations")
+
+
+class AuditLogRecord(Base):
+    """Comprehensive audit log entry."""
+
+    __tablename__ = "audit_logs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), nullable=True, index=True)
+    user_email = Column(String(200), nullable=True)
+
+    # Action
+    action = Column(String(50), nullable=False, index=True)
+    action_category = Column(String(30), nullable=True)
+
+    # Resource
+    resource_type = Column(String(30), nullable=True)
+    resource_id = Column(String(36), nullable=True)
+
+    # Details
+    details = Column(Text)  # JSON
+    changes = Column(Text)  # JSON - before/after
+
+    # Status
+    status = Column(String(20), nullable=False)
+    error_message = Column(Text, nullable=True)
+
+    # Context
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    session_id = Column(String(36), nullable=True)
+
+    # Timestamps
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_audit_logs_resource", "resource_type", "resource_id"),
+    )
+
+
+class PreTradeCheckRecord(Base):
+    """Pre-trade compliance check result."""
+
+    __tablename__ = "pretrade_checks"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    account_id = Column(String(36), nullable=True)
+    order_id = Column(String(36), nullable=True)
+
+    # Trade details
+    symbol = Column(String(20), nullable=False)
+    action = Column(String(10), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=True)
+
+    # Results
+    checks_run = Column(Text)  # JSON array
+    passed = Column(Boolean, nullable=False)
+    blocking_violations = Column(Integer, default=0)
+    warnings = Column(Integer, default=0)
+
+    # Outcome
+    trade_allowed = Column(Boolean, nullable=False)
+    override_by = Column(String(36), nullable=True)
+    override_reason = Column(Text, nullable=True)
+
+    # Timestamps
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+
+class ComplianceReportRecord(Base):
+    """Regulatory compliance report."""
+
+    __tablename__ = "compliance_reports"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    report_type = Column(String(30), nullable=False)
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+
+    # Content
+    title = Column(String(200), nullable=False)
+    file_path = Column(String(500), nullable=True)
+    data = Column(Text)  # JSON
+
+    # Status
+    status = Column(String(20), nullable=False)
+    submitted_at = Column(DateTime, nullable=True)
+    submitted_to = Column(String(100), nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
