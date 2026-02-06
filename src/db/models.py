@@ -1121,3 +1121,245 @@ class WorkspaceResearchNoteRecord(Base):
     view_count = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
+
+# ---------------------------------------------------------------------------
+# PRD-70: Professional Reporting
+# ---------------------------------------------------------------------------
+
+
+class ReportTypeEnum(enum.Enum):
+    """Report types."""
+    PERFORMANCE = "performance"
+    HOLDINGS = "holdings"
+    ATTRIBUTION = "attribution"
+    TRADE_ACTIVITY = "trade_activity"
+    RISK = "risk"
+    CUSTOM = "custom"
+
+
+class ReportFormatEnum(enum.Enum):
+    """Report output formats."""
+    PDF = "pdf"
+    EXCEL = "excel"
+    HTML = "html"
+    CSV = "csv"
+
+
+class ReportFrequencyEnum(enum.Enum):
+    """Report scheduling frequency."""
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    ANNUAL = "annual"
+
+
+class ReportStatusEnum(enum.Enum):
+    """Report generation status."""
+    PENDING = "pending"
+    GENERATING = "generating"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ReportTemplateRecord(Base):
+    """Report template configuration."""
+
+    __tablename__ = "report_templates"
+
+    id = Column(String(36), primary_key=True)
+    owner_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    report_type = Column(String(30), nullable=False)
+
+    # Template configuration
+    sections = Column(Text)  # JSON
+    metrics = Column(Text)  # JSON
+    charts = Column(Text)  # JSON
+    filters = Column(Text)  # JSON
+
+    # Branding
+    logo_url = Column(String(500), nullable=True)
+    company_name = Column(String(100), nullable=True)
+    primary_color = Column(String(20), nullable=True)
+    footer_text = Column(Text, nullable=True)
+
+    # Status
+    is_default = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    sections_rel = relationship("ReportSectionRecord", back_populates="template", cascade="all, delete-orphan")
+
+
+class GeneratedReportRecord(Base):
+    """Generated report instance."""
+
+    __tablename__ = "generated_reports"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    account_id = Column(String(36), nullable=True, index=True)
+    template_id = Column(String(36), nullable=True)
+
+    # Report info
+    title = Column(String(200), nullable=False)
+    report_type = Column(String(30), nullable=False)
+    format = Column(String(10), nullable=False)
+
+    # Period
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+    period_type = Column(String(20), nullable=True)
+
+    # Content
+    file_path = Column(String(500), nullable=True)
+    file_size = Column(Integer, nullable=True)
+    content_hash = Column(String(64), nullable=True)
+
+    # Metadata
+    parameters = Column(Text)  # JSON
+    metrics_snapshot = Column(Text)  # JSON
+
+    # Status
+    status = Column(String(20), nullable=False)
+    error_message = Column(Text, nullable=True)
+    generation_time_ms = Column(Integer, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    distributions = relationship("ReportDistributionRecord", back_populates="report", cascade="all, delete-orphan")
+
+
+class ScheduledReportRecord(Base):
+    """Scheduled report configuration."""
+
+    __tablename__ = "scheduled_reports"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    account_id = Column(String(36), nullable=True)
+    template_id = Column(String(36), nullable=True)
+
+    # Schedule info
+    name = Column(String(100), nullable=False)
+    frequency = Column(String(20), nullable=False)
+    day_of_week = Column(Integer, nullable=True)
+    day_of_month = Column(Integer, nullable=True)
+    time_of_day = Column(String(10), nullable=True)
+    timezone = Column(String(50), default="UTC")
+
+    # Report config
+    report_type = Column(String(30), nullable=False)
+    format = Column(String(10), nullable=False)
+    parameters = Column(Text)  # JSON
+
+    # Distribution
+    recipients = Column(Text)  # JSON array
+    send_empty = Column(Boolean, default=False)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    last_run_at = Column(DateTime, nullable=True)
+    next_run_at = Column(DateTime, nullable=True, index=True)
+    run_count = Column(Integer, default=0)
+    last_error = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class ReportDistributionRecord(Base):
+    """Report email distribution log."""
+
+    __tablename__ = "report_distributions"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    report_id = Column(String(36), nullable=False, index=True)
+    schedule_id = Column(String(36), nullable=True)
+
+    # Recipient info
+    recipient_email = Column(String(200), nullable=False)
+    recipient_name = Column(String(100), nullable=True)
+
+    # Status
+    status = Column(String(20), nullable=False)  # pending, sent, delivered, failed, bounced
+    sent_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
+    opened_at = Column(DateTime, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    # Tracking
+    message_id = Column(String(100), nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    report = relationship("GeneratedReportRecord", back_populates="distributions")
+
+
+class ReportSectionRecord(Base):
+    """Custom section within a report template."""
+
+    __tablename__ = "report_sections"
+
+    id = Column(String(36), primary_key=True)
+    template_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    section_type = Column(String(30), nullable=False)  # summary, holdings, trades, chart, text, metrics
+    order_index = Column(Integer, nullable=False)
+    config = Column(Text)  # JSON
+    is_visible = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    template = relationship("ReportTemplateRecord", back_populates="sections_rel")
+
+
+class ReportBrandingRecord(Base):
+    """White-label branding configuration."""
+
+    __tablename__ = "report_branding"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+
+    # Branding
+    company_name = Column(String(100), nullable=False)
+    logo_url = Column(String(500), nullable=True)
+    primary_color = Column(String(20), default="#007bff")
+    secondary_color = Column(String(20), default="#6c757d")
+    accent_color = Column(String(20), default="#28a745")
+
+    # Text
+    header_text = Column(Text, nullable=True)
+    footer_text = Column(Text, nullable=True)
+    disclaimer = Column(Text, nullable=True)
+
+    # Contact
+    contact_email = Column(String(200), nullable=True)
+    contact_phone = Column(String(50), nullable=True)
+    website = Column(String(200), nullable=True)
+    address = Column(Text, nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_report_branding_user"),
+    )
