@@ -965,3 +965,159 @@ class RebalancingHistory(Base):
     status = Column(String(20), nullable=False)  # completed, partial, failed
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------------------
+# PRD-69: Team Workspaces
+# ---------------------------------------------------------------------------
+
+
+class WorkspaceRoleEnum(enum.Enum):
+    """Workspace member roles."""
+    OWNER = "owner"
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+
+class WorkspaceRecord(Base):
+    """Team workspace for collaboration."""
+
+    __tablename__ = "workspaces"
+
+    id = Column(String(36), primary_key=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    owner_id = Column(String(36), nullable=False, index=True)
+
+    # Settings
+    settings = Column(Text)  # JSON
+    logo_url = Column(String(500), nullable=True)
+
+    # Stats (cached)
+    member_count = Column(Integer, default=1)
+    strategy_count = Column(Integer, default=0)
+    total_aum = Column(Float, default=0)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    members = relationship("WorkspaceMemberRecord", back_populates="workspace", cascade="all, delete-orphan")
+    strategies = relationship("SharedStrategyRecord", back_populates="workspace", cascade="all, delete-orphan")
+    activities = relationship("WorkspaceActivityRecord", back_populates="workspace", cascade="all, delete-orphan")
+
+
+class WorkspaceMemberRecord(Base):
+    """Workspace membership."""
+
+    __tablename__ = "workspace_members"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # owner, admin, member, viewer
+    invited_by = Column(String(36), nullable=True)
+    joined_at = Column(DateTime, server_default=func.now())
+    is_active = Column(Boolean, default=True)
+
+    # Relationship
+    workspace = relationship("WorkspaceRecord", back_populates="members")
+
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "user_id", name="uq_workspace_member"),
+    )
+
+
+class SharedStrategyRecord(Base):
+    """Strategy shared within a workspace."""
+
+    __tablename__ = "shared_strategies"
+
+    id = Column(String(36), primary_key=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    creator_id = Column(String(36), nullable=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    config = Column(Text)  # JSON
+
+    # Performance (cached)
+    ytd_return = Column(Float, default=0)
+    sharpe_ratio = Column(Float, default=0)
+    total_return = Column(Float, default=0)
+    max_drawdown = Column(Float, default=0)
+    win_rate = Column(Float, default=0)
+
+    # Usage
+    use_count = Column(Integer, default=0)
+    fork_count = Column(Integer, default=0)
+
+    # Status
+    is_public = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationship
+    workspace = relationship("WorkspaceRecord", back_populates="strategies")
+
+
+class WorkspaceActivityRecord(Base):
+    """Activity feed item for a workspace."""
+
+    __tablename__ = "workspace_activities"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    user_id = Column(String(36), nullable=False)
+    user_name = Column(String(100), nullable=True)
+    action = Column(String(50), nullable=False)  # created_strategy, executed_trade, etc.
+    resource_type = Column(String(30), nullable=True)  # strategy, trade, account
+    resource_id = Column(String(36), nullable=True)
+    resource_name = Column(String(100), nullable=True)
+    details = Column(Text)  # JSON
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationship
+    workspace = relationship("WorkspaceRecord", back_populates="activities")
+
+
+class WorkspaceWatchlistRecord(Base):
+    """Shared watchlist within a workspace."""
+
+    __tablename__ = "workspace_watchlists"
+
+    id = Column(String(36), primary_key=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    creator_id = Column(String(36), nullable=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    symbols = Column(Text)  # JSON array
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class WorkspaceResearchNoteRecord(Base):
+    """Research note shared within a workspace."""
+
+    __tablename__ = "workspace_research_notes"
+
+    id = Column(String(36), primary_key=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    author_id = Column(String(36), nullable=True)
+    author_name = Column(String(100), nullable=True)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=True)
+    symbols = Column(Text)  # JSON array
+    tags = Column(Text)  # JSON array
+    is_pinned = Column(Boolean, default=False)
+    view_count = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
