@@ -620,3 +620,178 @@ class PeriodicReview(Base):
     goals_achieved = Column(Text)  # JSON array
     next_period_goals = Column(Text)  # JSON array
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ---------------------------------------------------------------------------
+# PRD-67: User Authentication & RBAC
+# ---------------------------------------------------------------------------
+
+
+class UserRoleType(enum.Enum):
+    """User role types."""
+    VIEWER = "viewer"
+    TRADER = "trader"
+    MANAGER = "manager"
+    ADMIN = "admin"
+    API = "api"
+
+
+class SubscriptionType(enum.Enum):
+    """Subscription tier types."""
+    FREE = "free"
+    PRO = "pro"
+    ENTERPRISE = "enterprise"
+
+
+class User(Base):
+    """User account for authentication."""
+
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=True)
+    name = Column(String(100), nullable=True)
+    role = Column(String(20), nullable=False, default="trader")
+    subscription = Column(String(20), nullable=False, default="free")
+
+    # Profile
+    avatar_url = Column(String(500), nullable=True)
+    timezone = Column(String(50), default="UTC")
+    preferences = Column(Text)  # JSON
+
+    # OAuth IDs
+    google_id = Column(String(100), nullable=True, index=True)
+    github_id = Column(String(100), nullable=True, index=True)
+    apple_id = Column(String(100), nullable=True)
+
+    # 2FA
+    totp_secret = Column(String(100), nullable=True)
+    totp_enabled = Column(Boolean, default=False)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    email_verified_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    last_login_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    api_keys = relationship("UserAPIKey", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserSession(Base):
+    """User session for JWT token management."""
+
+    __tablename__ = "user_sessions"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    access_token_hash = Column(String(64), nullable=False)
+    refresh_token_hash = Column(String(64), nullable=False)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    device_info = Column(Text)  # JSON
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    last_activity_at = Column(DateTime, nullable=True)
+
+    # Relationship
+    user = relationship("User", back_populates="sessions")
+
+
+class UserAPIKey(Base):
+    """API key for programmatic access."""
+
+    __tablename__ = "user_api_keys"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    key_hash = Column(String(64), nullable=False)
+    key_prefix = Column(String(12), nullable=False, index=True)
+    scopes = Column(Text)  # JSON array
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    request_count = Column(Integer, default=0)
+
+    # Relationship
+    user = relationship("User", back_populates="api_keys")
+
+
+class UserAuditLog(Base):
+    """Audit log for user actions."""
+
+    __tablename__ = "user_audit_logs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+    user_id = Column(String(36), nullable=True, index=True)
+    user_email = Column(String(255), nullable=True)
+    action = Column(String(50), nullable=False, index=True)
+    resource_type = Column(String(50), nullable=True)
+    resource_id = Column(String(100), nullable=True)
+    details = Column(Text)  # JSON
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    status = Column(String(20), default="success")
+    error_message = Column(Text, nullable=True)
+
+
+class OAuthState(Base):
+    """OAuth state token for OAuth flow."""
+
+    __tablename__ = "oauth_states"
+
+    id = Column(String(36), primary_key=True)
+    state = Column(String(64), unique=True, nullable=False)
+    provider = Column(String(20), nullable=False)
+    redirect_uri = Column(String(500), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False)
+
+
+class RateLimitRecord(Base):
+    """Rate limiting record."""
+
+    __tablename__ = "rate_limit_records"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    key = Column(String(255), nullable=False, index=True)
+    count = Column(Integer, default=1)
+    window_start = Column(DateTime, nullable=False)
+    window_end = Column(DateTime, nullable=False)
+
+
+class PasswordResetToken(Base):
+    """Password reset token."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False)
+    token_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False)
+
+
+class EmailVerificationToken(Base):
+    """Email verification token."""
+
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False)
+    token_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False)
