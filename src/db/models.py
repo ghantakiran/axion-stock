@@ -1757,3 +1757,128 @@ class CopilotSavedIdeaRecord(Base):
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())
     expires_at = Column(DateTime, nullable=True)
+
+
+# =============================================================================
+# PRD-59: Real-time WebSocket API
+# =============================================================================
+
+
+class ConnectionStatusEnum(enum.Enum):
+    """WebSocket connection status."""
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
+    RECONNECTING = "reconnecting"
+    DISCONNECTED = "disconnected"
+
+
+class WebSocketConnectionRecord(Base):
+    """WebSocket connection state."""
+
+    __tablename__ = "websocket_connections"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_token = Column(String(64), nullable=False)
+    status = Column(String(20), nullable=False)
+
+    # Connection info
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    client_version = Column(String(50), nullable=True)
+
+    # Metrics
+    messages_sent = Column(BigInteger, default=0)
+    messages_received = Column(BigInteger, default=0)
+    bytes_sent = Column(BigInteger, default=0)
+    bytes_received = Column(BigInteger, default=0)
+
+    # Timestamps
+    connected_at = Column(DateTime, server_default=func.now())
+    last_heartbeat = Column(DateTime, server_default=func.now())
+    disconnected_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    subscriptions = relationship("WebSocketSubscriptionRecord", back_populates="connection", cascade="all, delete-orphan")
+
+
+class WebSocketSubscriptionRecord(Base):
+    """WebSocket channel subscription."""
+
+    __tablename__ = "websocket_subscriptions"
+
+    id = Column(String(36), primary_key=True)
+    connection_id = Column(String(36), ForeignKey("websocket_connections.id", ondelete="CASCADE"), nullable=False, index=True)
+    channel = Column(String(30), nullable=False, index=True)
+
+    # Config
+    symbols = Column(Text)  # JSON array
+    throttle_ms = Column(Integer, default=100)
+    filters = Column(Text)  # JSON
+
+    # Status
+    is_active = Column(Boolean, default=True)
+
+    # Metrics
+    messages_delivered = Column(BigInteger, default=0)
+    last_message_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    subscribed_at = Column(DateTime, server_default=func.now())
+    unsubscribed_at = Column(DateTime, nullable=True)
+
+    # Relationship
+    connection = relationship("WebSocketConnectionRecord", back_populates="subscriptions")
+
+
+class WebSocketMetricsRecord(Base):
+    """Aggregated WebSocket metrics for monitoring."""
+
+    __tablename__ = "websocket_metrics"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+    # Connection stats
+    active_connections = Column(Integer, default=0)
+    total_subscriptions = Column(Integer, default=0)
+    unique_users = Column(Integer, default=0)
+
+    # Message stats
+    messages_per_second = Column(Float, default=0)
+    bytes_per_second = Column(Float, default=0)
+    avg_latency_ms = Column(Float, default=0)
+    p99_latency_ms = Column(Float, default=0)
+
+    # Channel breakdown
+    channel_stats = Column(Text)  # JSON
+
+    # Errors
+    error_count = Column(Integer, default=0)
+    reconnection_count = Column(Integer, default=0)
+
+
+class WebSocketRateLimitRecord(Base):
+    """Rate limiting for WebSocket connections."""
+
+    __tablename__ = "websocket_rate_limits"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    connection_id = Column(String(36), nullable=True)
+
+    # Limits
+    limit_type = Column(String(30), nullable=False)  # messages, subscriptions, symbols
+    window_start = Column(DateTime, nullable=False)
+    window_end = Column(DateTime, nullable=False)
+    count = Column(Integer, default=0)
+    limit_value = Column(Integer, nullable=False)
+
+    # Violation tracking
+    violations = Column(Integer, default=0)
+    last_violation_at = Column(DateTime, nullable=True)
+    blocked_until = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("ix_ws_rate_limits_lookup", "user_id", "limit_type", "window_start"),
+    )
