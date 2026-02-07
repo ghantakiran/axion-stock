@@ -1980,3 +1980,129 @@ class NotificationHistoryRecord(Base):
     error_message = Column(Text, nullable=True)
     latency_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+# =============================================================================
+# PRD-61: Strategy Marketplace
+# =============================================================================
+
+
+class MarketplaceStrategyRecord(Base):
+    """Marketplace trading strategy."""
+
+    __tablename__ = "marketplace_strategies"
+
+    id = Column(String(36), primary_key=True)
+    creator_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    slug = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    short_description = Column(String(200), nullable=True)
+    category = Column(String(30), nullable=False, index=True)
+    risk_level = Column(String(20), nullable=False)
+    asset_classes = Column(Text, nullable=True)  # JSON
+    trading_style = Column(String(30), nullable=True)
+    time_horizon = Column(String(20), nullable=True)
+    min_capital = Column(Float, default=1000)
+    max_positions = Column(Integer, default=10)
+    pricing_model = Column(String(20), nullable=False)
+    monthly_price = Column(Float, default=0)
+    performance_fee_pct = Column(Float, default=0)
+    is_published = Column(Boolean, default=False, index=True)
+    is_featured = Column(Boolean, default=False)
+    is_verified = Column(Boolean, default=False)
+    subscriber_count = Column(Integer, default=0)
+    avg_rating = Column(Float, default=0)
+    review_count = Column(Integer, default=0)
+    total_return_pct = Column(Float, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    published_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    subscriptions = relationship("MarketplaceSubscriptionRecord", back_populates="strategy", cascade="all, delete-orphan")
+    reviews = relationship("MarketplaceReviewRecord", back_populates="strategy", cascade="all, delete-orphan")
+
+
+class MarketplaceSubscriptionRecord(Base):
+    """Strategy subscription."""
+
+    __tablename__ = "marketplace_subscriptions"
+
+    id = Column(String(36), primary_key=True)
+    strategy_id = Column(String(36), ForeignKey("marketplace_strategies.id", ondelete="CASCADE"), nullable=False, index=True)
+    subscriber_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    subscription_type = Column(String(20), nullable=False)
+    auto_trade_enabled = Column(Boolean, default=False)
+    position_size_pct = Column(Float, default=100)
+    max_position_value = Column(Float, nullable=True)
+    risk_multiplier = Column(Float, default=1.0)
+    billing_cycle = Column(String(20), default="monthly")
+    next_billing_at = Column(DateTime, nullable=True)
+    total_paid = Column(Float, default=0)
+    status = Column(String(20), nullable=False, default="active", index=True)
+    started_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    cancelled_at = Column(DateTime, nullable=True)
+    cancel_reason = Column(Text, nullable=True)
+
+    # Relationship
+    strategy = relationship("MarketplaceStrategyRecord", back_populates="subscriptions")
+
+    __table_args__ = (
+        UniqueConstraint("strategy_id", "subscriber_id", name="uq_marketplace_sub_strategy_user"),
+    )
+
+
+class MarketplacePerformanceRecord(Base):
+    """Daily performance snapshot."""
+
+    __tablename__ = "marketplace_performance"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    strategy_id = Column(String(36), ForeignKey("marketplace_strategies.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    daily_return_pct = Column(Float, default=0)
+    cumulative_return_pct = Column(Float, default=0)
+    benchmark_return_pct = Column(Float, default=0)
+    sharpe_ratio = Column(Float, nullable=True)
+    sortino_ratio = Column(Float, nullable=True)
+    max_drawdown_pct = Column(Float, default=0)
+    current_drawdown_pct = Column(Float, default=0)
+    volatility_pct = Column(Float, nullable=True)
+    win_rate = Column(Float, nullable=True)
+    profit_factor = Column(Float, nullable=True)
+    avg_win_pct = Column(Float, nullable=True)
+    avg_loss_pct = Column(Float, nullable=True)
+    trade_count = Column(Integer, default=0)
+    open_positions = Column(Integer, default=0)
+    portfolio_value = Column(Float, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("strategy_id", "date", name="uq_marketplace_perf_strategy_date"),
+    )
+
+
+class MarketplaceReviewRecord(Base):
+    """Strategy review."""
+
+    __tablename__ = "marketplace_reviews"
+
+    id = Column(String(36), primary_key=True)
+    strategy_id = Column(String(36), ForeignKey("marketplace_strategies.id", ondelete="CASCADE"), nullable=False, index=True)
+    reviewer_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    rating = Column(Integer, nullable=False)
+    title = Column(String(100), nullable=True)
+    content = Column(Text, nullable=True)
+    is_verified_subscriber = Column(Boolean, default=False)
+    subscription_days = Column(Integer, nullable=True)
+    subscriber_return_pct = Column(Float, nullable=True)
+    is_approved = Column(Boolean, default=True)
+    is_featured = Column(Boolean, default=False)
+    creator_response = Column(Text, nullable=True)
+    responded_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationship
+    strategy = relationship("MarketplaceStrategyRecord", back_populates="reviews")
