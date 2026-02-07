@@ -1882,3 +1882,101 @@ class WebSocketRateLimitRecord(Base):
     __table_args__ = (
         Index("ix_ws_rate_limits_lookup", "user_id", "limit_type", "window_start"),
     )
+
+
+# =============================================================================
+# PRD-60: Mobile Push Notifications
+# =============================================================================
+
+
+class NotificationDeviceRecord(Base):
+    """Device registration for push notifications."""
+
+    __tablename__ = "notification_devices"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_token = Column(String(500), nullable=False)
+    platform = Column(String(20), nullable=False)  # ios, android, web
+    device_name = Column(String(100), nullable=True)
+    device_model = Column(String(100), nullable=True)
+    app_version = Column(String(20), nullable=True)
+    os_version = Column(String(20), nullable=True)
+    push_token_type = Column(String(20), nullable=False)  # fcm, apns, web_push
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    last_used_at = Column(DateTime, nullable=True)
+    token_refreshed_at = Column(DateTime, nullable=True)
+
+
+class NotificationPreferenceRecord(Base):
+    """User notification preferences."""
+
+    __tablename__ = "notification_preferences"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(30), nullable=False)
+    enabled = Column(Boolean, default=True)
+    priority = Column(String(20), default="normal")
+    channels = Column(Text)  # JSON array
+    quiet_hours_enabled = Column(Boolean, default=False)
+    quiet_hours_start = Column(String(10), nullable=True)
+    quiet_hours_end = Column(String(10), nullable=True)
+    timezone = Column(String(50), default="UTC")
+    max_per_hour = Column(Integer, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "category", name="uq_notification_prefs_user_category"),
+    )
+
+
+class NotificationQueueRecord(Base):
+    """Queued notification for delivery."""
+
+    __tablename__ = "notification_queue"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    device_id = Column(String(36), nullable=True)
+    category = Column(String(30), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    body = Column(Text, nullable=False)
+    data = Column(Text, nullable=True)  # JSON
+    image_url = Column(String(500), nullable=True)
+    action_url = Column(String(500), nullable=True)
+    priority = Column(String(20), nullable=False, default="normal")
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    scheduled_at = Column(DateTime, nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    retry_count = Column(Integer, default=0)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class NotificationHistoryRecord(Base):
+    """Notification delivery history."""
+
+    __tablename__ = "notification_history"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    notification_id = Column(String(36), nullable=False, index=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    device_id = Column(String(36), nullable=True)
+    category = Column(String(30), nullable=False)
+    title = Column(String(200), nullable=False)
+    body = Column(Text, nullable=True)
+    platform = Column(String(20), nullable=True)
+    status = Column(String(20), nullable=False)
+    sent_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
+    opened_at = Column(DateTime, nullable=True)
+    failed_at = Column(DateTime, nullable=True)
+    error_code = Column(String(50), nullable=True)
+    error_message = Column(Text, nullable=True)
+    latency_ms = Column(Integer, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
