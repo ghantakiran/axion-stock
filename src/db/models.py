@@ -1626,3 +1626,134 @@ class ComplianceReportRecord(Base):
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
+
+# =============================================================================
+# PRD-58: AI Trading Copilot
+# =============================================================================
+
+
+class CopilotSessionRecord(Base):
+    """AI Copilot conversation session."""
+
+    __tablename__ = "copilot_sessions"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(200), nullable=True)
+    session_type = Column(String(30), nullable=True)
+
+    # Context
+    context = Column(Text)  # JSON
+    active_symbol = Column(String(20), nullable=True)
+
+    # Stats
+    message_count = Column(Integer, default=0)
+    ideas_generated = Column(Integer, default=0)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+
+    # Timestamps
+    started_at = Column(DateTime, server_default=func.now())
+    last_activity_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    messages = relationship("CopilotMessageRecord", back_populates="session", cascade="all, delete-orphan")
+
+
+class CopilotMessageRecord(Base):
+    """AI Copilot conversation message."""
+
+    __tablename__ = "copilot_messages"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    session_id = Column(String(36), ForeignKey("copilot_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    message_id = Column(String(36), nullable=False)
+
+    # Content
+    role = Column(String(20), nullable=False)  # user, assistant, system
+    content = Column(Text, nullable=False)
+
+    # Metadata
+    tokens_used = Column(Integer, nullable=True)
+    model = Column(String(50), nullable=True)
+    extracted_symbols = Column(Text)  # JSON
+    extracted_actions = Column(Text)  # JSON
+    confidence_score = Column(Float, nullable=True)
+
+    # Feedback
+    user_rating = Column(Integer, nullable=True)
+    feedback = Column(Text, nullable=True)
+
+    # Timestamp
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationship
+    session = relationship("CopilotSessionRecord", back_populates="messages")
+
+
+class CopilotPreferencesRecord(Base):
+    """User preferences for AI Copilot."""
+
+    __tablename__ = "copilot_preferences"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+
+    # Risk & Style
+    risk_tolerance = Column(String(20), default="moderate")
+    investment_style = Column(String(30), default="balanced")
+    time_horizon = Column(String(20), default="medium")
+
+    # Sectors
+    preferred_sectors = Column(Text)  # JSON
+    excluded_sectors = Column(Text)  # JSON
+
+    # Response style
+    response_style = Column(String(20), default="balanced")
+    include_technicals = Column(Boolean, default=True)
+    include_fundamentals = Column(Boolean, default=True)
+    include_sentiment = Column(Boolean, default=True)
+
+    # Constraints
+    max_position_size_pct = Column(Float, nullable=True)
+    min_market_cap = Column(BigInteger, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class CopilotSavedIdeaRecord(Base):
+    """Saved trade idea from AI Copilot."""
+
+    __tablename__ = "copilot_saved_ideas"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id = Column(String(36), nullable=True)
+    message_id = Column(String(36), nullable=True)
+
+    # Idea details
+    symbol = Column(String(20), nullable=False, index=True)
+    action = Column(String(10), nullable=False)
+    confidence = Column(Float, nullable=True)
+    rationale = Column(Text, nullable=True)
+
+    # Targets
+    entry_price = Column(Float, nullable=True)
+    target_price = Column(Float, nullable=True)
+    stop_loss = Column(Float, nullable=True)
+    time_horizon = Column(String(20), nullable=True)
+
+    # Tracking
+    status = Column(String(20), default="active", index=True)
+    executed_at = Column(DateTime, nullable=True)
+    execution_price = Column(Float, nullable=True)
+    outcome = Column(String(20), nullable=True)
+    outcome_pct = Column(Float, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=True)
