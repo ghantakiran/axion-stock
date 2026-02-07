@@ -24,6 +24,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     Float,
+    ForeignKey,
     Index,
     Integer,
     String,
@@ -690,7 +691,7 @@ class UserSession(Base):
     __tablename__ = "user_sessions"
 
     id = Column(String(36), primary_key=True)
-    user_id = Column(String(36), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     access_token_hash = Column(String(64), nullable=False)
     refresh_token_hash = Column(String(64), nullable=False)
     ip_address = Column(String(45), nullable=True)
@@ -711,7 +712,7 @@ class UserAPIKey(Base):
     __tablename__ = "user_api_keys"
 
     id = Column(String(36), primary_key=True)
-    user_id = Column(String(36), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     key_hash = Column(String(64), nullable=False)
     key_prefix = Column(String(12), nullable=False, index=True)
@@ -880,7 +881,7 @@ class AccountSnapshotRecord(Base):
     __tablename__ = "account_snapshots"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    account_id = Column(String(36), nullable=False, index=True)
+    account_id = Column(String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     snapshot_date = Column(Date, nullable=False)
 
     # Values
@@ -919,7 +920,7 @@ class AccountPositionRecord(Base):
     __tablename__ = "account_positions"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    account_id = Column(String(36), nullable=False, index=True)
+    account_id = Column(String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     symbol = Column(String(20), nullable=False, index=True)
     quantity = Column(Float, nullable=False)
     avg_cost = Column(Float, nullable=False)
@@ -1018,7 +1019,7 @@ class WorkspaceMemberRecord(Base):
     __tablename__ = "workspace_members"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    workspace_id = Column(String(36), nullable=False, index=True)
+    workspace_id = Column(String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String(36), nullable=False, index=True)
     role = Column(String(20), nullable=False)  # owner, admin, member, viewer
     invited_by = Column(String(36), nullable=True)
@@ -1039,7 +1040,7 @@ class SharedStrategyRecord(Base):
     __tablename__ = "shared_strategies"
 
     id = Column(String(36), primary_key=True)
-    workspace_id = Column(String(36), nullable=False, index=True)
+    workspace_id = Column(String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
     creator_id = Column(String(36), nullable=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
@@ -1074,7 +1075,7 @@ class WorkspaceActivityRecord(Base):
     __tablename__ = "workspace_activities"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    workspace_id = Column(String(36), nullable=False, index=True)
+    workspace_id = Column(String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String(36), nullable=False)
     user_name = Column(String(100), nullable=True)
     action = Column(String(50), nullable=False)  # created_strategy, executed_trade, etc.
@@ -1285,7 +1286,7 @@ class ReportDistributionRecord(Base):
     __tablename__ = "report_distributions"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    report_id = Column(String(36), nullable=False, index=True)
+    report_id = Column(String(36), ForeignKey("generated_reports.id", ondelete="CASCADE"), nullable=False, index=True)
     schedule_id = Column(String(36), nullable=True)
 
     # Recipient info
@@ -1315,7 +1316,7 @@ class ReportSectionRecord(Base):
     __tablename__ = "report_sections"
 
     id = Column(String(36), primary_key=True)
-    template_id = Column(String(36), nullable=False, index=True)
+    template_id = Column(String(36), ForeignKey("report_templates.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     section_type = Column(String(30), nullable=False)  # summary, holdings, trades, chart, text, metrics
     order_index = Column(Integer, nullable=False)
@@ -1500,7 +1501,7 @@ class ComplianceViolationRecord(Base):
     __tablename__ = "compliance_violations"
 
     id = Column(String(36), primary_key=True)
-    rule_id = Column(String(36), nullable=True, index=True)
+    rule_id = Column(String(36), ForeignKey("compliance_rules.id", ondelete="SET NULL"), nullable=True, index=True)
     user_id = Column(String(36), nullable=False, index=True)
     account_id = Column(String(36), nullable=True)
 

@@ -197,10 +197,12 @@ class TestScannerEngine:
         )
         
         results = engine.run_scan(scanner, sample_market_data)
-        
-        # Only NVDA meets both criteria
-        assert len(results) == 1
-        assert results[0].symbol == "NVDA"
+
+        # Both AAPL (2.8%, 1.6x) and NVDA (5.9%, 2.4x) meet criteria
+        assert len(results) == 2
+        symbols = [r.symbol for r in results]
+        assert "NVDA" in symbols
+        assert "AAPL" in symbols
 
 
 # =============================================================================

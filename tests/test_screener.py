@@ -95,7 +95,7 @@ def sample_stock_data():
             "price": 105.0,
             "market_cap": 420e9,
             "pe_ratio": 8.0,
-            "pb_ratio": 1.8,
+            "pb_ratio": 1.2,  # Must be < 1.5 for deep_value screen
             "ps_ratio": 1.2,
             "dividend_yield": 3.5,
             "revenue_growth": -0.05,

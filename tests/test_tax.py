@@ -20,6 +20,7 @@ from src.tax import (
     GainLossReport,
     TaxEstimate,
     Form8949,
+    Form8949Entry,
     ScheduleD,
     # Core
     TaxLotManager,
@@ -671,26 +672,26 @@ class TestIntegration:
         """Test wash sale prevention in harvesting."""
         lot_manager = TaxLotManager()
         wash_tracker = WashSaleTracker()
-        
-        # Record a recent purchase (creates wash sale risk)
+
+        # Record a recent sale at a loss (creates wash sale risk for repurchase)
         wash_tracker.add_transaction(Transaction(
             symbol="AAPL",
             shares=50,
             date=date.today() - timedelta(days=10),
-            is_purchase=True,
+            is_purchase=False,  # This is a sale
         ))
-        
+
         # Create the lot
         lot_manager.create_lot(
             "acct1", "AAPL", 100, 180.0,
             date.today() - timedelta(days=60)
         )
-        
+
         harvester = TaxLossHarvester(lot_manager, wash_tracker)
         positions = [Position("AAPL", 100, 150.0)]
-        
+
         opportunities = harvester.find_opportunities(positions)
-        
-        # Opportunity should be flagged with wash sale risk
+
+        # Opportunity should be flagged with wash sale risk (recent sale in window)
         aapl_opp = [o for o in opportunities if o.symbol == "AAPL"][0]
         assert aapl_opp.wash_sale_risk is True

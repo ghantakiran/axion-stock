@@ -328,7 +328,7 @@ class TestEarningsCalendar:
         assert len(reported) >= 1
         event = reported[0]
         
-        assert event.eps_surprise == 0.10  # 2.05 - 1.95
+        assert event.eps_surprise == pytest.approx(0.10, abs=0.001)  # 2.05 - 1.95
         assert event.is_beat is True
     
     def test_update_actuals(self, earnings_calendar):
@@ -391,7 +391,7 @@ class TestEconomicCalendar:
         
         assert len(released) >= 1
         event = released[0]
-        assert event.surprise == -0.1  # 3.1 - 3.2
+        assert event.surprise == pytest.approx(-0.1, abs=0.001)  # 3.1 - 3.2
     
     def test_get_fomc_meetings(self, economic_calendar):
         """Test getting FOMC meetings."""

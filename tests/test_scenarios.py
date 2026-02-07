@@ -104,7 +104,7 @@ class TestWhatIfAnalyzer:
         
         result = analyzer.simulate(sample_portfolio, [trade])
         
-        assert result.success is None or result.resulting_portfolio is not None
+        assert result.resulting_portfolio is not None
         assert result.resulting_portfolio.get_holding("GOOGL") is not None
         assert result.resulting_portfolio.cash < sample_portfolio.cash
     
