@@ -2106,3 +2106,104 @@ class MarketplaceReviewRecord(Base):
 
     # Relationship
     strategy = relationship("MarketplaceStrategyRecord", back_populates="reviews")
+
+
+# ---------------------------------------------------------------------------
+# PRD-62: Advanced Charting
+# ---------------------------------------------------------------------------
+
+
+class ChartLayoutRecord(Base):
+    """Saved chart layout."""
+
+    __tablename__ = "chart_layouts"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    symbol = Column(String(20), nullable=True, index=True)
+    timeframe = Column(String(10), nullable=False, default="1d")
+    chart_type = Column(String(20), nullable=False, default="candlestick")
+    chart_config = Column(Text, nullable=True)  # JSON
+    grid_layout = Column(Text, nullable=True)  # JSON
+    is_template = Column(Boolean, default=False)
+    is_public = Column(Boolean, default=False)
+    is_default = Column(Boolean, default=False)
+    view_count = Column(Integer, default=0)
+    copy_count = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    last_used_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    drawings = relationship("ChartDrawingRecord", back_populates="layout", cascade="all, delete-orphan")
+    indicators = relationship("ChartIndicatorRecord", back_populates="layout", cascade="all, delete-orphan")
+
+
+class ChartDrawingRecord(Base):
+    """Chart drawing (trendline, fib, etc.)."""
+
+    __tablename__ = "chart_drawings"
+
+    id = Column(String(36), primary_key=True)
+    layout_id = Column(String(36), ForeignKey("chart_layouts.id", ondelete="CASCADE"), nullable=False, index=True)
+    drawing_type = Column(String(30), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False)
+    points = Column(Text, nullable=False)  # JSON array of {timestamp, price}
+    style = Column(Text, nullable=True)  # JSON style config
+    properties = Column(Text, nullable=True)  # JSON extra properties
+    label = Column(String(100), nullable=True)
+    notes = Column(Text, nullable=True)
+    is_visible = Column(Boolean, default=True)
+    is_locked = Column(Boolean, default=False)
+    z_index = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationship
+    layout = relationship("ChartLayoutRecord", back_populates="drawings")
+
+
+class ChartIndicatorRecord(Base):
+    """Indicator settings for a layout."""
+
+    __tablename__ = "chart_indicator_settings"
+
+    id = Column(String(36), primary_key=True)
+    layout_id = Column(String(36), ForeignKey("chart_layouts.id", ondelete="CASCADE"), nullable=False, index=True)
+    indicator_name = Column(String(30), nullable=False)
+    params = Column(Text, nullable=True)  # JSON parameters
+    color = Column(String(20), default="#2196F3")
+    secondary_color = Column(String(20), nullable=True)
+    line_style = Column(String(20), default="solid")
+    line_width = Column(Integer, default=1)
+    is_visible = Column(Boolean, default=True)
+    panel_index = Column(Integer, default=0)
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    layout = relationship("ChartLayoutRecord", back_populates="indicators")
+
+
+class ChartTemplateRecord(Base):
+    """Chart template."""
+
+    __tablename__ = "chart_templates"
+
+    id = Column(String(36), primary_key=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(50), nullable=False, index=True)
+    config = Column(Text, nullable=False)  # JSON chart config
+    indicators = Column(Text, nullable=True)  # JSON array of indicator configs
+    thumbnail_url = Column(String(500), nullable=True)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    usage_count = Column(Integer, default=0)
+    rating = Column(Float, default=0)
+    rating_count = Column(Integer, default=0)
+    is_featured = Column(Boolean, default=False)
+    is_approved = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())

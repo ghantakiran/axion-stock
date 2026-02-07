@@ -1,90 +1,237 @@
-"""Technical Charting Configuration."""
+"""Configuration for Advanced Charting."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 
-class PatternType(str, Enum):
-    """Chart pattern types."""
-    DOUBLE_TOP = "double_top"
-    DOUBLE_BOTTOM = "double_bottom"
-    HEAD_AND_SHOULDERS = "head_and_shoulders"
-    INVERSE_HEAD_AND_SHOULDERS = "inverse_head_and_shoulders"
-    ASCENDING_TRIANGLE = "ascending_triangle"
-    DESCENDING_TRIANGLE = "descending_triangle"
-    FLAG = "flag"
-    WEDGE = "wedge"
+class ChartType(Enum):
+    """Chart display types."""
+    CANDLESTICK = "candlestick"
+    OHLC = "ohlc"
+    LINE = "line"
+    AREA = "area"
+    HEIKIN_ASHI = "heikin_ashi"
+    RENKO = "renko"
+    POINT_FIGURE = "point_figure"
 
 
-class TrendDirection(str, Enum):
-    """Trend direction classification."""
-    UP = "up"
-    DOWN = "down"
-    SIDEWAYS = "sideways"
+class Timeframe(Enum):
+    """Chart timeframes."""
+    M1 = "1m"
+    M5 = "5m"
+    M15 = "15m"
+    M30 = "30m"
+    H1 = "1h"
+    H4 = "4h"
+    D1 = "1d"
+    W1 = "1w"
+    MN = "1M"
 
 
-class SRType(str, Enum):
-    """Support/resistance level type."""
-    SUPPORT = "support"
-    RESISTANCE = "resistance"
+class DrawingType(Enum):
+    """Drawing tool types."""
+    TRENDLINE = "trendline"
+    HORIZONTAL_LINE = "horizontal_line"
+    VERTICAL_LINE = "vertical_line"
+    CHANNEL = "channel"
+    FIBONACCI_RETRACEMENT = "fib_retracement"
+    FIBONACCI_EXTENSION = "fib_extension"
+    RECTANGLE = "rectangle"
+    CIRCLE = "circle"
+    ELLIPSE = "ellipse"
+    ARROW = "arrow"
+    TEXT = "text"
+    PRICE_LABEL = "price_label"
+    MEASURE = "measure"
+    PITCHFORK = "pitchfork"
+    GANN_FAN = "gann_fan"
 
 
-class CrossoverType(str, Enum):
-    """Moving average crossover type."""
-    GOLDEN_CROSS = "golden_cross"
-    DEATH_CROSS = "death_cross"
+class IndicatorCategory(Enum):
+    """Indicator categories."""
+    TREND = "trend"
+    MOMENTUM = "momentum"
+    VOLUME = "volume"
+    VOLATILITY = "volatility"
+    SUPPORT_RESISTANCE = "support_resistance"
+    CUSTOM = "custom"
 
 
-@dataclass(frozen=True)
-class PatternConfig:
-    """Pattern detection configuration."""
-    min_pattern_bars: int = 10
-    max_pattern_bars: int = 100
-    price_tolerance: float = 0.02
-    confirmation_bars: int = 2
-    min_confidence: float = 0.5
+class LineStyle(Enum):
+    """Line drawing styles."""
+    SOLID = "solid"
+    DASHED = "dashed"
+    DOTTED = "dotted"
 
 
-@dataclass(frozen=True)
-class TrendConfig:
-    """Trend analysis configuration."""
-    short_window: int = 20
-    medium_window: int = 50
-    long_window: int = 200
-    min_r_squared: float = 0.3
-    sideways_threshold: float = 0.001
+@dataclass
+class ChartConfig:
+    """Chart configuration."""
+    
+    # Display settings
+    default_chart_type: ChartType = ChartType.CANDLESTICK
+    default_timeframe: Timeframe = Timeframe.D1
+    candle_up_color: str = "#26A69A"
+    candle_down_color: str = "#EF5350"
+    background_color: str = "#131722"
+    grid_color: str = "#363A45"
+    
+    # Axis settings
+    show_volume: bool = True
+    volume_height_pct: float = 0.2
+    price_scale_position: str = "right"
+    time_scale_visible: bool = True
+    
+    # Interaction
+    enable_zoom: bool = True
+    enable_pan: bool = True
+    enable_crosshair: bool = True
+    
+    # Limits
+    max_indicators: int = 10
+    max_drawings: int = 100
+    max_layouts: int = 50
+    
+    # Data
+    max_candles: int = 5000
+    default_candles_visible: int = 100
 
 
-@dataclass(frozen=True)
-class SRConfig:
-    """Support/resistance configuration."""
-    lookback: int = 100
-    pivot_window: int = 5
-    zone_tolerance: float = 0.01
-    min_touches: int = 2
-    max_levels: int = 10
+DEFAULT_CHART_CONFIG = ChartConfig()
 
 
-@dataclass(frozen=True)
-class FibConfig:
-    """Fibonacci configuration."""
-    retracement_levels: tuple[float, ...] = (0.236, 0.382, 0.500, 0.618, 0.786)
-    extension_levels: tuple[float, ...] = (1.000, 1.272, 1.618, 2.000, 2.618)
-    swing_window: int = 10
-    min_swing_pct: float = 0.05
-
-
-@dataclass(frozen=True)
-class ChartingConfig:
-    """Complete charting configuration."""
-    pattern: PatternConfig = field(default_factory=PatternConfig)
-    trend: TrendConfig = field(default_factory=TrendConfig)
-    sr: SRConfig = field(default_factory=SRConfig)
-    fib: FibConfig = field(default_factory=FibConfig)
-
-
-DEFAULT_PATTERN_CONFIG = PatternConfig()
-DEFAULT_TREND_CONFIG = TrendConfig()
-DEFAULT_SR_CONFIG = SRConfig()
-DEFAULT_FIB_CONFIG = FibConfig()
-DEFAULT_CONFIG = ChartingConfig()
+# Indicator definitions
+INDICATOR_DEFINITIONS: dict[str, dict] = {
+    # Trend indicators
+    "SMA": {
+        "name": "Simple Moving Average",
+        "category": IndicatorCategory.TREND,
+        "params": {"period": 20},
+        "overlay": True,
+    },
+    "EMA": {
+        "name": "Exponential Moving Average",
+        "category": IndicatorCategory.TREND,
+        "params": {"period": 20},
+        "overlay": True,
+    },
+    "WMA": {
+        "name": "Weighted Moving Average",
+        "category": IndicatorCategory.TREND,
+        "params": {"period": 20},
+        "overlay": True,
+    },
+    "VWAP": {
+        "name": "Volume Weighted Average Price",
+        "category": IndicatorCategory.TREND,
+        "params": {},
+        "overlay": True,
+    },
+    "BB": {
+        "name": "Bollinger Bands",
+        "category": IndicatorCategory.TREND,
+        "params": {"period": 20, "std": 2.0},
+        "overlay": True,
+    },
+    "ICHIMOKU": {
+        "name": "Ichimoku Cloud",
+        "category": IndicatorCategory.TREND,
+        "params": {"tenkan": 9, "kijun": 26, "senkou": 52},
+        "overlay": True,
+    },
+    # Momentum indicators
+    "RSI": {
+        "name": "Relative Strength Index",
+        "category": IndicatorCategory.MOMENTUM,
+        "params": {"period": 14},
+        "overlay": False,
+    },
+    "MACD": {
+        "name": "MACD",
+        "category": IndicatorCategory.MOMENTUM,
+        "params": {"fast": 12, "slow": 26, "signal": 9},
+        "overlay": False,
+    },
+    "STOCH": {
+        "name": "Stochastic",
+        "category": IndicatorCategory.MOMENTUM,
+        "params": {"k": 14, "d": 3},
+        "overlay": False,
+    },
+    "CCI": {
+        "name": "Commodity Channel Index",
+        "category": IndicatorCategory.MOMENTUM,
+        "params": {"period": 20},
+        "overlay": False,
+    },
+    "WILLR": {
+        "name": "Williams %R",
+        "category": IndicatorCategory.MOMENTUM,
+        "params": {"period": 14},
+        "overlay": False,
+    },
+    "ROC": {
+        "name": "Rate of Change",
+        "category": IndicatorCategory.MOMENTUM,
+        "params": {"period": 12},
+        "overlay": False,
+    },
+    # Volume indicators
+    "OBV": {
+        "name": "On Balance Volume",
+        "category": IndicatorCategory.VOLUME,
+        "params": {},
+        "overlay": False,
+    },
+    "VPROFILE": {
+        "name": "Volume Profile",
+        "category": IndicatorCategory.VOLUME,
+        "params": {"rows": 24},
+        "overlay": True,
+    },
+    "ADL": {
+        "name": "Accumulation/Distribution",
+        "category": IndicatorCategory.VOLUME,
+        "params": {},
+        "overlay": False,
+    },
+    "CMF": {
+        "name": "Chaikin Money Flow",
+        "category": IndicatorCategory.VOLUME,
+        "params": {"period": 20},
+        "overlay": False,
+    },
+    # Volatility indicators
+    "ATR": {
+        "name": "Average True Range",
+        "category": IndicatorCategory.VOLATILITY,
+        "params": {"period": 14},
+        "overlay": False,
+    },
+    "KC": {
+        "name": "Keltner Channel",
+        "category": IndicatorCategory.VOLATILITY,
+        "params": {"period": 20, "mult": 2.0},
+        "overlay": True,
+    },
+    "DC": {
+        "name": "Donchian Channel",
+        "category": IndicatorCategory.VOLATILITY,
+        "params": {"period": 20},
+        "overlay": True,
+    },
+    # Support/Resistance
+    "PIVOT": {
+        "name": "Pivot Points",
+        "category": IndicatorCategory.SUPPORT_RESISTANCE,
+        "params": {"type": "standard"},
+        "overlay": True,
+    },
+    "FIB": {
+        "name": "Auto Fibonacci",
+        "category": IndicatorCategory.SUPPORT_RESISTANCE,
+        "params": {"lookback": 100},
+        "overlay": True,
+    },
+}

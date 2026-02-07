@@ -1,77 +1,51 @@
-"""Technical Charting Module.
+"""PRD-62: Advanced Charting.
 
-Chart pattern detection, trend analysis, support/resistance identification,
-and Fibonacci retracement/extension calculations.
-
-Example:
-    from src.charting import TrendAnalyzer, FibCalculator
-    import pandas as pd
-
-    analyzer = TrendAnalyzer()
-    close = pd.Series([100, 102, 104, 103, 105, 107, ...])
-    trend = analyzer.analyze(close, symbol="AAPL")
-    print(f"Direction: {trend.direction.value}, Strength: {trend.strength}")
-
-    fib = FibCalculator()
-    levels = fib.compute_from_points(swing_high=110, swing_low=95)
-    print(f"61.8% retracement: {levels.retracements[0.618]}")
+Professional charting system with:
+- Multiple chart types and timeframes
+- 50+ technical indicators
+- Drawing tools and annotations
+- Saved layouts and templates
 """
 
 from src.charting.config import (
-    PatternType,
-    TrendDirection,
-    SRType,
-    CrossoverType,
-    PatternConfig,
-    TrendConfig,
-    SRConfig,
-    FibConfig,
-    ChartingConfig,
-    DEFAULT_PATTERN_CONFIG,
-    DEFAULT_TREND_CONFIG,
-    DEFAULT_SR_CONFIG,
-    DEFAULT_FIB_CONFIG,
-    DEFAULT_CONFIG,
+    ChartType,
+    Timeframe,
+    DrawingType,
+    IndicatorCategory,
+    LineStyle,
+    ChartConfig,
+    DEFAULT_CHART_CONFIG,
 )
-
 from src.charting.models import (
-    ChartPattern,
-    TrendAnalysis,
-    MACrossover,
-    SRLevel,
-    FibonacciLevels,
+    ChartLayout,
+    Drawing,
+    IndicatorConfig,
+    ChartTemplate,
+    OHLCV,
+    IndicatorResult,
 )
-
-from src.charting.patterns import PatternDetector
-from src.charting.trend import TrendAnalyzer
-from src.charting.support_resistance import SRDetector
-from src.charting.fibonacci import FibCalculator
+from src.charting.indicators import IndicatorEngine
+from src.charting.drawings import DrawingManager
+from src.charting.layouts import LayoutManager
 
 __all__ = [
     # Config
-    "PatternType",
-    "TrendDirection",
-    "SRType",
-    "CrossoverType",
-    "PatternConfig",
-    "TrendConfig",
-    "SRConfig",
-    "FibConfig",
-    "ChartingConfig",
-    "DEFAULT_PATTERN_CONFIG",
-    "DEFAULT_TREND_CONFIG",
-    "DEFAULT_SR_CONFIG",
-    "DEFAULT_FIB_CONFIG",
-    "DEFAULT_CONFIG",
+    "ChartType",
+    "Timeframe",
+    "DrawingType",
+    "IndicatorCategory",
+    "LineStyle",
+    "ChartConfig",
+    "DEFAULT_CHART_CONFIG",
     # Models
-    "ChartPattern",
-    "TrendAnalysis",
-    "MACrossover",
-    "SRLevel",
-    "FibonacciLevels",
-    # Components
-    "PatternDetector",
-    "TrendAnalyzer",
-    "SRDetector",
-    "FibCalculator",
+    "ChartLayout",
+    "Drawing",
+    "IndicatorConfig",
+    "ChartTemplate",
+    "OHLCV",
+    "IndicatorResult",
+    # Managers
+    "IndicatorEngine",
+    "DrawingManager",
+    "LayoutManager",
 ]

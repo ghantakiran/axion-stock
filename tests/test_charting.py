@@ -1,619 +1,1044 @@
-"""Tests for PRD-40: Technical Charting."""
+"""Tests for PRD-62: Advanced Charting."""
 
 import pytest
-import numpy as np
-import pandas as pd
-from datetime import date
+from datetime import datetime, timezone, timedelta
 
-from src.charting.config import (
-    PatternType,
-    TrendDirection,
-    SRType,
-    CrossoverType,
-    PatternConfig,
-    TrendConfig,
-    SRConfig,
-    FibConfig,
-    ChartingConfig,
-    DEFAULT_PATTERN_CONFIG,
-    DEFAULT_TREND_CONFIG,
-    DEFAULT_SR_CONFIG,
-    DEFAULT_FIB_CONFIG,
-    DEFAULT_CONFIG,
+from src.charting import (
+    ChartType,
+    Timeframe,
+    DrawingType,
+    IndicatorCategory,
+    LineStyle,
+    ChartConfig,
+    DEFAULT_CHART_CONFIG,
+    ChartLayout,
+    Drawing,
+    IndicatorConfig,
+    ChartTemplate,
+    OHLCV,
+    IndicatorResult,
+    IndicatorEngine,
+    DrawingManager,
+    LayoutManager,
 )
-from src.charting.models import (
-    ChartPattern,
-    TrendAnalysis,
-    MACrossover,
-    SRLevel,
-    FibonacciLevels,
-)
-from src.charting.patterns import PatternDetector
-from src.charting.trend import TrendAnalyzer
-from src.charting.support_resistance import SRDetector
-from src.charting.fibonacci import FibCalculator
+from src.charting.models import Point, DrawingStyle
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Fixtures
 # ---------------------------------------------------------------------------
 
-def _make_uptrend(n: int = 200, seed: int = 42) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
-    """Generate uptrending OHLC data."""
-    rng = np.random.RandomState(seed)
-    trend = np.linspace(100, 150, n) + rng.normal(0, 1.5, n)
-    close = pd.Series(trend)
-    high = close + np.abs(rng.normal(0.5, 0.3, n))
-    low = close - np.abs(rng.normal(0.5, 0.3, n))
-    open_ = close + rng.normal(0, 0.3, n)
-    return open_, high, low, close
+
+@pytest.fixture
+def sample_ohlcv_data() -> list[OHLCV]:
+    """Generate sample OHLCV data for testing."""
+    data = []
+    base_price = 100.0
+    base_time = datetime.now(timezone.utc) - timedelta(days=100)
+
+    for i in range(100):
+        timestamp = base_time + timedelta(days=i)
+        change = (i % 5 - 2) * 0.5
+        open_price = base_price + change
+        high_price = open_price + 2
+        low_price = open_price - 1
+        close_price = open_price + 1
+        volume = 1000000 + i * 10000
+
+        data.append(OHLCV(
+            timestamp=timestamp,
+            open=open_price,
+            high=high_price,
+            low=low_price,
+            close=close_price,
+            volume=volume,
+        ))
+
+        base_price = close_price
+
+    return data
 
 
-def _make_downtrend(n: int = 200, seed: int = 42) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
-    """Generate downtrending OHLC data."""
-    rng = np.random.RandomState(seed)
-    trend = np.linspace(150, 100, n) + rng.normal(0, 1.5, n)
-    close = pd.Series(trend)
-    high = close + np.abs(rng.normal(0.5, 0.3, n))
-    low = close - np.abs(rng.normal(0.5, 0.3, n))
-    open_ = close + rng.normal(0, 0.3, n)
-    return open_, high, low, close
+@pytest.fixture
+def indicator_engine() -> IndicatorEngine:
+    """Create an IndicatorEngine instance."""
+    return IndicatorEngine()
 
 
-def _make_sideways(n: int = 200, seed: int = 42) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
-    """Generate sideways OHLC data."""
-    rng = np.random.RandomState(seed)
-    trend = 120.0 + rng.normal(0, 2.0, n)
-    close = pd.Series(trend)
-    high = close + np.abs(rng.normal(0.5, 0.3, n))
-    low = close - np.abs(rng.normal(0.5, 0.3, n))
-    open_ = close + rng.normal(0, 0.3, n)
-    return open_, high, low, close
+@pytest.fixture
+def drawing_manager() -> DrawingManager:
+    """Create a DrawingManager instance."""
+    return DrawingManager()
 
 
-def _make_double_top(n: int = 60) -> tuple[pd.Series, pd.Series, pd.Series]:
-    """Generate price data with a double top pattern."""
-    # Rise -> peak1 -> dip -> peak2 -> decline
-    part1 = np.linspace(100, 120, 15)  # Rise
-    part2 = np.linspace(120, 110, 10)  # Dip
-    part3 = np.linspace(110, 120, 10)  # Rise to second peak
-    part4 = np.linspace(120, 105, 15)  # Decline below neckline
-    part5 = np.linspace(105, 100, 10)  # Continue down
-    prices = np.concatenate([part1, part2, part3, part4, part5])
-    close = pd.Series(prices)
-    high = close + 0.5
-    low = close - 0.5
-    return high, low, close
+@pytest.fixture
+def layout_manager() -> LayoutManager:
+    """Create a LayoutManager instance."""
+    return LayoutManager()
 
 
-def _make_double_bottom(n: int = 60) -> tuple[pd.Series, pd.Series, pd.Series]:
-    """Generate price data with a double bottom pattern."""
-    part1 = np.linspace(120, 100, 15)
-    part2 = np.linspace(100, 110, 10)
-    part3 = np.linspace(110, 100, 10)
-    part4 = np.linspace(100, 115, 15)
-    part5 = np.linspace(115, 120, 10)
-    prices = np.concatenate([part1, part2, part3, part4, part5])
-    close = pd.Series(prices)
-    high = close + 0.5
-    low = close - 0.5
-    return high, low, close
-
-
-# ===========================================================================
+# ---------------------------------------------------------------------------
 # Config Tests
-# ===========================================================================
+# ---------------------------------------------------------------------------
+
 
 class TestConfig:
-    """Test configuration enums and dataclasses."""
+    """Test configuration enums and defaults."""
 
-    def test_pattern_type_values(self):
-        assert PatternType.DOUBLE_TOP.value == "double_top"
-        assert PatternType.DOUBLE_BOTTOM.value == "double_bottom"
-        assert PatternType.HEAD_AND_SHOULDERS.value == "head_and_shoulders"
-        assert PatternType.ASCENDING_TRIANGLE.value == "ascending_triangle"
-        assert PatternType.FLAG.value == "flag"
-        assert len(PatternType) == 8
+    def test_chart_types(self):
+        """Test ChartType enum values."""
+        assert ChartType.CANDLESTICK.value == "candlestick"
+        assert ChartType.LINE.value == "line"
+        assert ChartType.HEIKIN_ASHI.value == "heikin_ashi"
+        assert len(ChartType) == 7
 
-    def test_trend_direction_values(self):
-        assert TrendDirection.UP.value == "up"
-        assert TrendDirection.DOWN.value == "down"
-        assert TrendDirection.SIDEWAYS.value == "sideways"
+    def test_timeframes(self):
+        """Test Timeframe enum values."""
+        assert Timeframe.M1.value == "1m"
+        assert Timeframe.H1.value == "1h"
+        assert Timeframe.D1.value == "1d"
+        assert Timeframe.W1.value == "1w"
+        assert len(Timeframe) == 9
 
-    def test_sr_type_values(self):
-        assert SRType.SUPPORT.value == "support"
-        assert SRType.RESISTANCE.value == "resistance"
+    def test_drawing_types(self):
+        """Test DrawingType enum values."""
+        assert DrawingType.TRENDLINE.value == "trendline"
+        assert DrawingType.FIBONACCI_RETRACEMENT.value == "fib_retracement"
+        assert DrawingType.HORIZONTAL_LINE.value == "horizontal_line"
+        assert len(DrawingType) >= 10
 
-    def test_crossover_type_values(self):
-        assert CrossoverType.GOLDEN_CROSS.value == "golden_cross"
-        assert CrossoverType.DEATH_CROSS.value == "death_cross"
+    def test_indicator_categories(self):
+        """Test IndicatorCategory enum values."""
+        assert IndicatorCategory.TREND.value == "trend"
+        assert IndicatorCategory.MOMENTUM.value == "momentum"
+        assert IndicatorCategory.VOLUME.value == "volume"
+        assert len(IndicatorCategory) == 6
 
-    def test_pattern_config_defaults(self):
-        cfg = PatternConfig()
-        assert cfg.min_pattern_bars == 10
-        assert cfg.price_tolerance == 0.02
-        assert cfg.min_confidence == 0.5
+    def test_line_styles(self):
+        """Test LineStyle enum values."""
+        assert LineStyle.SOLID.value == "solid"
+        assert LineStyle.DASHED.value == "dashed"
+        assert LineStyle.DOTTED.value == "dotted"
 
-    def test_trend_config_defaults(self):
-        cfg = TrendConfig()
-        assert cfg.short_window == 20
-        assert cfg.medium_window == 50
-        assert cfg.long_window == 200
-
-    def test_sr_config_defaults(self):
-        cfg = SRConfig()
-        assert cfg.lookback == 100
-        assert cfg.min_touches == 2
-        assert cfg.max_levels == 10
-
-    def test_fib_config_defaults(self):
-        cfg = FibConfig()
-        assert 0.618 in cfg.retracement_levels
-        assert 1.618 in cfg.extension_levels
-        assert len(cfg.retracement_levels) == 5
-        assert len(cfg.extension_levels) == 5
-
-    def test_charting_config_bundles(self):
-        cfg = ChartingConfig()
-        assert isinstance(cfg.pattern, PatternConfig)
-        assert isinstance(cfg.trend, TrendConfig)
-        assert isinstance(cfg.sr, SRConfig)
-        assert isinstance(cfg.fib, FibConfig)
-
-    def test_default_config_exists(self):
-        assert DEFAULT_CONFIG.pattern.min_pattern_bars == 10
+    def test_default_chart_config(self):
+        """Test default chart configuration."""
+        config = DEFAULT_CHART_CONFIG
+        assert config.default_chart_type == ChartType.CANDLESTICK
+        assert config.default_timeframe == Timeframe.D1
+        assert config.show_volume is True
+        assert config.max_indicators == 10
 
 
-# ===========================================================================
-# Model Tests
-# ===========================================================================
+# ---------------------------------------------------------------------------
+# Models Tests
+# ---------------------------------------------------------------------------
+
 
 class TestModels:
     """Test data models."""
 
-    def test_chart_pattern_bullish(self):
-        p = ChartPattern(pattern_type=PatternType.DOUBLE_BOTTOM)
-        assert p.is_bullish is True
-        assert p.is_bearish is False
-
-    def test_chart_pattern_bearish(self):
-        p = ChartPattern(pattern_type=PatternType.DOUBLE_TOP)
-        assert p.is_bearish is True
-        assert p.is_bullish is False
-
-    def test_chart_pattern_height(self):
-        p = ChartPattern(neckline=100.0, target_price=90.0)
-        assert p.pattern_height == 10.0
-
-    def test_chart_pattern_to_dict(self):
-        p = ChartPattern(pattern_type=PatternType.HEAD_AND_SHOULDERS, confidence=0.75)
-        d = p.to_dict()
-        assert d["pattern_type"] == "head_and_shoulders"
-        assert d["is_bearish"] is True
-
-    def test_trend_analysis_ma_aligned_bullish(self):
-        t = TrendAnalysis(ma_short=110, ma_medium=105, ma_long=100)
-        assert t.ma_aligned_bullish is True
-        assert t.ma_aligned_bearish is False
-
-    def test_trend_analysis_ma_aligned_bearish(self):
-        t = TrendAnalysis(ma_short=100, ma_medium=105, ma_long=110)
-        assert t.ma_aligned_bearish is True
-        assert t.ma_aligned_bullish is False
-
-    def test_trend_analysis_ma_not_aligned(self):
-        t = TrendAnalysis(ma_short=105, ma_medium=100, ma_long=110)
-        assert t.ma_aligned_bullish is False
-        assert t.ma_aligned_bearish is False
-
-    def test_trend_analysis_to_dict(self):
-        t = TrendAnalysis(direction=TrendDirection.UP, strength=75.0)
-        d = t.to_dict()
-        assert d["direction"] == "up"
-        assert d["strength"] == 75.0
-
-    def test_sr_level_is_strong(self):
-        sr = SRLevel(touches=4, strength=0.8)
-        assert sr.is_strong is True
-        sr2 = SRLevel(touches=1, strength=0.3)
-        assert sr2.is_strong is False
-
-    def test_sr_level_to_dict(self):
-        sr = SRLevel(level_type=SRType.SUPPORT, price=150.0, touches=3)
-        d = sr.to_dict()
-        assert d["level_type"] == "support"
-
-    def test_fibonacci_levels_swing_range(self):
-        fib = FibonacciLevels(swing_high=120.0, swing_low=100.0)
-        assert fib.swing_range == 20.0
-
-    def test_fibonacci_nearest_retracement(self):
-        fib = FibonacciLevels(
-            swing_high=120.0,
-            swing_low=100.0,
-            retracements={0.382: 112.36, 0.500: 110.0, 0.618: 107.64},
+    def test_ohlcv(self):
+        """Test OHLCV model."""
+        now = datetime.now(timezone.utc)
+        bar = OHLCV(
+            timestamp=now,
+            open=100.0,
+            high=105.0,
+            low=98.0,
+            close=103.0,
+            volume=1000000,
         )
-        nearest = fib.nearest_retracement(111.0)
-        assert nearest is not None
-        assert nearest[0] == 0.500  # 110.0 is closest to 111.0
 
-    def test_fibonacci_to_dict(self):
-        fib = FibonacciLevels(
-            swing_high=120.0,
-            swing_low=100.0,
-            retracements={0.618: 107.64},
+        assert bar.open == 100.0
+        assert bar.high == 105.0
+        assert bar.low == 98.0
+        assert bar.close == 103.0
+        assert bar.volume == 1000000
+
+        d = bar.to_dict()
+        assert "timestamp" in d
+        assert d["open"] == 100.0
+
+    def test_point(self):
+        """Test Point model."""
+        now = datetime.now(timezone.utc)
+        point = Point(timestamp=now, price=150.0)
+
+        assert point.price == 150.0
+        d = point.to_dict()
+        assert d["price"] == 150.0
+
+    def test_drawing_style(self):
+        """Test DrawingStyle model."""
+        style = DrawingStyle(
+            color="#FF0000",
+            line_width=2,
+            line_style=LineStyle.DASHED,
+            fill_color="#0000FF",
+            fill_opacity=0.5,
         )
-        d = fib.to_dict()
-        assert d["swing_range"] == 20.0
-        assert "0.618" in d["retracements"]
+
+        assert style.color == "#FF0000"
+        assert style.line_width == 2
+        assert style.line_style == LineStyle.DASHED
+
+        d = style.to_dict()
+        assert d["color"] == "#FF0000"
+        assert d["line_style"] == "dashed"
+
+    def test_drawing(self):
+        """Test Drawing model."""
+        now = datetime.now(timezone.utc)
+        drawing = Drawing(
+            drawing_type=DrawingType.TRENDLINE,
+            symbol="AAPL",
+            label="Support Line",
+        )
+
+        drawing.add_point(now - timedelta(days=10), 140.0)
+        drawing.add_point(now, 150.0)
+
+        assert drawing.drawing_type == DrawingType.TRENDLINE
+        assert drawing.symbol == "AAPL"
+        assert len(drawing.points) == 2
+        assert drawing.label == "Support Line"
+
+        d = drawing.to_dict()
+        assert d["symbol"] == "AAPL"
+        assert len(d["points"]) == 2
+
+    def test_drawing_move(self):
+        """Test moving a drawing."""
+        now = datetime.now(timezone.utc)
+        drawing = Drawing(
+            drawing_type=DrawingType.HORIZONTAL_LINE,
+            symbol="AAPL",
+        )
+        drawing.add_point(now, 150.0)
+
+        original_price = drawing.points[0].price
+        drawing.move(0, 10.0)
+
+        assert drawing.points[0].price == original_price + 10.0
+
+    def test_indicator_config(self):
+        """Test IndicatorConfig model."""
+        config = IndicatorConfig(
+            indicator_id="sma_1",
+            name="SMA",
+            params={"period": 20},
+            color="#2196F3",
+        )
+
+        assert config.name == "SMA"
+        assert config.params["period"] == 20
+
+        d = config.to_dict()
+        assert d["name"] == "SMA"
+
+    def test_indicator_result(self):
+        """Test IndicatorResult model."""
+        now = datetime.now(timezone.utc)
+        result = IndicatorResult(
+            name="SMA",
+            values={"sma": [100.0, 101.0, 102.0]},
+            timestamps=[now - timedelta(days=2), now - timedelta(days=1), now],
+            params={"period": 20},
+            is_overlay=True,
+        )
+
+        assert result.name == "SMA"
+        assert len(result.values["sma"]) == 3
+        assert result.is_overlay is True
+
+    def test_chart_layout(self):
+        """Test ChartLayout model."""
+        layout = ChartLayout(
+            user_id="user_1",
+            name="My Layout",
+            symbol="AAPL",
+            timeframe=Timeframe.D1,
+            chart_type=ChartType.CANDLESTICK,
+        )
+
+        assert layout.name == "My Layout"
+        assert layout.symbol == "AAPL"
+        assert len(layout.indicators) == 0
+        assert len(layout.drawings) == 0
+
+        config = IndicatorConfig(
+            indicator_id="sma_1",
+            name="SMA",
+            params={"period": 20},
+        )
+        layout.add_indicator(config)
+        assert len(layout.indicators) == 1
+
+        result = layout.remove_indicator("sma_1")
+        assert result is True
+        assert len(layout.indicators) == 0
+
+    def test_chart_template(self):
+        """Test ChartTemplate model."""
+        template = ChartTemplate(
+            name="Trend Following",
+            category="Trading",
+            config={"chart_type": "candlestick"},
+            indicators=[{"name": "SMA", "params": {"period": 20}}],
+        )
+
+        assert template.name == "Trend Following"
+        assert template.usage_count == 0
+
+        template.increment_usage()
+        assert template.usage_count == 1
+
+        template.add_rating(4.0)
+        template.add_rating(5.0)
+        assert template.rating_count == 2
+        assert template.rating == 4.5
 
 
-# ===========================================================================
-# Pattern Tests
-# ===========================================================================
-
-class TestPatternDetector:
-    """Test chart pattern detection."""
-
-    def test_detect_double_top(self):
-        high, low, close = _make_double_top()
-        detector = PatternDetector()
-        patterns = detector.detect_double_top(high, close, symbol="TEST")
-        # Should find at least one double top
-        tops = [p for p in patterns if p.pattern_type == PatternType.DOUBLE_TOP]
-        assert len(tops) >= 1
-        assert tops[0].confidence > 0
-
-    def test_detect_double_bottom(self):
-        high, low, close = _make_double_bottom()
-        detector = PatternDetector()
-        patterns = detector.detect_double_bottom(low, close, symbol="TEST")
-        bottoms = [p for p in patterns if p.pattern_type == PatternType.DOUBLE_BOTTOM]
-        assert len(bottoms) >= 1
-        assert bottoms[0].is_bullish is True
-
-    def test_detect_all(self):
-        high, low, close = _make_double_top()
-        detector = PatternDetector()
-        patterns = detector.detect_all(high, low, close, symbol="ALL")
-        # Should return sorted by confidence
-        if len(patterns) > 1:
-            assert patterns[0].confidence >= patterns[-1].confidence
-
-    def test_insufficient_data(self):
-        detector = PatternDetector()
-        short = pd.Series([100, 101, 102])
-        patterns = detector.detect_double_top(short, short)
-        assert patterns == []
-
-    def test_find_peaks(self):
-        data = np.array([1, 2, 5, 2, 1, 2, 6, 2, 1, 2, 5, 2, 1])
-        detector = PatternDetector()
-        peaks = detector._find_peaks(data, order=2)
-        assert 2 in peaks
-        assert 6 in peaks
-        assert 10 in peaks
-
-    def test_find_troughs(self):
-        data = np.array([5, 4, 1, 4, 5, 4, 1, 4, 5])
-        detector = PatternDetector()
-        troughs = detector._find_troughs(data, order=2)
-        assert 2 in troughs
-        assert 6 in troughs
-
-    def test_head_and_shoulders(self):
-        # Create H&S pattern: left shoulder, head, right shoulder
-        ls = np.linspace(100, 115, 10)
-        d1 = np.linspace(115, 105, 8)
-        hd = np.linspace(105, 120, 10)
-        d2 = np.linspace(120, 105, 8)
-        rs = np.linspace(105, 115, 10)
-        d3 = np.linspace(115, 100, 10)
-        tail = np.linspace(100, 98, 5)
-        prices = np.concatenate([ls, d1, hd, d2, rs, d3, tail])
-        close = pd.Series(prices)
-        high = close + 0.3
-        low = close - 0.3
-        detector = PatternDetector()
-        patterns = detector.detect_head_and_shoulders(high, low, close, symbol="HS")
-        hs_patterns = [p for p in patterns if p.pattern_type == PatternType.HEAD_AND_SHOULDERS]
-        # Pattern detection depends on peak finding; may find it
-        # At minimum, the method should run without error
-        assert isinstance(patterns, list)
-
-    def test_triangle_detection(self):
-        _, high, low, close = _make_sideways(100)
-        detector = PatternDetector()
-        patterns = detector.detect_triangle(high, low, close, symbol="TRI")
-        assert isinstance(patterns, list)
+# ---------------------------------------------------------------------------
+# Indicator Engine Tests
+# ---------------------------------------------------------------------------
 
 
-# ===========================================================================
-# Trend Tests
-# ===========================================================================
+class TestIndicatorEngine:
+    """Test indicator calculations."""
 
-class TestTrendAnalyzer:
-    """Test trend analysis."""
+    def test_get_available_indicators(self, indicator_engine: IndicatorEngine):
+        """Test getting available indicators."""
+        indicators = indicator_engine.get_available_indicators()
 
-    def test_uptrend_detection(self):
-        _, _, _, close = _make_uptrend(200)
-        analyzer = TrendAnalyzer()
-        trend = analyzer.analyze(close, symbol="UP")
-        assert trend.direction == TrendDirection.UP
-        assert trend.slope > 0
-        assert trend.strength > 0
+        assert len(indicators) >= 10
 
-    def test_downtrend_detection(self):
-        _, _, _, close = _make_downtrend(200)
-        analyzer = TrendAnalyzer()
-        trend = analyzer.analyze(close, symbol="DN")
-        assert trend.direction == TrendDirection.DOWN
-        assert trend.slope < 0
+        for ind in indicators:
+            assert "id" in ind
+            assert "name" in ind
+            assert "category" in ind
+            assert "params" in ind
+            assert "overlay" in ind
 
-    def test_sideways_detection(self):
-        _, _, _, close = _make_sideways(200)
-        analyzer = TrendAnalyzer()
-        trend = analyzer.analyze(close, symbol="SIDE")
-        # Sideways has near-zero slope
-        assert abs(trend.slope) < 0.01
+    def test_get_indicators_by_category(self, indicator_engine: IndicatorEngine):
+        """Test filtering indicators by category."""
+        trend_indicators = indicator_engine.get_indicators_by_category(IndicatorCategory.TREND)
 
-    def test_ma_values(self):
-        _, _, _, close = _make_uptrend(250)
-        analyzer = TrendAnalyzer()
-        trend = analyzer.analyze(close)
-        assert trend.ma_short > 0
-        assert trend.ma_medium > 0
-        assert trend.ma_long > 0
-        # In uptrend, short MA > long MA
-        assert trend.ma_short > trend.ma_long
+        assert len(trend_indicators) >= 3
+        for ind in trend_indicators:
+            assert ind["category"] == "trend"
 
-    def test_insufficient_data(self):
-        analyzer = TrendAnalyzer()
-        trend = analyzer.analyze(pd.Series([100, 101]))
-        assert trend.direction == TrendDirection.SIDEWAYS
-        assert trend.strength == 0.0
+    def test_calculate_sma(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test SMA calculation."""
+        result = indicator_engine.calculate("SMA", sample_ohlcv_data, {"period": 20})
 
-    def test_detect_crossovers(self):
-        # Build data with a golden cross: start below, then cross above
-        rng = np.random.RandomState(42)
-        # Initially trending down, then sharply up
-        down = np.linspace(150, 100, 150)
-        up = np.linspace(100, 160, 150)
-        prices = np.concatenate([down, up]) + rng.normal(0, 1.0, 300)
-        close = pd.Series(prices)
-        analyzer = TrendAnalyzer()
-        crossovers = analyzer.detect_crossovers(close, fast_window=20, slow_window=50)
-        # Should find at least one crossover
-        assert len(crossovers) > 0
-        types = {c.crossover_type for c in crossovers}
-        assert len(types) > 0
+        assert result.name == "SMA"
+        assert "sma" in result.values
+        assert len(result.values["sma"]) == len(sample_ohlcv_data)
+        assert result.is_overlay is True
 
-    def test_compute_moving_averages(self):
-        _, _, _, close = _make_uptrend(250)
-        analyzer = TrendAnalyzer()
-        mas = analyzer.compute_moving_averages(close, windows=[20, 50, 200])
-        assert 20 in mas
-        assert 50 in mas
-        assert 200 in mas
+        import math
+        for i in range(19):
+            assert math.isnan(result.values["sma"][i])
 
-    def test_linreg(self):
-        analyzer = TrendAnalyzer()
-        x = np.arange(10, dtype=float)
-        y = 2.0 * x + 5.0
-        slope, intercept, r2 = analyzer._linreg(x, y)
-        assert slope == pytest.approx(2.0, abs=0.01)
-        assert intercept == pytest.approx(5.0, abs=0.01)
-        assert r2 == pytest.approx(1.0, abs=0.01)
+        assert not math.isnan(result.values["sma"][19])
 
+    def test_calculate_ema(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test EMA calculation."""
+        result = indicator_engine.calculate("EMA", sample_ohlcv_data, {"period": 10})
 
-# ===========================================================================
-# Support/Resistance Tests
-# ===========================================================================
+        assert result.name == "EMA"
+        assert "ema" in result.values
+        assert len(result.values["ema"]) == len(sample_ohlcv_data)
 
-class TestSRDetector:
-    """Test support/resistance detection."""
+    def test_calculate_bb(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test Bollinger Bands calculation."""
+        result = indicator_engine.calculate("BB", sample_ohlcv_data)
 
-    def test_find_levels(self):
-        _, high, low, close = _make_sideways(150)
-        detector = SRDetector()
-        levels = detector.find_levels(high, low, close, symbol="SR")
-        assert isinstance(levels, list)
-        # In sideways market should find some levels
-        for lv in levels:
-            assert lv.price > 0
-            assert lv.touches >= 2
+        assert "middle" in result.values
+        assert "upper" in result.values
+        assert "lower" in result.values
 
-    def test_find_support(self):
-        _, high, low, close = _make_sideways(150)
-        detector = SRDetector()
-        support = detector.find_support(low, close, symbol="SUP")
-        for lv in support:
-            assert lv.level_type == SRType.SUPPORT
+        import math
+        for i in range(20, len(sample_ohlcv_data)):
+            if not math.isnan(result.values["middle"][i]):
+                assert result.values["upper"][i] > result.values["middle"][i]
+                assert result.values["lower"][i] < result.values["middle"][i]
 
-    def test_find_resistance(self):
-        _, high, low, close = _make_sideways(150)
-        detector = SRDetector()
-        resistance = detector.find_resistance(high, close, symbol="RES")
-        for lv in resistance:
-            assert lv.level_type == SRType.RESISTANCE
+    def test_calculate_rsi(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test RSI calculation."""
+        result = indicator_engine.calculate("RSI", sample_ohlcv_data, {"period": 14})
 
-    def test_insufficient_data(self):
-        detector = SRDetector()
-        short_high = pd.Series([100.0, 101.0])
-        short_low = pd.Series([99.0, 100.0])
-        short_close = pd.Series([99.5, 100.5])
-        levels = detector.find_levels(short_high, short_low, short_close)
-        assert levels == []
+        assert result.name == "RSI"
+        assert "rsi" in result.values
+        assert result.is_overlay is False
 
-    def test_test_level(self):
-        detector = SRDetector()
-        level = SRLevel(level_type=SRType.SUPPORT, price=100.0, touches=3, strength=0.8)
-        result = detector.test_level(level, current_price=102.0)
-        assert result["distance"] == pytest.approx(2.0, abs=0.01)
-        assert result["distance_pct"] == pytest.approx(2.0, abs=0.1)
-        assert result["proximity"] > 0
+        import math
+        for val in result.values["rsi"]:
+            if not math.isnan(val):
+                assert 0 <= val <= 100
 
-    def test_max_levels_respected(self):
-        _, high, low, close = _make_sideways(200)
-        cfg = SRConfig(max_levels=4)
-        detector = SRDetector(config=cfg)
-        levels = detector.find_levels(high, low, close)
-        assert len(levels) <= 4
+    def test_calculate_macd(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test MACD calculation."""
+        result = indicator_engine.calculate("MACD", sample_ohlcv_data)
+
+        assert "macd" in result.values
+        assert "signal" in result.values
+        assert "histogram" in result.values
+        assert result.is_overlay is False
+
+    def test_calculate_stoch(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test Stochastic calculation."""
+        result = indicator_engine.calculate("STOCH", sample_ohlcv_data)
+
+        assert "k" in result.values
+        assert "d" in result.values
+
+        import math
+        for val in result.values["k"]:
+            if not math.isnan(val):
+                assert 0 <= val <= 100
+
+    def test_calculate_atr(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test ATR calculation."""
+        result = indicator_engine.calculate("ATR", sample_ohlcv_data, {"period": 14})
+
+        assert "atr" in result.values
+
+        import math
+        for val in result.values["atr"]:
+            if not math.isnan(val):
+                assert val >= 0
+
+    def test_calculate_obv(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test OBV calculation."""
+        result = indicator_engine.calculate("OBV", sample_ohlcv_data)
+
+        assert "obv" in result.values
+        assert len(result.values["obv"]) == len(sample_ohlcv_data)
+        assert result.values["obv"][0] == 0
+
+    def test_calculate_vwap(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test VWAP calculation."""
+        result = indicator_engine.calculate("VWAP", sample_ohlcv_data)
+
+        assert "vwap" in result.values
+        assert result.is_overlay is True
+
+    def test_calculate_unknown_indicator(self, indicator_engine: IndicatorEngine, sample_ohlcv_data: list[OHLCV]):
+        """Test calculating unknown indicator raises error."""
+        with pytest.raises(ValueError, match="Unknown indicator"):
+            indicator_engine.calculate("UNKNOWN", sample_ohlcv_data)
 
 
-# ===========================================================================
-# Fibonacci Tests
-# ===========================================================================
-
-class TestFibCalculator:
-    """Test Fibonacci calculator."""
-
-    def test_compute_from_points_uptrend(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(120.0, 100.0, is_uptrend=True)
-        assert fib.swing_high == 120.0
-        assert fib.swing_low == 100.0
-        assert fib.swing_range == 20.0
-        assert fib.is_uptrend is True
-
-        # Check retracements (from high toward low in uptrend)
-        assert 0.382 in fib.retracements
-        assert 0.618 in fib.retracements
-        assert fib.retracements[0.500] == pytest.approx(110.0, abs=0.01)
-        assert fib.retracements[0.618] == pytest.approx(107.64, abs=0.01)
-
-    def test_compute_from_points_downtrend(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(120.0, 100.0, is_uptrend=False)
-        assert fib.is_uptrend is False
-        # In downtrend, retracements go from low toward high
-        assert fib.retracements[0.500] == pytest.approx(110.0, abs=0.01)
-        assert fib.retracements[0.618] == pytest.approx(112.36, abs=0.01)
-
-    def test_extensions_uptrend(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(120.0, 100.0, is_uptrend=True)
-        # Extensions from low in uptrend
-        assert 1.618 in fib.extensions
-        assert fib.extensions[1.0] == pytest.approx(120.0, abs=0.01)
-        assert fib.extensions[1.618] == pytest.approx(132.36, abs=0.01)
-
-    def test_extensions_downtrend(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(120.0, 100.0, is_uptrend=False)
-        assert fib.extensions[1.0] == pytest.approx(100.0, abs=0.01)
-        assert fib.extensions[1.618] == pytest.approx(87.64, abs=0.01)
-
-    def test_invalid_points(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(100.0, 120.0)  # high < low
-        assert fib.swing_range == 0.0
-        assert fib.retracements == {}
-
-    def test_compute_auto_detect(self):
-        _, high, low, close = _make_uptrend(100)
-        calc = FibCalculator()
-        fib = calc.compute(high, low, close, symbol="AUTO")
-        assert fib.swing_high > fib.swing_low
-        assert len(fib.retracements) == 5
-        assert len(fib.extensions) == 5
-
-    def test_nearest_level(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(120.0, 100.0, is_uptrend=True)
-        nearest = calc.find_nearest_level(fib, price=108.0)
-        assert nearest is not None
-        assert nearest[0] == "retracement"
-        # Should be close to 0.618 (107.64)
-        assert abs(nearest[2] - 108.0) < 2.0
-
-    def test_empty_fib_nearest(self):
-        calc = FibCalculator()
-        fib = FibonacciLevels()
-        nearest = calc.find_nearest_level(fib, price=100.0)
-        assert nearest is None
-
-    def test_to_dict(self):
-        calc = FibCalculator()
-        fib = calc.compute_from_points(120.0, 100.0)
-        d = fib.to_dict()
-        assert d["swing_range"] == 20.0
-        assert len(d["retracements"]) == 5
-        assert len(d["extensions"]) == 5
+# ---------------------------------------------------------------------------
+# Drawing Manager Tests
+# ---------------------------------------------------------------------------
 
 
-# ===========================================================================
+class TestDrawingManager:
+    """Test drawing management."""
+
+    def test_create_trendline(self, drawing_manager: DrawingManager):
+        """Test creating a trendline."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_trendline(
+            symbol="AAPL",
+            start=(now - timedelta(days=10), 140.0),
+            end=(now, 150.0),
+            color="#FF0000",
+            line_width=2,
+            extend_right=True,
+        )
+
+        assert drawing.drawing_type == DrawingType.TRENDLINE
+        assert drawing.symbol == "AAPL"
+        assert len(drawing.points) == 2
+        assert drawing.style.color == "#FF0000"
+        assert drawing.style.line_width == 2
+        assert drawing.properties["extend_right"] is True
+
+    def test_create_horizontal_line(self, drawing_manager: DrawingManager):
+        """Test creating a horizontal line."""
+        drawing = drawing_manager.create_horizontal_line(
+            symbol="AAPL",
+            price=150.0,
+            color="#FF9800",
+            line_style=LineStyle.DASHED,
+        )
+
+        assert drawing.drawing_type == DrawingType.HORIZONTAL_LINE
+        assert drawing.points[0].price == 150.0
+        assert drawing.style.line_style == LineStyle.DASHED
+
+    def test_create_vertical_line(self, drawing_manager: DrawingManager):
+        """Test creating a vertical line."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_vertical_line(
+            symbol="AAPL",
+            timestamp=now,
+            color="#9C27B0",
+        )
+
+        assert drawing.drawing_type == DrawingType.VERTICAL_LINE
+        assert len(drawing.points) == 1
+
+    def test_create_fibonacci_retracement(self, drawing_manager: DrawingManager):
+        """Test creating Fibonacci retracement."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_fibonacci_retracement(
+            symbol="AAPL",
+            start=(now - timedelta(days=30), 130.0),
+            end=(now, 160.0),
+            levels=[0, 0.236, 0.382, 0.5, 0.618, 1.0],
+        )
+
+        assert drawing.drawing_type == DrawingType.FIBONACCI_RETRACEMENT
+        assert len(drawing.points) == 2
+        assert drawing.properties["levels"] == [0, 0.236, 0.382, 0.5, 0.618, 1.0]
+
+    def test_create_rectangle(self, drawing_manager: DrawingManager):
+        """Test creating a rectangle."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_rectangle(
+            symbol="AAPL",
+            top_left=(now - timedelta(days=10), 160.0),
+            bottom_right=(now, 140.0),
+            color="#4CAF50",
+            fill_opacity=0.3,
+        )
+
+        assert drawing.drawing_type == DrawingType.RECTANGLE
+        assert len(drawing.points) == 2
+        assert drawing.style.fill_opacity == 0.3
+
+    def test_create_text(self, drawing_manager: DrawingManager):
+        """Test creating text annotation."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_text(
+            symbol="AAPL",
+            position=(now, 150.0),
+            text="Buy Signal",
+            font_size=14,
+        )
+
+        assert drawing.drawing_type == DrawingType.TEXT
+        assert drawing.properties["text"] == "Buy Signal"
+        assert drawing.style.font_size == 14
+
+    def test_create_channel(self, drawing_manager: DrawingManager):
+        """Test creating a channel."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_channel(
+            symbol="AAPL",
+            start1=(now - timedelta(days=20), 140.0),
+            end1=(now, 150.0),
+            start2=(now - timedelta(days=20), 145.0),
+            end2=(now, 155.0),
+        )
+
+        assert drawing.drawing_type == DrawingType.CHANNEL
+        assert len(drawing.points) == 4
+
+    def test_create_arrow(self, drawing_manager: DrawingManager):
+        """Test creating an arrow."""
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_arrow(
+            symbol="AAPL",
+            start=(now - timedelta(days=5), 140.0),
+            end=(now, 150.0),
+        )
+
+        assert drawing.drawing_type == DrawingType.ARROW
+        assert len(drawing.points) == 2
+
+    def test_add_and_get_drawings(self, drawing_manager: DrawingManager):
+        """Test adding and getting drawings."""
+        layout_id = "layout_1"
+
+        drawing1 = drawing_manager.create_horizontal_line("AAPL", 150.0)
+        drawing2 = drawing_manager.create_horizontal_line("AAPL", 145.0)
+        drawing3 = drawing_manager.create_horizontal_line("MSFT", 300.0)
+
+        drawing_manager.add_drawing(layout_id, drawing1)
+        drawing_manager.add_drawing(layout_id, drawing2)
+        drawing_manager.add_drawing(layout_id, drawing3)
+
+        all_drawings = drawing_manager.get_drawings(layout_id)
+        assert len(all_drawings) == 3
+
+        aapl_drawings = drawing_manager.get_drawings(layout_id, symbol="AAPL")
+        assert len(aapl_drawings) == 2
+
+    def test_get_drawing(self, drawing_manager: DrawingManager):
+        """Test getting a specific drawing."""
+        layout_id = "layout_1"
+        drawing = drawing_manager.create_horizontal_line("AAPL", 150.0)
+        drawing_manager.add_drawing(layout_id, drawing)
+
+        retrieved = drawing_manager.get_drawing(layout_id, drawing.drawing_id)
+        assert retrieved is not None
+        assert retrieved.drawing_id == drawing.drawing_id
+
+        not_found = drawing_manager.get_drawing(layout_id, "non_existent")
+        assert not_found is None
+
+    def test_update_drawing(self, drawing_manager: DrawingManager):
+        """Test updating a drawing."""
+        layout_id = "layout_1"
+        now = datetime.now(timezone.utc)
+        drawing = drawing_manager.create_horizontal_line("AAPL", 150.0)
+        drawing_manager.add_drawing(layout_id, drawing)
+
+        new_points = [(now, 155.0)]
+        updated = drawing_manager.update_drawing(
+            layout_id,
+            drawing.drawing_id,
+            points=new_points,
+        )
+
+        assert updated is not None
+        assert updated.points[0].price == 155.0
+
+        new_style = DrawingStyle(color="#00FF00", line_width=3)
+        updated = drawing_manager.update_drawing(
+            layout_id,
+            drawing.drawing_id,
+            style=new_style,
+        )
+        assert updated.style.color == "#00FF00"
+
+    def test_delete_drawing(self, drawing_manager: DrawingManager):
+        """Test deleting a drawing."""
+        layout_id = "layout_1"
+        drawing = drawing_manager.create_horizontal_line("AAPL", 150.0)
+        drawing_manager.add_drawing(layout_id, drawing)
+
+        result = drawing_manager.delete_drawing(layout_id, drawing.drawing_id)
+        assert result is True
+
+        drawings = drawing_manager.get_drawings(layout_id)
+        assert len(drawings) == 0
+
+        result = drawing_manager.delete_drawing(layout_id, "non_existent")
+        assert result is False
+
+    def test_clear_drawings(self, drawing_manager: DrawingManager):
+        """Test clearing drawings."""
+        layout_id = "layout_1"
+
+        drawing_manager.add_drawing(layout_id, drawing_manager.create_horizontal_line("AAPL", 150.0))
+        drawing_manager.add_drawing(layout_id, drawing_manager.create_horizontal_line("AAPL", 145.0))
+        drawing_manager.add_drawing(layout_id, drawing_manager.create_horizontal_line("MSFT", 300.0))
+
+        cleared = drawing_manager.clear_drawings(layout_id, symbol="AAPL")
+        assert cleared == 2
+
+        remaining = drawing_manager.get_drawings(layout_id)
+        assert len(remaining) == 1
+
+        cleared = drawing_manager.clear_drawings(layout_id)
+        assert cleared == 1
+
+    def test_duplicate_drawing(self, drawing_manager: DrawingManager):
+        """Test duplicating a drawing."""
+        layout_id = "layout_1"
+        original = drawing_manager.create_horizontal_line("AAPL", 150.0, color="#FF0000")
+        drawing_manager.add_drawing(layout_id, original)
+
+        duplicate = drawing_manager.duplicate_drawing(layout_id, original.drawing_id)
+
+        assert duplicate is not None
+        assert duplicate.drawing_id != original.drawing_id
+        assert duplicate.style.color == original.style.color
+        assert len(duplicate.points) == len(original.points)
+
+    def test_calculate_fib_levels(self, drawing_manager: DrawingManager):
+        """Test Fibonacci level calculation."""
+        levels = drawing_manager.calculate_fib_levels(100.0, 200.0)
+
+        assert 0 in levels
+        assert 0.5 in levels
+        assert 1.0 in levels
+
+        assert levels[0] == 100.0
+        assert levels[0.5] == 150.0
+        assert levels[1.0] == 200.0
+
+    def test_get_stats(self, drawing_manager: DrawingManager):
+        """Test getting drawing statistics."""
+        layout_id = "layout_1"
+
+        drawing_manager.add_drawing(layout_id, drawing_manager.create_horizontal_line("AAPL", 150.0))
+        drawing_manager.add_drawing(layout_id, drawing_manager.create_trendline(
+            "AAPL",
+            (datetime.now(timezone.utc), 140.0),
+            (datetime.now(timezone.utc), 150.0),
+        ))
+
+        stats = drawing_manager.get_stats()
+
+        assert stats["total_drawings"] == 2
+        assert stats["layouts_with_drawings"] == 1
+        assert "horizontal_line" in stats["by_type"]
+        assert "trendline" in stats["by_type"]
+
+
+# ---------------------------------------------------------------------------
+# Layout Manager Tests
+# ---------------------------------------------------------------------------
+
+
+class TestLayoutManager:
+    """Test layout management."""
+
+    def test_create_layout(self, layout_manager: LayoutManager):
+        """Test creating a layout."""
+        layout = layout_manager.create_layout(
+            user_id="user_1",
+            name="My Layout",
+            symbol="AAPL",
+            timeframe=Timeframe.D1,
+            chart_type=ChartType.CANDLESTICK,
+        )
+
+        assert layout.name == "My Layout"
+        assert layout.symbol == "AAPL"
+        assert layout.timeframe == Timeframe.D1
+
+    def test_get_layout(self, layout_manager: LayoutManager):
+        """Test getting a layout."""
+        layout = layout_manager.create_layout(
+            user_id="user_1",
+            name="My Layout",
+        )
+
+        retrieved = layout_manager.get_layout("user_1", layout.layout_id)
+        assert retrieved is not None
+        assert retrieved.name == "My Layout"
+
+        not_found = layout_manager.get_layout("user_1", "non_existent")
+        assert not_found is None
+
+    def test_get_layouts(self, layout_manager: LayoutManager):
+        """Test getting all layouts for a user."""
+        layout_manager.create_layout(user_id="user_1", name="Layout 1")
+        layout_manager.create_layout(user_id="user_1", name="Layout 2")
+        layout_manager.create_layout(user_id="user_2", name="Layout 3")
+
+        user1_layouts = layout_manager.get_layouts("user_1")
+        assert len(user1_layouts) == 2
+
+        user2_layouts = layout_manager.get_layouts("user_2")
+        assert len(user2_layouts) == 1
+
+    def test_set_default_layout(self, layout_manager: LayoutManager):
+        """Test setting a default layout."""
+        layout1 = layout_manager.create_layout(user_id="user_1", name="Layout 1")
+        layout2 = layout_manager.create_layout(user_id="user_1", name="Layout 2")
+
+        result = layout_manager.set_default_layout("user_1", layout1.layout_id)
+        assert result is True
+
+        default = layout_manager.get_default_layout("user_1")
+        assert default.layout_id == layout1.layout_id
+
+        layout_manager.set_default_layout("user_1", layout2.layout_id)
+        default = layout_manager.get_default_layout("user_1")
+        assert default.layout_id == layout2.layout_id
+
+        assert layout1.is_default is False
+
+    def test_update_layout(self, layout_manager: LayoutManager):
+        """Test updating a layout."""
+        layout = layout_manager.create_layout(
+            user_id="user_1",
+            name="Original Name",
+            symbol="AAPL",
+        )
+
+        updated = layout_manager.update_layout(
+            "user_1",
+            layout.layout_id,
+            name="New Name",
+            symbol="MSFT",
+            timeframe=Timeframe.H1,
+        )
+
+        assert updated is not None
+        assert updated.name == "New Name"
+        assert updated.symbol == "MSFT"
+        assert updated.timeframe == Timeframe.H1
+
+    def test_delete_layout(self, layout_manager: LayoutManager):
+        """Test deleting a layout."""
+        layout = layout_manager.create_layout(user_id="user_1", name="To Delete")
+
+        result = layout_manager.delete_layout("user_1", layout.layout_id)
+        assert result is True
+
+        layouts = layout_manager.get_layouts("user_1")
+        assert len(layouts) == 0
+
+        result = layout_manager.delete_layout("user_1", "non_existent")
+        assert result is False
+
+    def test_duplicate_layout(self, layout_manager: LayoutManager):
+        """Test duplicating a layout."""
+        original = layout_manager.create_layout(
+            user_id="user_1",
+            name="Original",
+            symbol="AAPL",
+        )
+
+        config = IndicatorConfig(
+            indicator_id="sma_1",
+            name="SMA",
+            params={"period": 20},
+        )
+        layout_manager.add_indicator("user_1", original.layout_id, config)
+
+        duplicate = layout_manager.duplicate_layout(
+            "user_1",
+            original.layout_id,
+            "Copy of Original",
+        )
+
+        assert duplicate is not None
+        assert duplicate.name == "Copy of Original"
+        assert duplicate.symbol == original.symbol
+        assert len(duplicate.indicators) == 1
+
+    def test_add_remove_indicator(self, layout_manager: LayoutManager):
+        """Test adding and removing indicators from layout."""
+        layout = layout_manager.create_layout(user_id="user_1", name="My Layout")
+
+        config = IndicatorConfig(
+            indicator_id="sma_1",
+            name="SMA",
+            params={"period": 20},
+        )
+
+        result = layout_manager.add_indicator("user_1", layout.layout_id, config)
+        assert result is True
+        assert len(layout.indicators) == 1
+
+        result = layout_manager.remove_indicator("user_1", layout.layout_id, "sma_1")
+        assert result is True
+        assert len(layout.indicators) == 0
+
+    def test_update_indicator(self, layout_manager: LayoutManager):
+        """Test updating an indicator."""
+        layout = layout_manager.create_layout(user_id="user_1", name="My Layout")
+
+        config = IndicatorConfig(
+            indicator_id="sma_1",
+            name="SMA",
+            params={"period": 20},
+            color="#2196F3",
+        )
+        layout_manager.add_indicator("user_1", layout.layout_id, config)
+
+        result = layout_manager.update_indicator(
+            "user_1",
+            layout.layout_id,
+            "sma_1",
+            params={"period": 50},
+            color="#FF0000",
+        )
+
+        assert result is True
+        assert layout.indicators[0].params["period"] == 50
+        assert layout.indicators[0].color == "#FF0000"
+
+    def test_add_remove_drawing(self, layout_manager: LayoutManager):
+        """Test adding and removing drawings from layout."""
+        layout = layout_manager.create_layout(user_id="user_1", name="My Layout")
+
+        drawing = Drawing(
+            drawing_type=DrawingType.HORIZONTAL_LINE,
+            symbol="AAPL",
+        )
+
+        result = layout_manager.add_drawing("user_1", layout.layout_id, drawing)
+        assert result is True
+        assert len(layout.drawings) == 1
+
+        result = layout_manager.remove_drawing("user_1", layout.layout_id, drawing.drawing_id)
+        assert result is True
+        assert len(layout.drawings) == 0
+
+    def test_builtin_templates(self, layout_manager: LayoutManager):
+        """Test built-in templates exist."""
+        templates = layout_manager.get_templates()
+        assert len(templates) >= 3
+
+        featured = layout_manager.get_featured_templates()
+        assert len(featured) >= 2
+
+        trend = layout_manager.get_template("trend_following")
+        assert trend is not None
+        assert trend.name == "Trend Following"
+        assert len(trend.indicators) >= 2
+
+    def test_create_template(self, layout_manager: LayoutManager):
+        """Test creating a custom template."""
+        template = layout_manager.create_template(
+            name="My Template",
+            category="Custom",
+            config={"chart_type": "candlestick"},
+            indicators=[{"name": "RSI", "params": {"period": 14}}],
+            description="My custom template",
+            created_by="user_1",
+        )
+
+        assert template.name == "My Template"
+        assert template.category == "Custom"
+        assert len(template.indicators) == 1
+
+    def test_apply_template(self, layout_manager: LayoutManager):
+        """Test applying a template to a layout."""
+        layout = layout_manager.create_layout(user_id="user_1", name="My Layout")
+
+        result = layout_manager.apply_template(
+            "user_1",
+            layout.layout_id,
+            "trend_following",
+        )
+
+        assert result is True
+        assert len(layout.indicators) > 0
+
+        template = layout_manager.get_template("trend_following")
+        assert template.usage_count > 0
+
+    def test_rate_template(self, layout_manager: LayoutManager):
+        """Test rating a template."""
+        template = layout_manager.get_template("trend_following")
+        original_count = template.rating_count
+
+        result = layout_manager.rate_template("trend_following", 5)
+        assert result is True
+        assert template.rating_count == original_count + 1
+
+    def test_save_layout_as_template(self, layout_manager: LayoutManager):
+        """Test saving a layout as a template."""
+        layout = layout_manager.create_layout(
+            user_id="user_1",
+            name="My Layout",
+            symbol="AAPL",
+        )
+
+        config = IndicatorConfig(
+            indicator_id="rsi_1",
+            name="RSI",
+            params={"period": 14},
+        )
+        layout_manager.add_indicator("user_1", layout.layout_id, config)
+
+        template = layout_manager.save_layout_as_template(
+            "user_1",
+            layout.layout_id,
+            "My Saved Template",
+            "Custom",
+        )
+
+        assert template is not None
+        assert template.name == "My Saved Template"
+        assert template.category == "Custom"
+        assert len(template.indicators) == 1
+        assert template.created_by == "user_1"
+
+    def test_get_stats(self, layout_manager: LayoutManager):
+        """Test getting layout statistics."""
+        layout_manager.create_layout(user_id="user_1", name="Layout 1")
+        layout_manager.create_layout(user_id="user_1", name="Layout 2")
+
+        user_stats = layout_manager.get_stats("user_1")
+        assert user_stats["total_layouts"] == 2
+
+        global_stats = layout_manager.get_stats()
+        assert global_stats["total_layouts"] >= 2
+        assert global_stats["total_templates"] >= 3
+
+
+# ---------------------------------------------------------------------------
 # Integration Tests
-# ===========================================================================
+# ---------------------------------------------------------------------------
+
 
 class TestIntegration:
-    """End-to-end integration tests."""
+    """Integration tests combining multiple components."""
 
-    def test_full_analysis_pipeline(self):
-        """Trend -> S/R -> Fib -> Patterns."""
-        _, high, low, close = _make_uptrend(250)
-
-        # Trend
-        trend_analyzer = TrendAnalyzer()
-        trend = trend_analyzer.analyze(close, symbol="SPY")
-        assert trend.direction == TrendDirection.UP
-
-        # S/R
-        sr_detector = SRDetector()
-        levels = sr_detector.find_levels(high, low, close, symbol="SPY")
-        assert isinstance(levels, list)
-
-        # Fibonacci
-        fib_calc = FibCalculator()
-        fib = fib_calc.compute(high, low, close, symbol="SPY")
-        assert fib.swing_high > fib.swing_low
-
-        # Patterns
-        pattern_detector = PatternDetector()
-        patterns = pattern_detector.detect_all(high, low, close, symbol="SPY")
-        assert isinstance(patterns, list)
-
-    def test_crossover_with_trend(self):
-        """Detect crossovers and verify trend alignment."""
-        rng = np.random.RandomState(42)
-        down = np.linspace(150, 100, 150)
-        up = np.linspace(100, 160, 150)
-        prices = np.concatenate([down, up]) + rng.normal(0, 1.0, 300)
-        close = pd.Series(prices)
-
-        analyzer = TrendAnalyzer()
-        crossovers = analyzer.detect_crossovers(close, fast_window=20, slow_window=50)
-        trend = analyzer.analyze(close)
-
-        # End of series is uptrend
-        assert trend.direction == TrendDirection.UP
-        assert len(crossovers) > 0
-
-
-# ===========================================================================
-# Module Import Tests
-# ===========================================================================
-
-class TestModuleImports:
-    """Test module imports work correctly."""
-
-    def test_top_level_imports(self):
-        from src.charting import (
-            PatternDetector,
-            TrendAnalyzer,
-            SRDetector,
-            FibCalculator,
-            PatternType,
-            TrendDirection,
-            SRType,
-            CrossoverType,
-            ChartPattern,
-            TrendAnalysis,
-            SRLevel,
-            FibonacciLevels,
-            DEFAULT_CONFIG,
+    def test_full_workflow(
+        self,
+        indicator_engine: IndicatorEngine,
+        drawing_manager: DrawingManager,
+        layout_manager: LayoutManager,
+        sample_ohlcv_data: list[OHLCV],
+    ):
+        """Test full charting workflow."""
+        layout = layout_manager.create_layout(
+            user_id="user_1",
+            name="AAPL Analysis",
+            symbol="AAPL",
+            timeframe=Timeframe.D1,
         )
-        assert PatternDetector is not None
-        assert TrendAnalyzer is not None
-        assert SRDetector is not None
-        assert FibCalculator is not None
+
+        sma_config = IndicatorConfig(
+            indicator_id="sma_20",
+            name="SMA",
+            params={"period": 20},
+        )
+        layout_manager.add_indicator("user_1", layout.layout_id, sma_config)
+
+        rsi_config = IndicatorConfig(
+            indicator_id="rsi_14",
+            name="RSI",
+            params={"period": 14},
+        )
+        layout_manager.add_indicator("user_1", layout.layout_id, rsi_config)
+
+        sma_result = indicator_engine.calculate("SMA", sample_ohlcv_data, {"period": 20})
+        rsi_result = indicator_engine.calculate("RSI", sample_ohlcv_data, {"period": 14})
+
+        assert len(sma_result.values["sma"]) == len(sample_ohlcv_data)
+        assert len(rsi_result.values["rsi"]) == len(sample_ohlcv_data)
+
+        now = datetime.now(timezone.utc)
+
+        support_line = drawing_manager.create_horizontal_line(
+            symbol="AAPL",
+            price=sample_ohlcv_data[50].low,
+            color="#00FF00",
+        )
+        drawing_manager.add_drawing(layout.layout_id, support_line)
+
+        resistance_line = drawing_manager.create_horizontal_line(
+            symbol="AAPL",
+            price=sample_ohlcv_data[50].high,
+            color="#FF0000",
+        )
+        drawing_manager.add_drawing(layout.layout_id, resistance_line)
+
+        assert len(layout.indicators) == 2
+
+        drawings = drawing_manager.get_drawings(layout.layout_id, "AAPL")
+        assert len(drawings) == 2
+
+        layout_manager.apply_template("user_1", layout.layout_id, "momentum")
+
+        assert len(layout.indicators) > 0
+
+        template = layout_manager.save_layout_as_template(
+            "user_1",
+            layout.layout_id,
+            "My AAPL Setup",
+            "Custom",
+        )
+
+        assert template is not None
+
+        layout_manager.set_default_layout("user_1", layout.layout_id)
+        default = layout_manager.get_default_layout("user_1")
+        assert default.layout_id == layout.layout_id
