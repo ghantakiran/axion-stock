@@ -2475,3 +2475,117 @@ class SlippageHistoryRecord(Base):
     spread_at_entry = Column(Float, nullable=True)
     volatility_at_entry = Column(Float, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ── PRD-106: API Error Handling ────────────────────────────────────
+
+
+class ApiErrorLogRecord(Base):
+    """API error log entry."""
+
+    __tablename__ = "api_error_logs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    error_code = Column(String(64), nullable=False, index=True)
+    status_code = Column(Integer, nullable=False)
+    message = Column(Text, nullable=False)
+    path = Column(String(512), nullable=True)
+    method = Column(String(10), nullable=True)
+    request_id = Column(String(64), nullable=True, index=True)
+    user_id = Column(String(128), nullable=True)
+    details = Column(Text, nullable=True)
+    severity = Column(String(16), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-107: Lifecycle Management ──────────────────────────────────
+
+
+class LifecycleEventRecord(Base):
+    """Application lifecycle event."""
+
+    __tablename__ = "lifecycle_events"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    service_name = Column(String(100), nullable=False, index=True)
+    details = Column(Text, nullable=True)
+    duration_ms = Column(Float, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+# ── PRD-108: Integration & Load Testing ────────────────────────────
+
+
+class TestRunRecord(Base):
+    """Integration/load test run."""
+
+    __tablename__ = "test_runs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    test_type = Column(String(32), nullable=False)
+    name = Column(String(256), nullable=False)
+    status = Column(String(32), nullable=False)
+    duration_ms = Column(Float, nullable=True)
+    total_tests = Column(Integer, nullable=True)
+    passed = Column(Integer, nullable=True)
+    failed = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BenchmarkResultRecord(Base):
+    """Benchmark test result."""
+
+    __tablename__ = "benchmark_results"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    suite_name = Column(String(128), nullable=False)
+    benchmark_name = Column(String(256), nullable=False)
+    mean_ms = Column(Float, nullable=False)
+    p50_ms = Column(Float, nullable=True)
+    p95_ms = Column(Float, nullable=True)
+    p99_ms = Column(Float, nullable=True)
+    iterations = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-109: Audit Trail ──────────────────────────────────────────
+
+
+class AuditEventRecord(Base):
+    """Immutable audit event with hash chain."""
+
+    __tablename__ = "audit_events"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    event_id = Column(String(64), nullable=False, unique=True, index=True)
+    timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
+    actor_id = Column(String(128), nullable=True, index=True)
+    actor_type = Column(String(64), nullable=True)
+    action = Column(String(256), nullable=False, index=True)
+    resource_type = Column(String(128), nullable=True)
+    resource_id = Column(String(256), nullable=True)
+    category = Column(String(64), nullable=False, index=True)
+    details = Column(Text, nullable=True)
+    outcome = Column(String(32), nullable=False)
+    event_hash = Column(String(64), nullable=False)
+    previous_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# ── PRD-110: Migration Safety ─────────────────────────────────────
+
+
+class MigrationAuditRecord(Base):
+    """Migration execution audit trail."""
+
+    __tablename__ = "migration_audit"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    revision = Column(String(64), nullable=False, index=True)
+    direction = Column(String(16), nullable=False)
+    status = Column(String(32), nullable=False)
+    validation_passed = Column(Boolean, nullable=True)
+    issues_found = Column(Integer, nullable=True)
+    details = Column(Text, nullable=True)
+    executed_at = Column(DateTime(timezone=True), server_default=func.now())
