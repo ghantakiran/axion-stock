@@ -1,0 +1,22 @@
+# =============================================================================
+# Grafana — Dashboard Provisioning
+# =============================================================================
+# Watches the /var/lib/grafana/dashboards directory for JSON dashboard files.
+# Drop exported Grafana dashboard JSON files into infrastructure/grafana/dashboards/
+# and they will be auto-loaded on startup.
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: "Axion Dashboards"
+    orgId: 1
+    folder: "Axion"
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

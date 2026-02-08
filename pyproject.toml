@@ -1,0 +1,40 @@
+# =============================================================================
+# Axion Trading Platform — Project Configuration
+# =============================================================================
+
+[project]
+name = "axion"
+version = "1.0.0"
+description = "AI-native algorithmic trading platform for retail and institutional investors"
+requires-python = ">=3.10"
+
+# =============================================================================
+# Ruff — Linter & Formatter
+# =============================================================================
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort (import sorting)
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit (security)
+    "UP",  # pyupgrade
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow assert statements in tests (S101 = Use of assert detected)
+"tests/*" = ["S101"]
+
+# =============================================================================
+# pytest
+# =============================================================================
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

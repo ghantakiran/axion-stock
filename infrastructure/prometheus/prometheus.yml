@@ -1,0 +1,39 @@
+# =============================================================================
+# Prometheus — Scrape Configuration
+# =============================================================================
+# Metrics are scraped from the Axion FastAPI service at /metrics.
+# Add additional scrape targets as the platform grows.
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # ------------------------------------------------------------------
+  # Prometheus self-monitoring
+  # ------------------------------------------------------------------
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ------------------------------------------------------------------
+  # Axion FastAPI — application metrics
+  # ------------------------------------------------------------------
+  - job_name: "axion-api"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          service: "axion-api"
+          environment: "production"
+
+  # ------------------------------------------------------------------
+  # Node Exporter — host-level metrics (optional)
+  # ------------------------------------------------------------------
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          service: "node-exporter"

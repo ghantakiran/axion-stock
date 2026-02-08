@@ -1,6 +1,20 @@
 version: "3.9"
 
+# =============================================================================
+# Axion Trading Platform — Production Docker Compose
+# =============================================================================
+# Services: postgres, redis, app (Streamlit), api (FastAPI), worker,
+#           prometheus, grafana
+#
+# Usage:
+#   cp .env.example .env   # fill in secrets
+#   docker compose up -d
+# =============================================================================
+
 services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL + TimescaleDB
+  # ---------------------------------------------------------------------------
   postgres:
     image: timescale/timescaledb:latest-pg16
     ports:
@@ -19,6 +33,9 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
     ports:
@@ -34,6 +51,143 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # Streamlit Dashboard
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      AXION_DATABASE_URL: ${AXION_DATABASE_URL:-postgresql+asyncpg://axion:axion_dev@postgres:5432/axion}
+      AXION_DATABASE_SYNC_URL: ${AXION_DATABASE_SYNC_URL:-postgresql+psycopg2://axion:axion_dev@postgres:5432/axion}
+      AXION_REDIS_URL: ${AXION_REDIS_URL:-redis://redis:6379/0}
+      AXION_USE_DATABASE: ${AXION_USE_DATABASE:-false}
+      AXION_USE_REDIS: ${AXION_USE_REDIS:-true}
+      AXION_FALLBACK_TO_YFINANCE: ${AXION_FALLBACK_TO_YFINANCE:-true}
+      AXION_POLYGON_API_KEY: ${AXION_POLYGON_API_KEY:-}
+      AXION_FRED_API_KEY: ${AXION_FRED_API_KEY:-}
+      AXION_LOG_LEVEL: ${AXION_LOG_LEVEL:-INFO}
+      AXION_LOG_FORMAT: ${AXION_LOG_FORMAT:-text}
+      AXION_SECRET_KEY: ${AXION_SECRET_KEY:-change-me-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # FastAPI (REST + WebSocket API)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      AXION_DATABASE_URL: ${AXION_DATABASE_URL:-postgresql+asyncpg://axion:axion_dev@postgres:5432/axion}
+      AXION_DATABASE_SYNC_URL: ${AXION_DATABASE_SYNC_URL:-postgresql+psycopg2://axion:axion_dev@postgres:5432/axion}
+      AXION_REDIS_URL: ${AXION_REDIS_URL:-redis://redis:6379/0}
+      AXION_USE_DATABASE: ${AXION_USE_DATABASE:-false}
+      AXION_USE_REDIS: ${AXION_USE_REDIS:-true}
+      AXION_FALLBACK_TO_YFINANCE: ${AXION_FALLBACK_TO_YFINANCE:-true}
+      AXION_POLYGON_API_KEY: ${AXION_POLYGON_API_KEY:-}
+      AXION_FRED_API_KEY: ${AXION_FRED_API_KEY:-}
+      AXION_LOG_LEVEL: ${AXION_LOG_LEVEL:-INFO}
+      AXION_LOG_FORMAT: ${AXION_LOG_FORMAT:-text}
+      AXION_SECRET_KEY: ${AXION_SECRET_KEY:-change-me-in-production}
+    command: ["uvicorn", "src.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--factory"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Background Worker (scheduler / async tasks)
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AXION_DATABASE_URL: ${AXION_DATABASE_URL:-postgresql+asyncpg://axion:axion_dev@postgres:5432/axion}
+      AXION_DATABASE_SYNC_URL: ${AXION_DATABASE_SYNC_URL:-postgresql+psycopg2://axion:axion_dev@postgres:5432/axion}
+      AXION_REDIS_URL: ${AXION_REDIS_URL:-redis://redis:6379/0}
+      AXION_USE_DATABASE: ${AXION_USE_DATABASE:-false}
+      AXION_USE_REDIS: ${AXION_USE_REDIS:-true}
+      AXION_FALLBACK_TO_YFINANCE: ${AXION_FALLBACK_TO_YFINANCE:-true}
+      AXION_POLYGON_API_KEY: ${AXION_POLYGON_API_KEY:-}
+      AXION_FRED_API_KEY: ${AXION_FRED_API_KEY:-}
+      AXION_LOG_LEVEL: ${AXION_LOG_LEVEL:-INFO}
+      AXION_LOG_FORMAT: ${AXION_LOG_FORMAT:-text}
+      AXION_SECRET_KEY: ${AXION_SECRET_KEY:-change-me-in-production}
+    command: ["python", "-m", "src.bots.scheduler"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — Metrics Collection
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana — Dashboards & Visualization
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infrastructure/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
+  prometheus_data:
+  grafana_data:
