@@ -665,7 +665,7 @@ def render_drawdown_analysis():
         st.markdown("**Drawdown Events**")
         events = analyzer.identify_drawdown_events(values.tolist(), "Portfolio")
         for i, evt in enumerate(events[:5], 1):
-            st.write(f"{i}. {evt.max_drawdown:.1%} over {evt.duration} days")
+            st.write(f"{i}. {evt.drawdown_pct:.1%} over {evt.total_duration or evt.duration_to_trough} days")
 
 
 # =============================================================================
