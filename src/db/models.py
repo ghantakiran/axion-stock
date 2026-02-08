@@ -3138,3 +3138,190 @@ class InvoiceRecord(Base):
     sent_at = Column(DateTime(timezone=True), nullable=True)
     paid_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ── PRD-126: Trade Reconciliation & Settlement ──────────────────────
+
+
+class ReconciliationRecord(Base):
+    """Trade reconciliation match record."""
+
+    __tablename__ = "reconciliation_records"
+
+    match_id = Column(String(36), primary_key=True)
+    internal_trade_id = Column(String(64), nullable=True, index=True)
+    broker_trade_id = Column(String(64), nullable=True, index=True)
+    symbol = Column(String(20), nullable=True, index=True)
+    side = Column(String(10), nullable=True)
+    internal_quantity = Column(Float, nullable=True)
+    broker_quantity = Column(Float, nullable=True)
+    internal_price = Column(Float, nullable=True)
+    broker_price = Column(Float, nullable=True)
+    status = Column(String(20), nullable=False, index=True)
+    break_type = Column(String(30), nullable=True, index=True)
+    confidence = Column(Float, nullable=True)
+    resolved_by = Column(String(128), nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class SettlementEventRecord(Base):
+    """Settlement lifecycle tracking."""
+
+    __tablename__ = "settlement_events"
+
+    event_id = Column(String(36), primary_key=True)
+    trade_id = Column(String(64), nullable=False, index=True)
+    status = Column(String(20), nullable=False, index=True)
+    expected_date = Column(DateTime(timezone=True), nullable=False)
+    actual_date = Column(DateTime(timezone=True), nullable=True)
+    counterparty = Column(String(128), nullable=True)
+    currency = Column(String(10), nullable=True)
+    amount = Column(Float, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ── PRD-127: Workflow Engine & Approval System ──────────────────────
+
+
+class WorkflowInstanceRecord(Base):
+    """Workflow instance tracking."""
+
+    __tablename__ = "workflow_instances"
+
+    instance_id = Column(String(36), primary_key=True)
+    template_name = Column(String(128), nullable=False, index=True)
+    name = Column(String(256), nullable=False)
+    status = Column(String(20), nullable=False, index=True)
+    current_state = Column(String(64), nullable=True)
+    requester = Column(String(128), nullable=True)
+    context_json = Column(Text, nullable=True)
+    approval_level = Column(String(20), nullable=True)
+    trigger_type = Column(String(20), nullable=True)
+    timeout_seconds = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class WorkflowTransitionRecord(Base):
+    """Workflow state transition audit log."""
+
+    __tablename__ = "workflow_transitions"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    instance_id = Column(String(36), nullable=False, index=True)
+    from_state = Column(String(64), nullable=False)
+    to_state = Column(String(64), nullable=False)
+    actor = Column(String(128), nullable=True)
+    action = Column(String(64), nullable=True)
+    reason = Column(Text, nullable=True)
+    context_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ── PRD-128: Anomaly Detection Engine ───────────────────────────────
+
+
+class AnomalyRecord(Base):
+    """Detected anomaly records."""
+
+    __tablename__ = "anomaly_records"
+
+    record_id = Column(String(36), primary_key=True)
+    anomaly_id = Column(String(36), nullable=False, index=True)
+    metric_name = Column(String(128), nullable=False, index=True)
+    detection_method = Column(String(32), nullable=False)
+    score = Column(Float, nullable=False)
+    severity = Column(String(16), nullable=False, index=True)
+    status = Column(String(20), nullable=False, index=True)
+    value = Column(Float, nullable=True)
+    assigned_to = Column(String(128), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class AnomalyBaselineRecord(Base):
+    """Metric baselines for anomaly detection."""
+
+    __tablename__ = "anomaly_baselines"
+
+    baseline_id = Column(String(36), primary_key=True)
+    metric_name = Column(String(128), nullable=False, unique=True, index=True)
+    mean_value = Column(Float, nullable=False)
+    std_value = Column(Float, nullable=False)
+    sample_count = Column(Integer, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-129: Data Contracts & Schema Governance ─────────────────────
+
+
+class DataContractRecord(Base):
+    """Data contract definitions."""
+
+    __tablename__ = "data_contracts"
+
+    contract_id = Column(String(36), primary_key=True)
+    name = Column(String(256), nullable=False, index=True)
+    producer = Column(String(128), nullable=False, index=True)
+    consumer = Column(String(128), nullable=False, index=True)
+    status = Column(String(20), nullable=False, index=True)
+    schema_json = Column(Text, nullable=True)
+    schema_version = Column(Integer, nullable=False, server_default="1")
+    compatibility_mode = Column(String(20), nullable=True)
+    sla_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class ContractViolationRecord(Base):
+    """Recorded contract violations."""
+
+    __tablename__ = "contract_violations"
+
+    violation_id = Column(String(36), primary_key=True)
+    contract_id = Column(String(36), nullable=False, index=True)
+    violation_type = Column(String(30), nullable=False, index=True)
+    field_name = Column(String(128), nullable=True)
+    expected = Column(String(256), nullable=True)
+    actual = Column(String(256), nullable=True)
+    severity = Column(String(16), nullable=False)
+    message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ── PRD-130: Capacity Planning & Auto-Scaling ───────────────────────
+
+
+class CapacityMetricRecord(Base):
+    """Resource utilization metrics."""
+
+    __tablename__ = "capacity_metrics"
+
+    metric_id = Column(String(36), primary_key=True)
+    resource_type = Column(String(32), nullable=False, index=True)
+    service = Column(String(128), nullable=False, index=True)
+    current_value = Column(Float, nullable=False)
+    capacity = Column(Float, nullable=False)
+    utilization_pct = Column(Float, nullable=False)
+    snapshot_id = Column(String(36), nullable=True, index=True)
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class ScalingEventRecord(Base):
+    """Scaling action history."""
+
+    __tablename__ = "scaling_events"
+
+    action_id = Column(String(36), primary_key=True)
+    rule_id = Column(String(36), nullable=False, index=True)
+    direction = Column(String(32), nullable=False)
+    from_value = Column(Integer, nullable=False)
+    to_value = Column(Integer, nullable=False)
+    reason = Column(Text, nullable=True)
+    executed = Column(Boolean, nullable=False, server_default="false")
+    success = Column(Boolean, nullable=False, server_default="false")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
