@@ -89,15 +89,25 @@ def format_api_error(error: Exception) -> str:
     return f"API error: {error}"
 
 
-def get_agent_response(messages: list, api_key: str, agent_config) -> tuple[str, list, list]:
-    """Send messages to Claude with an agent-specific system prompt and filtered tools.
+def get_agent_response(
+    messages: list,
+    api_key: str,
+    agent_config,
+    provider_registry=None,
+    model_id: str | None = None,
+) -> tuple[str, list, list]:
+    """Send messages to an LLM with an agent-specific system prompt and filtered tools.
 
-    Works identically to get_chat_response but uses the agent's prompt and tool set.
-    Returns (assistant_text, updated_messages, tool_calls).
+    When *provider_registry* is given, routes through the multi-provider system
+    (OpenAI, Gemini, DeepSeek, Ollama, etc.).  Otherwise falls back to direct
+    Anthropic SDK.  Returns (assistant_text, updated_messages, tool_calls).
     """
     from src.agents.engine import AgentEngine
 
-    engine = AgentEngine()
+    engine = AgentEngine(
+        model=model_id or "claude-sonnet-4-20250514",
+        provider_registry=provider_registry,
+    )
     return engine.get_response(messages, api_key, agent_config)
 
 
