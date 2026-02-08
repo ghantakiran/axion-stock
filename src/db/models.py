@@ -2766,3 +2766,180 @@ class ApiQuotaRecord(Base):
     last_reset_daily = Column(DateTime(timezone=True), nullable=True)
     last_reset_monthly = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-116: Disaster Recovery & Backup ────────────────────────────
+
+
+class BackupRunRecord(Base):
+    """Backup execution history."""
+
+    __tablename__ = "backup_runs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    job_id = Column(String(32), nullable=False, unique=True, index=True)
+    backup_type = Column(String(32), nullable=False)
+    status = Column(String(32), nullable=False, index=True)
+    sources = Column(Text, nullable=True)
+    storage_backend = Column(String(32), nullable=False)
+    storage_tier = Column(String(16), nullable=False)
+    total_size_bytes = Column(BigInteger, default=0)
+    duration_seconds = Column(Float, default=0.0)
+    error_message = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class RecoveryTestRecord(Base):
+    """Recovery drill / test results."""
+
+    __tablename__ = "recovery_tests"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    recovery_id = Column(String(32), nullable=False, unique=True, index=True)
+    backup_job_id = Column(String(32), nullable=False, index=True)
+    status = Column(String(32), nullable=False)
+    steps_completed = Column(Integer, default=0)
+    steps_total = Column(Integer, default=0)
+    duration_seconds = Column(Float, default=0.0)
+    integrity_valid = Column(Boolean, default=False)
+    validation_details = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-117: Performance Profiling ─────────────────────────────────
+
+
+class QueryProfileRecord(Base):
+    """Query execution profile fingerprints."""
+
+    __tablename__ = "query_profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fingerprint = Column(String(64), nullable=False, unique=True, index=True)
+    query_template = Column(Text, nullable=False)
+    call_count = Column(Integer, nullable=False, server_default="0")
+    total_duration_ms = Column(Float, nullable=False, server_default="0")
+    avg_duration_ms = Column(Float, nullable=True)
+    p95_ms = Column(Float, nullable=True)
+    severity = Column(String(20), nullable=False, server_default="normal", index=True)
+    first_seen = Column(DateTime, server_default=func.now())
+    last_seen = Column(DateTime, server_default=func.now(), index=True)
+
+
+class IndexRecommendationRecord(Base):
+    """Index suggestion tracking."""
+
+    __tablename__ = "index_recommendations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    recommendation_id = Column(String(36), nullable=False, unique=True)
+    table_name = Column(String(128), nullable=False, index=True)
+    columns = Column(Text, nullable=False)
+    index_type = Column(String(20), nullable=False, server_default="btree")
+    rationale = Column(Text, nullable=True)
+    impact = Column(String(20), nullable=True, server_default="medium")
+    status = Column(String(20), nullable=False, server_default="recommended", index=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+# ── PRD-118: Data Archival & GDPR ──────────────────────────────────
+
+
+class ArchivalJobRecord(Base):
+    """Archival job execution history."""
+
+    __tablename__ = "archival_jobs"
+
+    job_id = Column(String(36), primary_key=True)
+    table_name = Column(String(128), nullable=False, index=True)
+    date_range_start = Column(DateTime, nullable=False)
+    date_range_end = Column(DateTime, nullable=False)
+    format = Column(String(20), nullable=False, default="parquet")
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    records_archived = Column(Integer, default=0)
+    bytes_written = Column(BigInteger, default=0)
+    storage_path = Column(String(512), nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class GDPRRequestRecord(Base):
+    """GDPR data subject request tracking."""
+
+    __tablename__ = "gdpr_requests"
+
+    request_id = Column(String(36), primary_key=True)
+    user_id = Column(String(128), nullable=False, index=True)
+    request_type = Column(String(20), nullable=False, index=True)
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    tables_affected = Column(Text, nullable=True)
+    records_affected = Column(Integer, default=0)
+    submitted_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+    audit_proof = Column(String(128), nullable=True)
+
+
+# ── PRD-119: WebSocket Scaling ─────────────────────────────────────
+
+
+class WSConnectionRecord(Base):
+    """WebSocket connection state tracking."""
+
+    __tablename__ = "ws_connections"
+
+    connection_id = Column(String(36), primary_key=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    instance_id = Column(String(100), nullable=False, index=True)
+    state = Column(String(20), nullable=False, server_default="connected")
+    subscriptions = Column(Text, nullable=True)
+    connected_at = Column(DateTime, nullable=False, server_default=func.now())
+    disconnected_at = Column(DateTime, nullable=True)
+    last_heartbeat = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# ── PRD-120: Deployment Strategies ─────────────────────────────────
+
+
+class DeploymentRecord(Base):
+    """Deployment history and state."""
+
+    __tablename__ = "deployments"
+
+    deployment_id = Column(String(36), primary_key=True)
+    version = Column(String(50), nullable=False)
+    previous_version = Column(String(50), nullable=True)
+    strategy = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False, index=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    deployed_by = Column(String(100), nullable=False, server_default="system")
+    rollback_reason = Column(Text, nullable=True)
+    extra_metadata = Column("metadata", Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+class DeploymentValidationRecord(Base):
+    """Deployment validation check results."""
+
+    __tablename__ = "deployment_validations"
+
+    check_id = Column(String(36), primary_key=True)
+    deployment_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    check_type = Column(String(50), nullable=False)
+    status = Column(String(20), nullable=False)
+    threshold = Column(Float, nullable=True)
+    actual_value = Column(Float, nullable=True)
+    passed = Column(Boolean, nullable=True)
+    message = Column(Text, nullable=True)
+    executed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
