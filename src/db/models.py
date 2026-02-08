@@ -2230,7 +2230,7 @@ class RegimeStateRecord(Base):
     trend_strength = Column(Float, nullable=True)
     regime_duration_days = Column(Integer, default=0)
     transition_probability = Column(Float, nullable=True)
-    metadata = Column(Text, nullable=True)  # JSON
+    extra_metadata = Column("metadata", Text, nullable=True)  # JSON
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (
@@ -2410,7 +2410,7 @@ class LiquidityScoreRecord(Base):
     avg_spread_bps = Column(Float, nullable=True)
     market_cap = Column(BigInteger, nullable=True)
     liquidity_tier = Column(String(20), nullable=False)
-    metadata = Column(Text, nullable=True)
+    extra_metadata = Column("metadata", Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
 
