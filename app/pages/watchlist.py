@@ -24,17 +24,6 @@ except ImportError as e:
     st.error(f"Watchlist module not available: {e}")
 
 
-# Initialize session state
-if "watchlist_manager" not in st.session_state:
-    st.session_state.watchlist_manager = WatchlistManager() if WATCHLIST_AVAILABLE else None
-    st.session_state.alert_manager = AlertManager() if WATCHLIST_AVAILABLE else None
-    st.session_state.notes_manager = NotesManager() if WATCHLIST_AVAILABLE else None
-    
-    # Create demo watchlist
-    if st.session_state.watchlist_manager:
-        create_demo_watchlist(st.session_state.watchlist_manager)
-
-
 def create_demo_watchlist(manager):
     """Create demo watchlist with sample data."""
     wl = manager.create_watchlist(
@@ -84,6 +73,17 @@ def create_demo_watchlist(manager):
             conviction=conviction,
             tags=tags,
         )
+
+
+# Initialize session state
+if "watchlist_manager" not in st.session_state:
+    st.session_state.watchlist_manager = WatchlistManager() if WATCHLIST_AVAILABLE else None
+    st.session_state.alert_manager = AlertManager() if WATCHLIST_AVAILABLE else None
+    st.session_state.notes_manager = NotesManager() if WATCHLIST_AVAILABLE else None
+
+    # Create demo watchlist
+    if st.session_state.watchlist_manager:
+        create_demo_watchlist(st.session_state.watchlist_manager)
 
 
 def render_watchlist_sidebar():
