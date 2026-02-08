@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date, datetime, timedelta
 
-st.set_page_config(page_title="Economic Calendar", layout="wide")
+try:
+    st.set_page_config(page_title="Economic Calendar", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📅 Economic Calendar")
 
 # Try to import economic module
@@ -386,5 +390,5 @@ def main():
         render_impact_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

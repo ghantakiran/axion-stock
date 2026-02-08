@@ -20,7 +20,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-st.set_page_config(page_title="Accounts", page_icon="🏦", layout="wide")
+try:
+    st.set_page_config(page_title="Accounts", page_icon="🏦", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Try to import enterprise modules
 try:
@@ -683,5 +687,5 @@ def main():
             render_asset_location()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

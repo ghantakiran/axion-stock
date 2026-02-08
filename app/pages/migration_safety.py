@@ -14,7 +14,11 @@ from src.migration_safety.config import (
     Severity,
 )
 
-st.set_page_config(page_title="Migration Safety", page_icon="🔒", layout="wide")
+try:
+    st.set_page_config(page_title="Migration Safety", page_icon="🔒", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🔒 Migration Safety & Reversibility")
 
 tab1, tab2, tab3, tab4 = st.tabs([

@@ -16,7 +16,11 @@ from src.liquidity import (
     SlippageTracker,
 )
 
-st.set_page_config(page_title="Liquidity Risk Analytics", layout="wide")
+try:
+    st.set_page_config(page_title="Liquidity Risk Analytics", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Liquidity Risk Analytics")
 
 # Initialize managers

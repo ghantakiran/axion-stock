@@ -217,6 +217,9 @@ def render():
                 st.write(f"**Supported:** {'Yes' if supported else 'No'}")
 
 
-if __name__ == "__main__":
+try:
     st.set_page_config(page_title="API Gateway", page_icon="\U0001f310", layout="wide")
-    render()
+except st.errors.StreamlitAPIException:
+    pass
+
+render()

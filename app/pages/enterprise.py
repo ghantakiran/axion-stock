@@ -13,12 +13,16 @@ import pandas as pd
 from datetime import datetime, date, timedelta
 
 # Page config
-st.set_page_config(
-    page_title="Axion Enterprise",
-    page_icon="🏢",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+try:
+    st.set_page_config(
+        page_title="Axion Enterprise",
+        page_icon="🏢",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Import enterprise module
 try:
@@ -524,5 +528,5 @@ def main():
         render_audit()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

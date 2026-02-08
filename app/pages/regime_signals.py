@@ -23,7 +23,11 @@ from src.regime_signals import (
     PerformanceTracker,
 )
 
-st.set_page_config(page_title="Regime-Aware Signals", layout="wide")
+try:
+    st.set_page_config(page_title="Regime-Aware Signals", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Regime-Aware Signals")
 
 # Initialize managers

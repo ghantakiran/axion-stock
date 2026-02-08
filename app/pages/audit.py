@@ -14,7 +14,11 @@ from src.audit.config import AuditConfig, EventCategory, EventOutcome
 from src.audit.events import Actor, AuditEvent, Resource
 from src.audit.recorder import AuditRecorder
 
-st.set_page_config(page_title="Audit Trail", page_icon="📜", layout="wide")
+try:
+    st.set_page_config(page_title="Audit Trail", page_icon="📜", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📜 Audit Trail & Event Sourcing")
 
 tab1, tab2, tab3, tab4 = st.tabs([

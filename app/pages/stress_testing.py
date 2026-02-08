@@ -17,7 +17,11 @@ from src.risk.scenario_builder import (
     SCENARIO_TEMPLATES,
 )
 
-st.set_page_config(page_title="Portfolio Stress Testing", layout="wide")
+try:
+    st.set_page_config(page_title="Portfolio Stress Testing", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Portfolio Stress Testing")
 
 # Initialize engines

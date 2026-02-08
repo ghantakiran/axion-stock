@@ -5,7 +5,11 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Volatility Analysis", layout="wide")
+try:
+    st.set_page_config(page_title="Volatility Analysis", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Volatility Analysis")
 
 # --- Sidebar ---

@@ -22,7 +22,11 @@ from src.charting import (
     LayoutManager,
 )
 
-st.set_page_config(page_title="Advanced Charting", layout="wide")
+try:
+    st.set_page_config(page_title="Advanced Charting", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Advanced Charting")
 
 # Initialize managers

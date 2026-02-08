@@ -20,12 +20,16 @@ import plotly.graph_objects as go
 from datetime import datetime
 
 # Page config
-st.set_page_config(
-    page_title="Axion Trading",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+try:
+    st.set_page_config(
+        page_title="Axion Trading",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Import after path setup
 try:
@@ -587,5 +591,5 @@ def main():
         render_orders()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

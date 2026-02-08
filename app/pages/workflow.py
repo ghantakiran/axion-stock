@@ -195,5 +195,5 @@ def render():
                             f"approval={tmpl.default_config.approval_level.value}")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

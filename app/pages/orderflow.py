@@ -67,7 +67,11 @@ def _demo_buy_sell_series(n: int = 5):
     return pd.Series(buys.astype(float)), pd.Series(sells.astype(float))
 
 
-st.set_page_config(page_title="Order Flow Analysis", layout="wide")
+try:
+    st.set_page_config(page_title="Order Flow Analysis", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Order Flow Analysis")
 
 # --- Sidebar ---

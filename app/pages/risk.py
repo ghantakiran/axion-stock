@@ -21,12 +21,16 @@ import plotly.express as px
 from datetime import datetime, timedelta
 
 # Page config
-st.set_page_config(
-    page_title="Axion Risk Management",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+try:
+    st.set_page_config(
+        page_title="Axion Risk Management",
+        page_icon="🛡️",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Import risk module
 try:
@@ -1015,5 +1019,5 @@ def main():
             )
 
 
-if __name__ == "__main__":
-    main()
+
+main()

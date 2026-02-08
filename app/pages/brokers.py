@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 import asyncio
 
-st.set_page_config(page_title="Broker Integrations", layout="wide")
+try:
+    st.set_page_config(page_title="Broker Integrations", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🏦 Broker Integrations")
 
 # Try to import brokers module
@@ -329,5 +333,5 @@ def main():
         """)
 
 
-if __name__ == "__main__":
-    main()
+
+main()

@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date, datetime, timedelta, timezone
 
-st.set_page_config(page_title="News & Events", layout="wide")
+try:
+    st.set_page_config(page_title="News & Events", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📰 News & Events")
 
 # Try to import news module
@@ -446,5 +450,5 @@ def main():
         render_alerts()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

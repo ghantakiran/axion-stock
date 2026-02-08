@@ -3,7 +3,11 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Portfolio Rebalancing", layout="wide")
+try:
+    st.set_page_config(page_title="Portfolio Rebalancing", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Portfolio Rebalancing")
 
 # --- Sidebar ---

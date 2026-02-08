@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-st.set_page_config(page_title="Tax Optimization", layout="wide")
+try:
+    st.set_page_config(page_title="Tax Optimization", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("💰 Tax Optimization")
 
 # Try to import tax module
@@ -419,5 +423,5 @@ def main():
         render_year_end_planning()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

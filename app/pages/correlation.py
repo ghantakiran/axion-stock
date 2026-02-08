@@ -3,7 +3,11 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Correlation Matrix", layout="wide")
+try:
+    st.set_page_config(page_title="Correlation Matrix", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Correlation Matrix")
 
 # --- Sidebar ---

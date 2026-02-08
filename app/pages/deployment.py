@@ -13,7 +13,11 @@ from src.deployment import (
     DeploymentValidator,
 )
 
-st.set_page_config(page_title="Deployment", page_icon="🚀")
+try:
+    st.set_page_config(page_title="Deployment", page_icon="🚀")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 
 def render():
@@ -262,5 +266,5 @@ def render():
         )
 
 
-if __name__ == "__main__":
-    render()
+
+render()

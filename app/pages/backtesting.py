@@ -5,7 +5,11 @@ import pandas as pd
 import numpy as np
 from datetime import date
 
-st.set_page_config(page_title="Backtesting Engine", layout="wide")
+try:
+    st.set_page_config(page_title="Backtesting Engine", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Backtesting Engine")
 
 # --- Sidebar ---

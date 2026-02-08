@@ -14,7 +14,11 @@ from src.profiling import (
     IndexStatus,
 )
 
-st.set_page_config(page_title="Performance Profiling", page_icon="\U0001f4ca")
+try:
+    st.set_page_config(page_title="Performance Profiling", page_icon="\U0001f4ca")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 
 def render():
@@ -237,5 +241,5 @@ def render():
             st.info("No long-running queries above threshold.")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

@@ -15,7 +15,11 @@ from src.config_service.config import (
 )
 from src.config_service.feature_flags import FlagStatus
 
-st.set_page_config(page_title="Configuration", page_icon="⚙️", layout="wide")
+try:
+    st.set_page_config(page_title="Configuration", page_icon="⚙️", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("⚙️ Configuration Management")
 
 tab1, tab2, tab3, tab4 = st.tabs([

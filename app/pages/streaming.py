@@ -4,7 +4,11 @@ import streamlit as st
 from datetime import datetime, timezone
 import time
 
-st.set_page_config(page_title="Real-time Streaming", layout="wide")
+try:
+    st.set_page_config(page_title="Real-time Streaming", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Real-time Market Data")
 
 # --- Sidebar ---
@@ -95,7 +99,7 @@ with tab2:
     with col1:
         st.markdown("### Bids")
         bids = pd.DataFrame([
-            {"Price": f"${185.50 - i*0.01:.2f}", "Size": 100 + i*50, "Orders": 3 + i},
+            {"Price": f"${185.50 - i*0.01:.2f}", "Size": 100 + i*50, "Orders": 3 + i}
             for i in range(10)
         ])
         st.dataframe(bids, use_container_width=True, hide_index=True)

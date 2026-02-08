@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 
-st.set_page_config(page_title="Trading Bots", layout="wide")
+try:
+    st.set_page_config(page_title="Trading Bots", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🤖 Automated Trading Bots")
 
 # Try to import bots module
@@ -382,5 +386,5 @@ def main():
         render_settings()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

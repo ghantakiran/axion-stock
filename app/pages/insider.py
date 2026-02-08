@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-st.set_page_config(page_title="Insider Trading", layout="wide")
+try:
+    st.set_page_config(page_title="Insider Trading", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🕵️ Insider Trading Tracker")
 
 # Try to import insider module
@@ -373,5 +377,5 @@ def main():
         render_profiles_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

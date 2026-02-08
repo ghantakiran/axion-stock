@@ -19,7 +19,11 @@ from src.alerting import (
     EscalationManager,
 )
 
-st.set_page_config(page_title="Alerting", page_icon="\U0001f514")
+try:
+    st.set_page_config(page_title="Alerting", page_icon="\U0001f514")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 
 def _generate_sample_alerts(manager: AlertManager) -> None:
@@ -303,5 +307,5 @@ def render():
             st.info("No active escalations.")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

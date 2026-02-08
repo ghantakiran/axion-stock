@@ -151,5 +151,5 @@ def render():
         st.json(config_data)
 
 
-if __name__ == "__main__":
-    render()
+
+render()

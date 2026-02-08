@@ -21,12 +21,16 @@ import plotly.express as px
 from datetime import datetime
 
 # Page config
-st.set_page_config(
-    page_title="Axion ML Models",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+try:
+    st.set_page_config(
+        page_title="Axion ML Models",
+        page_icon="🤖",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Import ML module
 try:
@@ -375,5 +379,5 @@ def main():
         render_hybrid_config()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

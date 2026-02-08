@@ -3,7 +3,11 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Market Breadth", layout="wide")
+try:
+    st.set_page_config(page_title="Market Breadth", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Market Breadth")
 
 # --- Sidebar ---

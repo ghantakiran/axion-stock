@@ -5,7 +5,11 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-st.set_page_config(page_title="Strategy Marketplace", layout="wide")
+try:
+    st.set_page_config(page_title="Strategy Marketplace", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Strategy Marketplace")
 
 # --- Sidebar ---

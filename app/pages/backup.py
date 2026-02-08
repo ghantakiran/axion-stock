@@ -3,7 +3,11 @@
 import streamlit as st
 from datetime import datetime, timezone
 
-st.set_page_config(page_title="Backup & Recovery", layout="wide")
+try:
+    st.set_page_config(page_title="Backup & Recovery", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Disaster Recovery & Automated Backup")
 
 tab1, tab2, tab3, tab4 = st.tabs([

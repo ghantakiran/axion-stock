@@ -2,7 +2,11 @@
 
 import streamlit as st
 
-st.set_page_config(page_title="Trade Reconciliation", layout="wide")
+try:
+    st.set_page_config(page_title="Trade Reconciliation", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Trade Reconciliation & Settlement Engine")
 
 tab1, tab2, tab3, tab4 = st.tabs([

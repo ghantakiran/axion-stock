@@ -21,12 +21,16 @@ import plotly.express as px
 from datetime import datetime, timedelta
 
 # Page config
-st.set_page_config(
-    page_title="Axion Options Platform",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+try:
+    st.set_page_config(
+        page_title="Axion Options Platform",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Import options module
 try:
@@ -446,5 +450,5 @@ def main():
         render_unusual_activity()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

@@ -12,7 +12,11 @@ from src.esg import (
     CarbonMetrics,
 )
 
-st.set_page_config(page_title="ESG Scoring", layout="wide")
+try:
+    st.set_page_config(page_title="ESG Scoring", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("ESG Scoring & Impact Tracking")
 
 

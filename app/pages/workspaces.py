@@ -22,7 +22,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-st.set_page_config(page_title="Workspaces", page_icon="👥", layout="wide")
+try:
+    st.set_page_config(page_title="Workspaces", page_icon="👥", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Try to import enterprise modules
 try:
@@ -648,5 +652,5 @@ def main():
             st.info("Select a workspace first to invite members")
 
 
-if __name__ == "__main__":
-    main()
+
+main()

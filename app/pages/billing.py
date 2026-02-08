@@ -79,7 +79,10 @@ def _create_sample_data():
 
 
 def render():
-    st.set_page_config(page_title="Billing & Metering", layout="wide")
+    try:
+        st.set_page_config(page_title="Billing & Metering", layout="wide")
+    except st.errors.StreamlitAPIException:
+        pass
     st.title("Cost & Usage Metering + Billing")
 
     meter, engine, inv_mgr, analytics, config, workspaces = _create_sample_data()
@@ -250,5 +253,5 @@ def render():
         rcol3.metric("Avg Bill", f"${rev['avg_bill_amount']:,.2f}")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-st.set_page_config(page_title="Watchlist", layout="wide")
+try:
+    st.set_page_config(page_title="Watchlist", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📋 Watchlist Management")
 
 # Try to import watchlist module
@@ -448,5 +452,5 @@ def main():
         render_notes_tab(selected_id)
 
 
-if __name__ == "__main__":
-    main()
+
+main()

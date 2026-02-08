@@ -18,7 +18,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Authentication", page_icon="🔐", layout="wide")
+try:
+    st.set_page_config(page_title="Authentication", page_icon="🔐", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Try to import auth modules
 try:
@@ -584,5 +588,5 @@ def main():
         render_logged_out_view()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

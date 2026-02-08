@@ -3,7 +3,11 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Stock Screener", layout="wide")
+try:
+    st.set_page_config(page_title="Stock Screener", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🔍 Advanced Stock Screener")
 
 # Try to import screener module
@@ -314,5 +318,5 @@ def main():
                         st.markdown(f"- **{f.name}**: {f.description[:50]}...")
 
 
-if __name__ == "__main__":
-    main()
+
+main()

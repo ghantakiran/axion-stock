@@ -21,7 +21,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-st.set_page_config(page_title="Trade Journal", page_icon="📓", layout="wide")
+try:
+    st.set_page_config(page_title="Trade Journal", page_icon="📓", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Try to import journal modules
 try:
@@ -855,5 +859,5 @@ def main():
         render_trade_history()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

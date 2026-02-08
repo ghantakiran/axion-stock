@@ -91,7 +91,10 @@ def _build_sample_data():
 
 
 def render():
-    st.set_page_config(page_title="Model Registry", page_icon="\U0001f9e0", layout="wide")
+    try:
+        st.set_page_config(page_title="Model Registry", page_icon="\U0001f9e0", layout="wide")
+    except st.errors.StreamlitAPIException:
+        pass
     st.title("\U0001f9e0 ML Model Registry & Deployment Pipeline")
 
     registry, manager, tracker, ab_manager, server = _build_sample_data()
@@ -278,5 +281,5 @@ def render():
         st.dataframe(summary_data, use_container_width=True)
 
 
-if __name__ == "__main__":
-    render()
+
+render()

@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.set_page_config(page_title="Portfolio Optimizer", layout="wide")
+try:
+    st.set_page_config(page_title="Portfolio Optimizer", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Portfolio Optimizer")
 
 # --- Sidebar ---

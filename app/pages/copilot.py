@@ -3,7 +3,11 @@
 import streamlit as st
 from datetime import datetime, timezone
 
-st.set_page_config(page_title="AI Trading Copilot", layout="wide")
+try:
+    st.set_page_config(page_title="AI Trading Copilot", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("AI Trading Copilot")
 
 # --- Sidebar ---

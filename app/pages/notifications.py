@@ -3,7 +3,11 @@
 import streamlit as st
 from datetime import datetime, timezone
 
-st.set_page_config(page_title="Notification Settings", layout="wide")
+try:
+    st.set_page_config(page_title="Notification Settings", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Push Notification Settings")
 
 # --- Sidebar ---

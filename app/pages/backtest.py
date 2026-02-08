@@ -17,12 +17,16 @@ import plotly.express as px
 from datetime import date, datetime, timedelta
 
 # Page config
-st.set_page_config(
-    page_title="Axion Backtesting Engine",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+try:
+    st.set_page_config(
+        page_title="Axion Backtesting Engine",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except st.errors.StreamlitAPIException:
+    pass
+
 
 # Import backtesting module
 try:
@@ -734,5 +738,5 @@ def main():
         render_comparison()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

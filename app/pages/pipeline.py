@@ -24,7 +24,11 @@ from src.pipeline import (
     FreshnessCheck,
 )
 
-st.set_page_config(page_title="Data Pipeline", page_icon="\U0001f504", layout="wide")
+try:
+    st.set_page_config(page_title="Data Pipeline", page_icon="\U0001f504", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 
 def render():

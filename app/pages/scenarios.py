@@ -5,7 +5,11 @@ import pandas as pd
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-st.set_page_config(page_title="Portfolio Scenarios", layout="wide")
+try:
+    st.set_page_config(page_title="Portfolio Scenarios", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📊 Portfolio Scenarios")
 
 # Try to import scenarios module
@@ -325,5 +329,5 @@ def main():
         render_goals_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

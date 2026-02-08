@@ -16,7 +16,11 @@ from src.logging_config.context import RequestContext, generate_request_id
 from src.logging_config.performance import PerformanceTimer
 from src.logging_config.setup import StructuredFormatter
 
-st.set_page_config(page_title="Structured Logging", page_icon="📋", layout="wide")
+try:
+    st.set_page_config(page_title="Structured Logging", page_icon="📋", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📋 Structured Logging & Request Tracing")
 
 tab1, tab2, tab3, tab4 = st.tabs([

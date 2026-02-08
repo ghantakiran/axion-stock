@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-st.set_page_config(page_title="Dividend Tracker", layout="wide")
+try:
+    st.set_page_config(page_title="Dividend Tracker", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("💰 Dividend Tracker")
 
 # Try to import dividends module
@@ -424,5 +428,5 @@ def main():
         render_tax_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

@@ -18,7 +18,11 @@ from src.archival import (
     DataLifecycleManager,
 )
 
-st.set_page_config(page_title="Data Archival", page_icon="\U0001F4E6", layout="wide")
+try:
+    st.set_page_config(page_title="Data Archival", page_icon="\U0001F4E6", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 
 def render():
@@ -220,5 +224,5 @@ def render():
                 st.warning(f"\U0001F512 **{table}** is under legal hold - deletion suspended")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

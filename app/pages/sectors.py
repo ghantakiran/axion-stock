@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-st.set_page_config(page_title="Sector Rotation", layout="wide")
+try:
+    st.set_page_config(page_title="Sector Rotation", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🔄 Sector Rotation Analysis")
 
 # Try to import sectors module
@@ -329,5 +333,5 @@ def main():
         render_recommendations_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

@@ -15,7 +15,11 @@ from src.secrets_vault import (
 )
 
 
-st.set_page_config(page_title="Secrets Vault", page_icon="🔐", layout="wide")
+try:
+    st.set_page_config(page_title="Secrets Vault", page_icon="🔐", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 
 
 def render():

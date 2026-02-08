@@ -17,7 +17,10 @@ from src.ws_scaling import (
 
 
 def render():
-    st.set_page_config(page_title="WebSocket Scaling", page_icon="\U0001f50c")
+    try:
+        st.set_page_config(page_title="WebSocket Scaling", page_icon="\U0001f50c")
+    except st.errors.StreamlitAPIException:
+        pass
     st.title("\U0001f50c WebSocket Scaling & Real-time Infrastructure")
 
     tabs = st.tabs(["Connections", "Message Throughput", "Backpressure", "Health"])
@@ -210,5 +213,5 @@ def render():
             st.text(f"{key}: {val}")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

@@ -12,7 +12,11 @@ import streamlit as st
 from src.lifecycle.config import AppState, HealthStatus, LifecycleConfig, ShutdownPhase
 from src.lifecycle.manager import LifecycleEvent, LifecycleManager
 
-st.set_page_config(page_title="Lifecycle Management", page_icon="🔄", layout="wide")
+try:
+    st.set_page_config(page_title="Lifecycle Management", page_icon="🔄", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🔄 Application Lifecycle Management")
 
 tab1, tab2, tab3, tab4 = st.tabs([

@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-st.set_page_config(page_title="Market Scanner", layout="wide")
+try:
+    st.set_page_config(page_title="Market Scanner", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🔍 Market Scanner")
 
 # Try to import scanner module
@@ -388,5 +392,5 @@ def main():
         render_unusual_activity_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

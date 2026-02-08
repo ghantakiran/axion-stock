@@ -181,5 +181,5 @@ def render():
                 st.bar_chart(weight_df.set_index("Metric")["Weight"])
 
 
-if __name__ == "__main__":
-    render()
+
+render()

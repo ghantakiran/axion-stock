@@ -143,5 +143,5 @@ def render():
             st.write(f"**{f.title}** — {'Filed' if f.filed else 'Pending'}")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

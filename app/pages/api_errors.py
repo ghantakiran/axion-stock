@@ -12,7 +12,11 @@ import streamlit as st
 
 from src.api_errors.config import ERROR_STATUS_MAP, ErrorCode, ErrorSeverity
 
-st.set_page_config(page_title="API Error Handling", page_icon="🛡️", layout="wide")
+try:
+    st.set_page_config(page_title="API Error Handling", page_icon="🛡️", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🛡️ API Error Handling & Validation")
 
 tab1, tab2, tab3, tab4 = st.tabs([

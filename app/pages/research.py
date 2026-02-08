@@ -3,7 +3,11 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="AI Research", layout="wide")
+try:
+    st.set_page_config(page_title="AI Research", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("🔬 AI Research Reports")
 
 # Try to import research module
@@ -443,5 +447,5 @@ def main():
             st.rerun()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

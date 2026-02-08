@@ -4,7 +4,11 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-st.set_page_config(page_title="Earnings Calendar", layout="wide")
+try:
+    st.set_page_config(page_title="Earnings Calendar", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("📅 Earnings Calendar & Analysis")
 
 # Try to import earnings module
@@ -355,5 +359,5 @@ def main():
         render_alerts_tab()
 
 
-if __name__ == "__main__":
-    main()
+
+main()

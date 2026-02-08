@@ -12,7 +12,11 @@ from src.crypto_options import (
     CryptoExchange,
 )
 
-st.set_page_config(page_title="Crypto Options", layout="wide")
+try:
+    st.set_page_config(page_title="Crypto Options", layout="wide")
+except st.errors.StreamlitAPIException:
+    pass
+
 st.title("Crypto Options Platform")
 
 pricer = CryptoOptionPricer()

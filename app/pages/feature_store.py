@@ -154,7 +154,10 @@ def _build_sample_lineage() -> FeatureLineage:
 
 
 def render():
-    st.set_page_config(page_title="Feature Store", layout="wide")
+    try:
+        st.set_page_config(page_title="Feature Store", layout="wide")
+    except st.errors.StreamlitAPIException:
+        pass
     st.title("Feature Store & ML Feature Management")
 
     tabs = st.tabs(["Feature Catalog", "Online/Offline Status", "Lineage", "Monitoring"])
@@ -339,5 +342,5 @@ def render():
         st.dataframe(health_data, use_container_width=True)
 
 
-if __name__ == "__main__":
-    render()
+
+render()

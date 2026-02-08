@@ -311,5 +311,5 @@ def render():
                 st.markdown(f"**{contract.name}**: Last delivery {age:.0f}s ago ({latest.record_count} records)")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

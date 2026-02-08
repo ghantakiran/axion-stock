@@ -213,5 +213,5 @@ def render():
             st.write(f"Investigating record {first.record_id}")
 
 
-if __name__ == "__main__":
-    render()
+
+render()

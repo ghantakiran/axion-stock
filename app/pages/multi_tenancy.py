@@ -252,10 +252,13 @@ def render():
         qcol3.metric("Cross-WS Attempts", q_stats["cross_workspace_attempts"])
 
 
-if __name__ == "__main__":
+try:
     st.set_page_config(
         page_title="Data Isolation & Row-Level Security",
         page_icon="shield",
         layout="wide",
     )
-    render()
+except st.errors.StreamlitAPIException:
+    pass
+
+render()
