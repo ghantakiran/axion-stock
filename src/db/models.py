@@ -3325,3 +3325,85 @@ class ScalingEventRecord(Base):
     executed = Column(Boolean, nullable=False, server_default="false")
     success = Column(Boolean, nullable=False, server_default="false")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ── PRD-131: Multi-Agent AI System ───────────────────────────────────
+
+
+class AgentSessionRecord(Base):
+    """Agent chat session."""
+
+    __tablename__ = "agent_sessions"
+
+    session_id = Column(String(36), primary_key=True)
+    user_id = Column(String(128), nullable=False, index=True)
+    agent_type = Column(String(32), nullable=False, index=True)
+    title = Column(String(256), nullable=True)
+    message_count = Column(Integer, nullable=False, server_default="0")
+    is_active = Column(Boolean, nullable=False, server_default="true")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    last_activity_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AgentMessageRecord(Base):
+    """Individual message within an agent session."""
+
+    __tablename__ = "agent_messages"
+
+    message_id = Column(String(36), primary_key=True)
+    session_id = Column(String(36), nullable=False, index=True)
+    role = Column(String(16), nullable=False)
+    content = Column(Text, nullable=False)
+    tool_calls_json = Column(Text, nullable=True)
+    tokens_used = Column(Integer, nullable=False, server_default="0")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class AgentPreferenceRecord(Base):
+    """User preferences for the multi-agent system."""
+
+    __tablename__ = "agent_preferences"
+
+    preference_id = Column(String(36), primary_key=True)
+    user_id = Column(String(128), nullable=False, unique=True, index=True)
+    default_agent_type = Column(String(32), nullable=True)
+    custom_agents_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ── PRD-132: Multi-Model AI Provider System ──────────────────────────
+
+
+class ModelProviderConfigRecord(Base):
+    """Stored provider configurations (encrypted API keys managed externally)."""
+
+    __tablename__ = "model_provider_configs"
+
+    config_id = Column(String(36), primary_key=True)
+    user_id = Column(String(128), nullable=False, index=True)
+    provider = Column(String(32), nullable=False, index=True)
+    default_model = Column(String(64), nullable=True)
+    base_url = Column(String(512), nullable=True)
+    is_active = Column(Boolean, nullable=False, server_default="true")
+    extra_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class ModelUsageRecord(Base):
+    """Tracks model usage for cost estimation and analytics."""
+
+    __tablename__ = "model_usage_log"
+
+    usage_id = Column(String(36), primary_key=True)
+    user_id = Column(String(128), nullable=False, index=True)
+    provider = Column(String(32), nullable=False, index=True)
+    model_id = Column(String(64), nullable=False, index=True)
+    agent_type = Column(String(32), nullable=True, index=True)
+    input_tokens = Column(Integer, nullable=False, server_default="0")
+    output_tokens = Column(Integer, nullable=False, server_default="0")
+    estimated_cost_usd = Column(Float, nullable=False, server_default="0.0")
+    latency_ms = Column(Integer, nullable=True)
+    success = Column(Boolean, nullable=False, server_default="true")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

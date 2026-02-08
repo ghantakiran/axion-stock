@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
-from app.chat import get_chat_response, get_api_key, format_api_error
+from app.chat import get_chat_response, get_agent_response, get_api_key, format_api_error
 from app.charts import create_stock_chart, create_comparison_chart, create_factor_chart
 from app.tools import _get_cached_scores
 from app.ai_picks import get_ai_picks, PICK_CATEGORIES
@@ -552,6 +552,8 @@ def init_session_state():
         st.session_state.show_ai_picks = False
     if "ai_picks_category" not in st.session_state:
         st.session_state.ai_picks_category = "balanced_picks"
+    if "active_agent" not in st.session_state:
+        st.session_state.active_agent = None
 
 
 def render_sidebar():
@@ -579,6 +581,39 @@ def render_sidebar():
         )
         if not api_key:
             st.caption("Enter Anthropic API key above")
+
+        st.divider()
+
+        # Agent selector
+        st.markdown('<div class="sidebar-section">AI Agent</div>', unsafe_allow_html=True)
+        try:
+            from src.agents.registry import list_agents, get_agent
+            from src.agents.config import AgentType
+            agents = list_agents()
+            agent_options = ["Default (no agent)"] + [f"{a.avatar} {a.name}" for a in agents]
+            current_idx = 0
+            if st.session_state.get("active_agent"):
+                for i, a in enumerate(agents):
+                    if a.agent_type == st.session_state.active_agent:
+                        current_idx = i + 1
+                        break
+            agent_choice = st.selectbox(
+                "Agent",
+                options=agent_options,
+                index=current_idx,
+                key="agent_selector",
+                label_visibility="collapsed",
+            )
+            if agent_choice == "Default (no agent)":
+                st.session_state.active_agent = None
+            else:
+                for a in agents:
+                    if f"{a.avatar} {a.name}" == agent_choice:
+                        st.session_state.active_agent = a.agent_type
+                        st.caption(a.description)
+                        break
+        except Exception:
+            pass
 
         st.divider()
 
@@ -999,12 +1034,30 @@ def process_response(api_key: str):
 
     st.session_state.pending_response = False
 
-    with st.chat_message("assistant"):
-        with st.spinner("Researching..."):
+    # Determine agent config if active
+    agent_config = None
+    agent_avatar = None
+    if st.session_state.get("active_agent"):
+        try:
+            from src.agents.registry import get_agent
+            agent_config = get_agent(st.session_state.active_agent)
+            agent_avatar = agent_config.avatar
+        except Exception:
+            pass
+
+    spinner_text = f"{agent_config.name} is thinking..." if agent_config else "Researching..."
+
+    with st.chat_message("assistant", avatar=agent_avatar):
+        with st.spinner(spinner_text):
             try:
-                response_text, updated_messages, tool_calls = get_chat_response(
-                    st.session_state.api_messages, api_key
-                )
+                if agent_config:
+                    response_text, updated_messages, tool_calls = get_agent_response(
+                        st.session_state.api_messages, api_key, agent_config
+                    )
+                else:
+                    response_text, updated_messages, tool_calls = get_chat_response(
+                        st.session_state.api_messages, api_key
+                    )
                 st.session_state.api_messages = updated_messages
                 st.session_state.api_messages.append(
                     {"role": "assistant", "content": response_text}
@@ -1159,12 +1212,30 @@ def main():
                 st.error("Enter your Anthropic API key in the sidebar to get started.")
             return
 
-        with st.chat_message("assistant"):
-            with st.spinner("Researching..."):
+        # Determine agent config if active
+        inline_agent_config = None
+        inline_avatar = None
+        if st.session_state.get("active_agent"):
+            try:
+                from src.agents.registry import get_agent as _get_agent
+                inline_agent_config = _get_agent(st.session_state.active_agent)
+                inline_avatar = inline_agent_config.avatar
+            except Exception:
+                pass
+
+        inline_spinner = f"{inline_agent_config.name} is thinking..." if inline_agent_config else "Researching..."
+
+        with st.chat_message("assistant", avatar=inline_avatar):
+            with st.spinner(inline_spinner):
                 try:
-                    response_text, updated_messages, tool_calls = get_chat_response(
-                        st.session_state.api_messages, api_key
-                    )
+                    if inline_agent_config:
+                        response_text, updated_messages, tool_calls = get_agent_response(
+                            st.session_state.api_messages, api_key, inline_agent_config
+                        )
+                    else:
+                        response_text, updated_messages, tool_calls = get_chat_response(
+                            st.session_state.api_messages, api_key
+                        )
                     st.session_state.api_messages = updated_messages
                     st.session_state.api_messages.append(
                         {"role": "assistant", "content": response_text}

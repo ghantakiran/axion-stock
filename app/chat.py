@@ -89,6 +89,18 @@ def format_api_error(error: Exception) -> str:
     return f"API error: {error}"
 
 
+def get_agent_response(messages: list, api_key: str, agent_config) -> tuple[str, list, list]:
+    """Send messages to Claude with an agent-specific system prompt and filtered tools.
+
+    Works identically to get_chat_response but uses the agent's prompt and tool set.
+    Returns (assistant_text, updated_messages, tool_calls).
+    """
+    from src.agents.engine import AgentEngine
+
+    engine = AgentEngine()
+    return engine.get_response(messages, api_key, agent_config)
+
+
 def get_chat_response(messages: list, api_key: str) -> tuple[str, list, list]:
     """Send messages to Claude with tools and return the final response.
 
