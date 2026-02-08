@@ -2943,3 +2943,198 @@ class DeploymentValidationRecord(Base):
     message = Column(Text, nullable=True)
     executed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ── PRD-121: Event-Driven Architecture & Message Bus ───────────────
+
+
+class EventLogRecord(Base):
+    """Persistent event log."""
+
+    __tablename__ = "event_log"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    event_id = Column(String(32), nullable=False, unique=True, index=True)
+    event_type = Column(String(128), nullable=False, index=True)
+    category = Column(String(32), nullable=False, index=True)
+    source = Column(String(128), nullable=False)
+    priority = Column(String(16), nullable=False)
+    data = Column(Text, nullable=True)
+    version = Column(Integer, nullable=False, server_default="1")
+    aggregate_id = Column(String(128), nullable=True, index=True)
+    aggregate_type = Column(String(64), nullable=True)
+    correlation_id = Column(String(64), nullable=True, index=True)
+    sequence_number = Column(BigInteger, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SubscriberStateRecord(Base):
+    """Subscriber checkpoint state."""
+
+    __tablename__ = "subscriber_state"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    subscriber_id = Column(String(32), nullable=False, unique=True, index=True)
+    name = Column(String(128), nullable=False)
+    topic_pattern = Column(String(256), nullable=False)
+    state = Column(String(16), nullable=False, server_default="active")
+    last_event_id = Column(String(32), nullable=True)
+    last_sequence = Column(BigInteger, default=0)
+    events_processed = Column(BigInteger, default=0)
+    events_failed = Column(BigInteger, default=0)
+    last_processed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-122: Data Isolation & Row-Level Security ───────────────────
+
+
+class WorkspaceDataPolicyRecord(Base):
+    """RLS policy definitions per workspace."""
+
+    __tablename__ = "workspace_data_policies"
+
+    policy_id = Column(String(36), primary_key=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    resource_type = Column(String(50), nullable=False)
+    role = Column(String(50), nullable=False)
+    access_level = Column(String(20), nullable=False)
+    action = Column(String(20), nullable=False, server_default="allow")
+    priority = Column(Integer, nullable=False, server_default="0")
+    conditions = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    enabled = Column(Boolean, nullable=False, server_default="true")
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, nullable=True)
+
+
+class TenantAuditLogRecord(Base):
+    """Tenant data access audit trail."""
+
+    __tablename__ = "tenant_audit_log"
+
+    audit_id = Column(String(36), primary_key=True)
+    workspace_id = Column(String(36), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    action = Column(String(50), nullable=False)
+    resource_type = Column(String(50), nullable=True)
+    resource_id = Column(String(100), nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    allowed = Column(Boolean, nullable=False)
+    reason = Column(Text, nullable=True)
+    extra_metadata = Column("metadata", Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+# ── PRD-123: Feature Store & ML Feature Management ─────────────────
+
+
+class FeatureDefinitionRecord(Base):
+    """Feature catalog entry."""
+
+    __tablename__ = "feature_definitions"
+
+    feature_id = Column(String(36), primary_key=True)
+    name = Column(String(200), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    feature_type = Column(String(50), nullable=False, index=True)
+    entity_type = Column(String(50), nullable=False, index=True)
+    owner = Column(String(100), nullable=False, server_default="system")
+    freshness_sla_minutes = Column(Integer, nullable=False, server_default="30")
+    version = Column(Integer, nullable=False, server_default="1")
+    status = Column(String(20), nullable=False, server_default="active", index=True)
+    dependencies = Column(Text, nullable=True)
+    tags = Column(Text, nullable=True)
+    compute_mode = Column(String(20), nullable=False, server_default="batch")
+    source = Column(String(200), nullable=True)
+    extra_metadata = Column("metadata", Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, server_default=func.now())
+
+
+class FeatureValueRecord(Base):
+    """Offline feature store values."""
+
+    __tablename__ = "feature_values"
+
+    value_id = Column(String(36), primary_key=True)
+    feature_id = Column(String(36), nullable=False, index=True)
+    entity_id = Column(String(100), nullable=False, index=True)
+    value = Column(Text, nullable=True)
+    as_of_date = Column(DateTime, nullable=False, index=True)
+    computed_at = Column(DateTime, nullable=False)
+    source = Column(String(200), nullable=True)
+    version = Column(Integer, nullable=False, server_default="1")
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# ── PRD-124: Secrets Management & API Credential Vaulting ──────────
+
+
+class SecretRecord(Base):
+    """Encrypted secret storage."""
+
+    __tablename__ = "secrets"
+
+    secret_id = Column(String(36), primary_key=True)
+    key_path = Column(String(512), nullable=False, index=True)
+    encrypted_value = Column(Text, nullable=False)
+    secret_type = Column(String(50), nullable=False, server_default="generic", index=True)
+    version = Column(Integer, nullable=False, server_default="1")
+    owner_service = Column(String(255), nullable=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    rotated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SecretAccessAuditRecord(Base):
+    """Secret access audit trail."""
+
+    __tablename__ = "secret_access_audit"
+
+    entry_id = Column(String(36), primary_key=True)
+    secret_id = Column(String(36), nullable=True, index=True)
+    requester_id = Column(String(255), nullable=False, index=True)
+    action = Column(String(50), nullable=False, index=True)
+    allowed = Column(Boolean, nullable=False, server_default="false")
+    reason = Column(Text, nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    ip_address = Column(String(45), nullable=True)
+
+
+# ── PRD-125: Cost & Usage Metering + Billing ─────────────────────────
+
+
+class BillingMeterRecord(Base):
+    """Billing meter definition and state."""
+
+    __tablename__ = "billing_meters"
+
+    meter_id = Column(String(36), primary_key=True)
+    name = Column(String(128), nullable=False)
+    meter_type = Column(String(32), nullable=False, index=True)
+    unit = Column(String(32), nullable=False)
+    price_per_unit = Column(Float, nullable=False)
+    workspace_id = Column(String(64), nullable=True, index=True)
+    period_start = Column(DateTime(timezone=True), nullable=True)
+    period_end = Column(DateTime(timezone=True), nullable=True)
+    current_value = Column(Float, nullable=True, server_default="0")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class InvoiceRecord(Base):
+    """Generated invoice for billing."""
+
+    __tablename__ = "invoices"
+
+    invoice_id = Column(String(36), primary_key=True)
+    workspace_id = Column(String(64), nullable=False, index=True)
+    bill_id = Column(String(36), nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    status = Column(String(20), nullable=False, index=True)
+    line_items_json = Column(Text, nullable=True)
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
