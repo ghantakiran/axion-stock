@@ -12,7 +12,16 @@ load_dotenv()
 
 
 def get_api_key() -> str | None:
-    """Get Anthropic API key from environment."""
+    """Get Anthropic API key from environment or Streamlit secrets."""
+    # Try Streamlit secrets first (for Streamlit Cloud deployment)
+    try:
+        import streamlit as st
+        key = st.secrets.get("ANTHROPIC_API_KEY", "")
+        if key and key != "sk-ant-your-key-here":
+            return key
+    except Exception:
+        pass
+    # Fall back to environment variable
     return os.getenv("ANTHROPIC_API_KEY")
 
 SYSTEM_PROMPT = """You are an AI stock market research assistant. You help users analyze stocks, \
@@ -55,6 +64,29 @@ Guidelines:
 - If a stock isn't in the S&P 500 universe, say so and suggest alternatives
 - For options questions, use both analyze_options and recommend_options to give complete answers
 """
+
+
+def format_api_error(error: Exception) -> str:
+    """Return a user-friendly error message for Anthropic API errors."""
+    msg = str(error).lower()
+    if "credit balance" in msg or "billing" in msg:
+        return (
+            "Your Anthropic API credit balance is too low. "
+            "Add credits at **[console.anthropic.com/settings/billing]"
+            "(https://console.anthropic.com/settings/billing)** "
+            "(this is separate from your Claude.ai subscription)."
+        )
+    if "invalid x-api-key" in msg or "invalid api key" in msg or "authentication" in msg:
+        return (
+            "Invalid API key. Get your key from "
+            "**[console.anthropic.com/settings/keys]"
+            "(https://console.anthropic.com/settings/keys)**"
+        )
+    if "rate_limit" in msg or "rate limit" in msg:
+        return "Rate limited — too many requests. Please wait a moment and try again."
+    if "overloaded" in msg:
+        return "Claude is temporarily overloaded. Please try again in a few seconds."
+    return f"API error: {error}"
 
 
 def get_chat_response(messages: list, api_key: str) -> tuple[str, list, list]:

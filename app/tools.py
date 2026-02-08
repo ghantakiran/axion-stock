@@ -8,6 +8,7 @@ import json
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import streamlit as st
 
 import config
 from src.data_fetcher import (
@@ -183,6 +184,7 @@ TOOL_DEFINITIONS = [
 ]
 
 
+@st.cache_data(ttl=3600, show_spinner="Loading market data...")
 def _get_cached_scores():
     """Load or compute factor scores for the SP500 universe."""
     if "scores_cache" not in _get_cached_scores.__dict__:

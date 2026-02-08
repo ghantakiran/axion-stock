@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
-from app.chat import get_chat_response, get_api_key
+from app.chat import get_chat_response, get_api_key, format_api_error
 from app.charts import create_stock_chart, create_comparison_chart, create_factor_chart
 from app.tools import _get_cached_scores
 from app.ai_picks import get_ai_picks, PICK_CATEGORIES
@@ -566,8 +566,11 @@ def render_sidebar():
 
         st.divider()
 
+        # Auto-load API key from Streamlit Cloud secrets or environment
+        default_key = get_api_key() or ""
         api_key = st.text_input(
             "API Key",
+            value=default_key,
             type="password",
             placeholder="sk-ant-...",
             help="Anthropic API key from console.anthropic.com",
@@ -1021,11 +1024,7 @@ def process_response(api_key: str):
                     render_charts(tool_calls)
 
             except Exception as e:
-                error_msg = str(e)
-                if "api_key" in error_msg.lower() or "auth" in error_msg.lower():
-                    st.error("Invalid API key. Check your key at console.anthropic.com")
-                else:
-                    st.error(f"Something went wrong: {error_msg}")
+                st.error(format_api_error(e))
 
 
 def render_ai_picks(api_key: str):
@@ -1183,8 +1182,7 @@ def main():
                         render_charts(tool_calls)
 
                 except Exception as e:
-                    st.error(f"Something went wrong: {str(e)}")
+                    st.error(format_api_error(e))
 
 
-if __name__ == "__main__":
-    main()
+main()
