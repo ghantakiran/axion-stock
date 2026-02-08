@@ -1,13 +1,13 @@
 """PRD-112: Data Pipeline Orchestration.
 
 Revision ID: 112
-Revises: 110
+Revises: 111
 """
 from alembic import op
 import sqlalchemy as sa
 
 revision = "112"
-down_revision = "110"
+down_revision = "111"
 branch_labels = None
 depends_on = None
 

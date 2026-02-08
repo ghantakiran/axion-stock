@@ -1,13 +1,13 @@
 """PRD-113: ML Model Registry.
 
 Revision ID: 113
-Revises: 110
+Revises: 112
 """
 from alembic import op
 import sqlalchemy as sa
 
 revision = "113"
-down_revision = "110"
+down_revision = "112"
 branch_labels = None
 depends_on = None
 

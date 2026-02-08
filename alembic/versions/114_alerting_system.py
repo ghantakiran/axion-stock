@@ -1,14 +1,14 @@
 """PRD-114: Notification & Alerting System.
 
 Revision ID: 114
-Revises: 110
+Revises: 113
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "114"
-down_revision = "110"
+down_revision = "113"
 branch_labels = None
 depends_on = None
 
