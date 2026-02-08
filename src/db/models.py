@@ -2329,3 +2329,93 @@ class RegimeParameterRecord(Base):
         UniqueConstraint("regime_type", "signal_type", "indicator_name", "parameter_name",
                         name="uq_regime_param_key"),
     )
+
+
+# ---------------------------------------------------------------------------
+# PRD-64: Liquidity Risk Analytics
+# ---------------------------------------------------------------------------
+
+
+class LiquidityScoreRecord(Base):
+    """Historical liquidity score."""
+
+    __tablename__ = "liquidity_scores"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    composite_score = Column(Float, nullable=False)
+    volume_score = Column(Float, default=0)
+    spread_score = Column(Float, default=0)
+    depth_score = Column(Float, default=0)
+    volatility_score = Column(Float, default=0)
+    turnover_ratio = Column(Float, nullable=True)
+    avg_daily_volume = Column(BigInteger, nullable=True)
+    avg_spread_bps = Column(Float, nullable=True)
+    market_cap = Column(BigInteger, nullable=True)
+    liquidity_tier = Column(String(20), nullable=False)
+    metadata = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class SpreadSnapshotRecord(Base):
+    """Bid-ask spread snapshot."""
+
+    __tablename__ = "spread_snapshots"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    bid_price = Column(Float, nullable=False)
+    ask_price = Column(Float, nullable=False)
+    mid_price = Column(Float, nullable=False)
+    spread = Column(Float, nullable=False)
+    spread_bps = Column(Float, nullable=False)
+    bid_size = Column(Integer, nullable=True)
+    ask_size = Column(Integer, nullable=True)
+    effective_spread = Column(Float, nullable=True)
+    realized_spread = Column(Float, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class MarketImpactRecord(Base):
+    """Market impact estimate."""
+
+    __tablename__ = "market_impact_estimates"
+
+    id = Column(String(36), primary_key=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False)
+    order_size_shares = Column(Integer, nullable=False)
+    order_size_value = Column(Float, nullable=False)
+    side = Column(String(10), nullable=False)
+    participation_rate = Column(Float, nullable=True)
+    estimated_impact_bps = Column(Float, nullable=False)
+    temporary_impact_bps = Column(Float, nullable=True)
+    permanent_impact_bps = Column(Float, nullable=True)
+    estimated_cost = Column(Float, nullable=True)
+    model_used = Column(String(30), nullable=False)
+    model_params = Column(Text, nullable=True)
+    confidence = Column(Float, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class SlippageHistoryRecord(Base):
+    """Historical slippage data."""
+
+    __tablename__ = "slippage_records"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    side = Column(String(10), nullable=False)
+    order_size = Column(Integer, nullable=False)
+    expected_price = Column(Float, nullable=False)
+    executed_price = Column(Float, nullable=False)
+    slippage_bps = Column(Float, nullable=False)
+    slippage_cost = Column(Float, nullable=False)
+    market_volume = Column(BigInteger, nullable=True)
+    participation_rate = Column(Float, nullable=True)
+    spread_at_entry = Column(Float, nullable=True)
+    volatility_at_entry = Column(Float, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())

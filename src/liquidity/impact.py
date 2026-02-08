@@ -1,133 +1,201 @@
-"""Market Impact Estimation.
+"""Market impact estimation."""
 
-Estimates the expected price impact and slippage for a given trade
-size using linear and square-root market impact models.
-"""
-
-import logging
-import math
+from datetime import datetime, timezone
 from typing import Optional
+from collections import defaultdict
+import math
 
 from src.liquidity.config import (
-    ImpactConfig,
     ImpactModel,
-    DEFAULT_IMPACT_CONFIG,
+    OrderSide,
+    LiquidityTier,
+    IMPACT_COEFFICIENTS,
+    LiquidityConfig,
+    DEFAULT_LIQUIDITY_CONFIG,
 )
-from src.liquidity.models import MarketImpact
-
-logger = logging.getLogger(__name__)
+from src.liquidity.models import MarketImpactEstimate
 
 
-class MarketImpactEstimator:
-    """Estimates market impact and optimal execution parameters."""
+class ImpactEstimator:
+    """Estimates market impact for orders."""
 
-    def __init__(self, config: Optional[ImpactConfig] = None) -> None:
-        self.config = config or DEFAULT_IMPACT_CONFIG
+    def __init__(self, config: LiquidityConfig = DEFAULT_LIQUIDITY_CONFIG):
+        self.config = config
+        # symbol -> list of estimates
+        self._estimates: dict[str, list[MarketImpactEstimate]] = defaultdict(list)
 
     def estimate_impact(
         self,
-        trade_size: int,
-        avg_volume: float,
-        avg_spread: float = 0.0,
-        volatility: float = 0.0,
-        price: float = 0.0,
-        symbol: str = "",
-    ) -> MarketImpact:
-        """Estimate market impact for a trade.
+        symbol: str,
+        order_size_shares: int,
+        price: float,
+        side: OrderSide,
+        avg_daily_volume: int,
+        volatility: float = 0.02,
+        liquidity_tier: LiquidityTier = LiquidityTier.LIQUID,
+        model: Optional[ImpactModel] = None,
+    ) -> MarketImpactEstimate:
+        """Estimate market impact for an order."""
+        model = model or self.config.default_impact_model
+        order_value = order_size_shares * price
 
-        Args:
-            trade_size: Number of shares to trade.
-            avg_volume: Average daily volume.
-            avg_spread: Average bid-ask spread (absolute).
-            volatility: Daily volatility (decimal).
-            price: Current price (for dollar cost).
-            symbol: Asset symbol.
+        # Calculate participation rate
+        participation_rate = order_size_shares / avg_daily_volume if avg_daily_volume > 0 else 1.0
 
-        Returns:
-            MarketImpact with cost breakdown.
-        """
-        if avg_volume <= 0 or trade_size <= 0:
-            return MarketImpact(symbol=symbol, trade_size=trade_size)
-
-        vol = volatility if volatility > 0 else self.config.default_volatility
-        participation = trade_size / avg_volume
-
-        # Spread cost (half spread per share as fraction of price)
-        spread_cost = 0.0
-        if avg_spread > 0 and price > 0:
-            spread_cost = (avg_spread * self.config.spread_cost_multiplier) / price
-
-        # Impact cost based on model
-        k = self.config.impact_coefficient
-        if self.config.model == ImpactModel.LINEAR:
-            impact_cost = k * participation * vol
-        else:  # SQUARE_ROOT
-            impact_cost = k * math.sqrt(participation) * vol
-
-        total_cost = spread_cost + impact_cost
-
-        # Total cost in bps
-        total_cost_bps = total_cost * 10000
-
-        # Max safe size
-        max_safe = self.max_safe_size(avg_volume)
-
-        # Execution horizon
-        exec_days = self.execution_horizon(trade_size, avg_volume)
-
-        return MarketImpact(
-            symbol=symbol,
-            trade_size=trade_size,
-            avg_volume=avg_volume,
-            participation_rate=round(participation, 4),
-            spread_cost=round(spread_cost, 6),
-            impact_cost=round(impact_cost, 6),
-            total_cost=round(total_cost, 6),
-            total_cost_bps=round(total_cost_bps, 2),
-            model=self.config.model,
-            max_safe_size=max_safe,
-            execution_days=exec_days,
+        # Get impact coefficients
+        coeffs = IMPACT_COEFFICIENTS.get(
+            liquidity_tier.value,
+            IMPACT_COEFFICIENTS[LiquidityTier.LIQUID.value]
         )
 
-    def max_safe_size(
+        # Calculate impact based on model
+        if model == ImpactModel.LINEAR:
+            impact_bps = self._linear_impact(participation_rate, volatility, coeffs)
+        elif model == ImpactModel.SQUARE_ROOT:
+            impact_bps = self._sqrt_impact(participation_rate, volatility, coeffs)
+        elif model == ImpactModel.POWER_LAW:
+            impact_bps = self._power_law_impact(participation_rate, volatility, coeffs)
+        else:
+            impact_bps = self._sqrt_impact(participation_rate, volatility, coeffs)
+
+        # Decompose into temporary and permanent
+        temp_impact = impact_bps * (1 - coeffs["perm_fraction"])
+        perm_impact = impact_bps * coeffs["perm_fraction"]
+
+        # Estimated cost
+        estimated_cost = order_value * impact_bps / 10_000
+
+        # Confidence based on data quality
+        confidence = min(0.9, 0.5 + (1 - participation_rate) * 0.4)
+
+        estimate = MarketImpactEstimate(
+            symbol=symbol,
+            order_size_shares=order_size_shares,
+            order_size_value=order_value,
+            side=side,
+            estimated_impact_bps=impact_bps,
+            temporary_impact_bps=temp_impact,
+            permanent_impact_bps=perm_impact,
+            estimated_cost=estimated_cost,
+            participation_rate=participation_rate,
+            model_used=model,
+            model_params={
+                "volatility": volatility,
+                "coefficients": coeffs,
+            },
+            confidence=confidence,
+        )
+
+        self._estimates[symbol].append(estimate)
+        return estimate
+
+    def _linear_impact(
         self,
-        avg_volume: float,
-        max_participation: Optional[float] = None,
-    ) -> int:
-        """Compute max safe trade size within participation constraint.
+        participation_rate: float,
+        volatility: float,
+        coeffs: dict,
+    ) -> float:
+        """Linear market impact model."""
+        return coeffs["linear_coeff"] * participation_rate * volatility * 10_000
 
-        Args:
-            avg_volume: Average daily volume.
-            max_participation: Max fraction of daily volume (default: config).
-
-        Returns:
-            Max shares that can be safely traded in one day.
-        """
-        rate = max_participation or self.config.max_participation_rate
-        return int(avg_volume * rate)
-
-    def execution_horizon(
+    def _sqrt_impact(
         self,
-        trade_size: int,
-        avg_volume: float,
-        participation_rate: Optional[float] = None,
-    ) -> int:
-        """Compute optimal execution horizon in trading days.
+        participation_rate: float,
+        volatility: float,
+        coeffs: dict,
+    ) -> float:
+        """Square-root market impact model (most common)."""
+        return coeffs["sqrt_coeff"] * math.sqrt(participation_rate) * volatility * 10_000
 
-        Args:
-            trade_size: Total shares to execute.
-            avg_volume: Average daily volume.
-            participation_rate: Target participation rate per day.
+    def _power_law_impact(
+        self,
+        participation_rate: float,
+        volatility: float,
+        coeffs: dict,
+        exponent: float = 0.6,
+    ) -> float:
+        """Power-law market impact model."""
+        return coeffs["sqrt_coeff"] * (participation_rate ** exponent) * volatility * 10_000
 
-        Returns:
-            Number of trading days needed.
-        """
-        rate = participation_rate or self.config.max_participation_rate
-        if avg_volume <= 0 or rate <= 0:
-            return 1
+    def estimate_optimal_execution(
+        self,
+        symbol: str,
+        total_shares: int,
+        price: float,
+        avg_daily_volume: int,
+        volatility: float = 0.02,
+        liquidity_tier: LiquidityTier = LiquidityTier.LIQUID,
+        max_slices: int = 10,
+    ) -> dict:
+        """Estimate optimal execution strategy to minimize impact."""
+        # Try different slice counts
+        strategies = []
 
-        daily_capacity = avg_volume * rate
-        if daily_capacity <= 0:
-            return 1
+        for n_slices in range(1, max_slices + 1):
+            slice_size = total_shares // n_slices
+            if slice_size == 0:
+                break
 
-        return max(1, math.ceil(trade_size / daily_capacity))
+            total_impact_bps = 0
+            for i in range(n_slices):
+                estimate = self.estimate_impact(
+                    symbol=symbol,
+                    order_size_shares=slice_size,
+                    price=price,
+                    side=OrderSide.BUY,
+                    avg_daily_volume=avg_daily_volume,
+                    volatility=volatility,
+                    liquidity_tier=liquidity_tier,
+                )
+                # Each subsequent slice has slightly more impact due to information leakage
+                total_impact_bps += estimate.estimated_impact_bps * (1 + 0.05 * i)
+
+            avg_impact = total_impact_bps / n_slices
+            total_cost = total_shares * price * total_impact_bps / 10_000
+
+            strategies.append({
+                "slices": n_slices,
+                "shares_per_slice": slice_size,
+                "avg_impact_bps": avg_impact,
+                "total_impact_bps": total_impact_bps,
+                "total_cost": total_cost,
+                "participation_rate": slice_size / avg_daily_volume if avg_daily_volume > 0 else 1.0,
+            })
+
+        # Find optimal (minimize total cost)
+        if strategies:
+            optimal = min(strategies, key=lambda s: s["total_cost"])
+        else:
+            optimal = strategies[0] if strategies else {}
+
+        return {
+            "symbol": symbol,
+            "total_shares": total_shares,
+            "total_value": total_shares * price,
+            "optimal_strategy": optimal,
+            "all_strategies": strategies,
+        }
+
+    def get_estimate_history(
+        self,
+        symbol: str,
+        limit: int = 50,
+    ) -> list[MarketImpactEstimate]:
+        """Get estimate history for a symbol."""
+        return self._estimates.get(symbol, [])[-limit:]
+
+    def get_stats(self) -> dict:
+        """Get estimator statistics."""
+        total = sum(len(ests) for ests in self._estimates.values())
+        all_impacts = [
+            e.estimated_impact_bps
+            for ests in self._estimates.values()
+            for e in ests
+        ]
+
+        return {
+            "total_estimates": total,
+            "symbols_estimated": len(self._estimates),
+            "avg_impact_bps": sum(all_impacts) / len(all_impacts) if all_impacts else 0,
+            "max_impact_bps": max(all_impacts) if all_impacts else 0,
+        }
