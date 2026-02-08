@@ -2332,6 +2332,62 @@ class RegimeParameterRecord(Base):
 
 
 # ---------------------------------------------------------------------------
+# PRD-65: Portfolio Stress Testing
+# ---------------------------------------------------------------------------
+
+
+class StressTestRunRecord(Base):
+    """Stress test run history."""
+
+    __tablename__ = "stress_test_runs"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=True, index=True)
+    run_date = Column(DateTime, server_default=func.now())
+    scenario_name = Column(String(100), nullable=False)
+    scenario_type = Column(String(30), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # Portfolio
+    portfolio_value = Column(Float, nullable=True)
+
+    # Results
+    total_impact_pct = Column(Float, nullable=True)
+    total_impact_usd = Column(Float, nullable=True)
+    amplification_factor = Column(Float, nullable=True)
+    positions_affected = Column(Integer, nullable=True)
+    is_systemic = Column(Boolean, default=False)
+    worst_position = Column(String(30), nullable=True)
+    worst_impact_pct = Column(Float, nullable=True)
+
+    # Details
+    factor_contributions = Column(Text, nullable=True)  # JSON
+    parameters = Column(Text, nullable=True)  # JSON
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class DrawdownAlertConfigRecord(Base):
+    """Drawdown alert rule configuration."""
+
+    __tablename__ = "drawdown_alert_configs"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    symbol = Column(String(20), nullable=True)
+    alert_name = Column(String(100), nullable=False)
+    drawdown_threshold = Column(Float, nullable=False)
+    duration_threshold_days = Column(Integer, nullable=True)
+    severity = Column(String(20), default="warning")
+    is_active = Column(Boolean, default=True)
+    last_triggered_at = Column(DateTime, nullable=True)
+    trigger_count = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, nullable=True)
+
+
+# ---------------------------------------------------------------------------
 # PRD-64: Liquidity Risk Analytics
 # ---------------------------------------------------------------------------
 
