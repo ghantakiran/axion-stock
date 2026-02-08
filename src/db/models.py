@@ -2207,3 +2207,125 @@ class ChartTemplateRecord(Base):
     is_approved = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
+
+# ---------------------------------------------------------------------------
+# PRD-63: Regime-Aware Signals
+# ---------------------------------------------------------------------------
+
+
+class RegimeStateRecord(Base):
+    """Market regime state record."""
+
+    __tablename__ = "regime_states"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    regime_type = Column(String(30), nullable=False, index=True)
+    detection_method = Column(String(30), nullable=False)
+    confidence = Column(Float, default=0)
+    volatility_level = Column(String(20), nullable=True)
+    trend_direction = Column(String(20), nullable=True)
+    trend_strength = Column(Float, nullable=True)
+    regime_duration_days = Column(Integer, default=0)
+    transition_probability = Column(Float, nullable=True)
+    metadata = Column(Text, nullable=True)  # JSON
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_regime_states_symbol_ts", "symbol", "timestamp"),
+    )
+
+
+class RegimeSignalRecord(Base):
+    """Regime-aware trading signal."""
+
+    __tablename__ = "regime_signals"
+
+    id = Column(String(36), primary_key=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    signal_type = Column(String(30), nullable=False, index=True)
+    direction = Column(String(10), nullable=False)
+    strength = Column(Float, default=0)
+    confidence = Column(Float, default=0)
+    regime_type = Column(String(30), nullable=False)
+    regime_confidence = Column(Float, default=0)
+    entry_price = Column(Float, nullable=True)
+    stop_loss = Column(Float, nullable=True)
+    take_profit = Column(Float, nullable=True)
+    risk_reward_ratio = Column(Float, nullable=True)
+    indicators_used = Column(Text, nullable=True)  # JSON array
+    parameters = Column(Text, nullable=True)  # JSON
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    performance = relationship("SignalPerformanceRecord", back_populates="signal", uselist=False)
+
+    __table_args__ = (
+        Index("ix_regime_signals_symbol_ts", "symbol", "timestamp"),
+        Index("ix_regime_signals_active", "is_active", "symbol"),
+    )
+
+
+class SignalPerformanceRecord(Base):
+    """Signal performance tracking."""
+
+    __tablename__ = "signal_performance"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    signal_id = Column(String(36), ForeignKey("regime_signals.id", ondelete="CASCADE"), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    signal_type = Column(String(30), nullable=False)
+    regime_type = Column(String(30), nullable=False)
+    direction = Column(String(10), nullable=False)
+    entry_price = Column(Float, nullable=False)
+    exit_price = Column(Float, nullable=True)
+    return_pct = Column(Float, nullable=True)
+    max_favorable = Column(Float, nullable=True)
+    max_adverse = Column(Float, nullable=True)
+    duration_hours = Column(Float, nullable=True)
+    hit_stop_loss = Column(Boolean, default=False)
+    hit_take_profit = Column(Boolean, default=False)
+    outcome = Column(String(20), nullable=True)
+    opened_at = Column(DateTime, nullable=False)
+    closed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    signal = relationship("RegimeSignalRecord", back_populates="performance")
+
+    __table_args__ = (
+        Index("ix_signal_perf_regime", "regime_type", "signal_type"),
+    )
+
+
+class RegimeParameterRecord(Base):
+    """Regime-specific parameter configuration."""
+
+    __tablename__ = "regime_parameters"
+
+    id = Column(String(36), primary_key=True)
+    regime_type = Column(String(30), nullable=False, index=True)
+    signal_type = Column(String(30), nullable=False)
+    indicator_name = Column(String(30), nullable=False)
+    parameter_name = Column(String(50), nullable=False)
+    default_value = Column(Float, nullable=False)
+    optimized_value = Column(Float, nullable=True)
+    min_value = Column(Float, nullable=True)
+    max_value = Column(Float, nullable=True)
+    optimization_score = Column(Float, nullable=True)
+    sample_size = Column(Integer, default=0)
+    last_optimized_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("regime_type", "signal_type", "indicator_name", "parameter_name",
+                        name="uq_regime_param_key"),
+    )
