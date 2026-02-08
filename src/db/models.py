@@ -2589,3 +2589,180 @@ class MigrationAuditRecord(Base):
     issues_found = Column(Integer, nullable=True)
     details = Column(Text, nullable=True)
     executed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-111: Configuration Management ─────────────────────────────
+
+
+class ConfigEntryRecord(Base):
+    """Persistent configuration entry."""
+
+    __tablename__ = "config_entries"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    key = Column(String(256), nullable=False, unique=True, index=True)
+    value = Column(Text, nullable=True)
+    value_type = Column(String(32), nullable=False)
+    namespace = Column(String(64), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    is_sensitive = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FeatureFlagRecord(Base):
+    """Feature flag state."""
+
+    __tablename__ = "feature_flags"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(String(128), nullable=False, unique=True, index=True)
+    flag_type = Column(String(32), nullable=False)
+    enabled = Column(Boolean, default=False)
+    percentage = Column(Float, nullable=True)
+    user_list = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False)
+    tags = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-112: Data Pipeline ────────────────────────────────────────
+
+
+class PipelineRunRecord(Base):
+    """Pipeline execution run."""
+
+    __tablename__ = "pipeline_runs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    run_id = Column(String(64), nullable=False, unique=True, index=True)
+    pipeline_id = Column(String(128), nullable=False, index=True)
+    status = Column(String(32), nullable=False)
+    total_nodes = Column(Integer, nullable=True)
+    completed_nodes = Column(Integer, nullable=True)
+    failed_nodes = Column(Integer, nullable=True)
+    duration_ms = Column(Float, nullable=True)
+    error = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PipelineNodeRecord(Base):
+    """Pipeline node execution record."""
+
+    __tablename__ = "pipeline_nodes"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    run_id = Column(String(64), nullable=False, index=True)
+    node_id = Column(String(128), nullable=False)
+    name = Column(String(256), nullable=False)
+    status = Column(String(32), nullable=False)
+    duration_ms = Column(Float, nullable=True)
+    retries_used = Column(Integer, nullable=True)
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-113: Model Registry ──────────────────────────────────────
+
+
+class ModelVersionRecord(Base):
+    """ML model version metadata."""
+
+    __tablename__ = "model_versions"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    model_name = Column(String(128), nullable=False, index=True)
+    version = Column(String(32), nullable=False)
+    stage = Column(String(32), nullable=False)
+    framework = Column(String(32), nullable=True)
+    artifact_path = Column(String(512), nullable=True)
+    metrics = Column(Text, nullable=True)
+    hyperparameters = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    created_by = Column(String(128), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    promoted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class ModelExperimentRecord(Base):
+    """ML experiment tracking record."""
+
+    __tablename__ = "model_experiments"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    run_id = Column(String(64), nullable=False, unique=True, index=True)
+    experiment_name = Column(String(256), nullable=False, index=True)
+    model_name = Column(String(128), nullable=True)
+    status = Column(String(32), nullable=False)
+    hyperparameters = Column(Text, nullable=True)
+    metrics = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-114: Alerting System ─────────────────────────────────────
+
+
+class AlertRecord(Base):
+    """Alert history and state."""
+
+    __tablename__ = "alert_records"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    alert_id = Column(String(64), nullable=False, unique=True, index=True)
+    title = Column(String(256), nullable=False)
+    message = Column(Text, nullable=False)
+    severity = Column(String(16), nullable=False, index=True)
+    category = Column(String(32), nullable=False, index=True)
+    status = Column(String(32), nullable=False, index=True)
+    source = Column(String(128), nullable=True)
+    tags = Column(Text, nullable=True)
+    dedup_key = Column(String(128), nullable=True)
+    occurrence_count = Column(Integer, default=1)
+    acknowledged_by = Column(String(128), nullable=True)
+    acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-115: API Gateway ─────────────────────────────────────────
+
+
+class ApiUsageRecord(Base):
+    """API request analytics."""
+
+    __tablename__ = "api_usage_records"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    request_id = Column(String(64), nullable=False, index=True)
+    path = Column(String(512), nullable=False)
+    method = Column(String(10), nullable=False)
+    status_code = Column(Integer, nullable=False)
+    latency_ms = Column(Float, nullable=True)
+    user_id = Column(String(128), nullable=True, index=True)
+    api_key = Column(String(64), nullable=True)
+    tier = Column(String(32), nullable=True)
+    version = Column(String(16), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ApiQuotaRecord(Base):
+    """Per-user API quota tracking."""
+
+    __tablename__ = "api_quotas"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(128), nullable=False, unique=True, index=True)
+    tier = Column(String(32), nullable=False)
+    daily_limit = Column(Integer, nullable=False)
+    monthly_limit = Column(Integer, nullable=False)
+    daily_used = Column(Integer, default=0)
+    monthly_used = Column(Integer, default=0)
+    last_reset_daily = Column(DateTime(timezone=True), nullable=True)
+    last_reset_monthly = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
