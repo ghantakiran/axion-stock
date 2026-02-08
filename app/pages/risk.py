@@ -640,7 +640,7 @@ def render_drawdown_analysis():
             x=dates, y=values, name='Portfolio', line=dict(color='blue')
         ))
         fig2.add_trace(go.Scatter(
-            x=dates, y=underwater.peak_values, name='High-Water Mark',
+            x=dates, y=underwater.running_max, name='High-Water Mark',
             line=dict(color='green', dash='dash')
         ))
         fig2.update_layout(
