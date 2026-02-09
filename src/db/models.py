@@ -3407,3 +3407,27 @@ class ModelUsageRecord(Base):
     latency_ms = Column(Integer, nullable=True)
     success = Column(Boolean, nullable=False, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ── PRD-134: EMA Cloud Signal Engine ─────────────────────────────────
+
+
+class EMASignalRecord(Base):
+    """Recorded EMA cloud trade signal."""
+
+    __tablename__ = "ema_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(10), nullable=False, index=True)
+    signal_type = Column(String(50), nullable=False)
+    direction = Column(String(10), nullable=False)
+    timeframe = Column(String(10), nullable=False)
+    conviction = Column(Integer, nullable=False)
+    entry_price = Column(Float, nullable=False)
+    stop_loss = Column(Float)
+    target_price = Column(Float)
+    cloud_states_json = Column(Text)
+    metadata_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    executed = Column(Boolean, server_default="false")
+    execution_id = Column(String(50))

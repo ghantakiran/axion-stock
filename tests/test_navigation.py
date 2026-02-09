@@ -58,9 +58,9 @@ class TestNavConfig(unittest.TestCase):
         self.assertEqual(set(self.nav.keys()), expected)
 
     def test_total_page_count(self):
-        """Total page count is 102 (101 existing + 1 home)."""
+        """Total page count is 103 (101 existing + 1 home + 1 ema_signals)."""
         total = sum(len(pages) for pages in self.nav.values())
-        self.assertEqual(total, 102)
+        self.assertEqual(total, 103)
 
     def test_home_is_default(self):
         """Home section has one page marked as default."""
@@ -110,7 +110,7 @@ class TestNavConfig(unittest.TestCase):
             "": 1,
             "Market Analysis": 16,
             "Sentiment & Data": 7,
-            "Trading & Execution": 12,
+            "Trading & Execution": 13,
             "Portfolio & Risk": 14,
             "Options & Derivatives": 3,
             "ML & AI": 5,

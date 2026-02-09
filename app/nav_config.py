@@ -64,6 +64,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/bots.py", title="Trading Bots", icon=":material/precision_manufacturing:"),
             st.Page("pages/copilot.py", title="AI Trading Copilot", icon=":material/assistant:"),
             st.Page("pages/agents.py", title="Agent Hub", icon=":material/hub:"),
+            st.Page("pages/ema_signals.py", title="EMA Signals", icon=":material/ssid_chart:"),
         ],
 
         # ── Portfolio & Risk ─────────────────────────────────
