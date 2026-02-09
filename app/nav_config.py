@@ -95,6 +95,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/strategy_selector.py", title="Strategy Selector", icon=":material/swap_calls:"),
             st.Page("pages/signal_feedback.py", title="Signal Feedback", icon=":material/autorenew:"),
             st.Page("pages/integration_pipeline.py", title="Pipeline Monitor", icon=":material/device_hub:"),
+            st.Page("pages/bot_pipeline.py", title="Bot Pipeline", icon=":material/security:"),
         ],
 
         # ── Portfolio & Risk ─────────────────────────────────

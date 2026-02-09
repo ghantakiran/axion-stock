@@ -168,13 +168,19 @@ class RiskGate:
     ) -> RiskDecision:
         """6. Only trade during market hours (9:30 AM - 4:00 PM ET)."""
         now_utc = datetime.now(timezone.utc)
-        # Approximate ET: UTC-5 (ignoring DST for simplicity)
-        et_hour = (now_utc.hour - 5) % 24
-        et_minute = now_utc.minute
+
+        # Use proper timezone for ET (handles DST automatically)
+        try:
+            from zoneinfo import ZoneInfo
+            now_et = now_utc.astimezone(ZoneInfo("America/New_York"))
+            current_et = now_et.time()
+        except ImportError:
+            # Fallback: approximate ET as UTC-5 (EST)
+            et_hour = (now_utc.hour - 5) % 24
+            current_et = time(et_hour, now_utc.minute)
 
         market_open = time(9, 30)
         market_close = time(16, 0)
-        current_et = time(et_hour, et_minute)
 
         if current_et < market_open or current_et >= market_close:
             # Allow if it's pre-market scan or if signal is daily timeframe

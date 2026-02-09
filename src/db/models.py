@@ -5107,3 +5107,48 @@ class BacktestImpactAnalysisRecord(Base):
     slippage_dollars = Column(Float)
     analyzed_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-170: Bot Pipeline Robustness
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class BotPipelineStateRecord(Base):
+    """Bot pipeline state snapshot for health monitoring."""
+
+    __tablename__ = "bot_pipeline_states"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    kill_switch_active = Column(Boolean, default=False)
+    kill_switch_reason = Column(Text)
+    circuit_breaker_status = Column(String(20))
+    daily_pnl = Column(Float)
+    daily_trade_count = Column(Integer)
+    open_positions = Column(Integer)
+    total_signals_processed = Column(Integer)
+    successful_executions = Column(Integer)
+    rejection_rate = Column(Float)
+    state_json = Column(Text)
+    snapshot_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BotReconciliationReportRecord(Base):
+    """Bot position reconciliation audit trail."""
+
+    __tablename__ = "bot_reconciliation_reports"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    report_id = Column(String(50), unique=True, index=True, nullable=False)
+    total_local = Column(Integer)
+    total_broker = Column(Integer)
+    matched_count = Column(Integer)
+    ghost_count = Column(Integer)
+    orphaned_count = Column(Integer)
+    mismatch_count = Column(Integer)
+    is_clean = Column(Boolean)
+    details_json = Column(Text)
+    reconciled_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -7,6 +7,7 @@ Handles order submission, cancellation, and position queries.
 from __future__ import annotations
 
 import logging
+import time as _time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -83,46 +84,69 @@ class OrderRouter:
         paper_mode: bool = True,
         alpaca_client: object = None,
         ibkr_client: object = None,
+        timeout_seconds: float = 30.0,
+        max_retries: int = 3,
+        retry_backoff_base: float = 1.0,
     ):
         self.primary = primary_broker
         self.paper_mode = paper_mode
         self.alpaca_client = alpaca_client
         self.ibkr_client = ibkr_client
+        self.timeout_seconds = timeout_seconds
+        self.max_retries = max_retries
+        self.retry_backoff_base = retry_backoff_base
         self._order_history: list[OrderResult] = []
 
     def submit_order(self, order: Order) -> OrderResult:
         """Submit order to primary broker, fallback to secondary on failure.
 
         In paper mode, simulates fills at the requested price.
+        Live mode retries with exponential backoff on transient failures.
         """
         if self.paper_mode:
             return self._simulate_fill(order)
 
-        # Try primary broker
-        try:
-            if self.primary == "alpaca":
-                return self._submit_alpaca(order)
-            else:
-                return self._submit_ibkr(order)
-        except Exception as e:
-            logger.warning("Primary broker %s failed: %s. Trying fallback.", self.primary, e)
+        last_error = None
+        for attempt in range(self.max_retries):
+            # Try primary broker
+            try:
+                if self.primary == "alpaca":
+                    result = self._submit_alpaca(order)
+                else:
+                    result = self._submit_ibkr(order)
+                return result
+            except Exception as e:
+                logger.warning(
+                    "Primary broker %s attempt %d/%d failed: %s",
+                    self.primary, attempt + 1, self.max_retries, e,
+                )
+                last_error = e
 
-        # Try fallback
-        try:
-            if self.primary == "alpaca":
-                return self._submit_ibkr(order)
-            else:
-                return self._submit_alpaca(order)
-        except Exception as e:
-            logger.error("All brokers failed for order %s: %s", order.ticker, e)
-            return OrderResult(
-                order_id=f"FAIL-{uuid.uuid4().hex[:8]}",
-                status="rejected",
-                filled_qty=0,
-                filled_price=0.0,
-                broker="none",
-                rejection_reason=str(e),
-            )
+            # Try fallback broker (only on first failure)
+            if attempt == 0:
+                try:
+                    if self.primary == "alpaca":
+                        return self._submit_ibkr(order)
+                    else:
+                        return self._submit_alpaca(order)
+                except Exception as e:
+                    logger.warning("Fallback broker also failed: %s", e)
+                    last_error = e
+
+            # Exponential backoff before retry
+            if attempt < self.max_retries - 1:
+                backoff = self.retry_backoff_base * (2 ** attempt)
+                _time.sleep(backoff)
+
+        logger.error("All brokers failed for order %s after %d attempts", order.ticker, self.max_retries)
+        return OrderResult(
+            order_id=f"FAIL-{uuid.uuid4().hex[:8]}",
+            status="rejected",
+            filled_qty=0,
+            filled_price=0.0,
+            broker="none",
+            rejection_reason=str(last_error),
+        )
 
     def cancel_order(self, order_id: str) -> bool:
         """Cancel a pending order."""

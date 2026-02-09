@@ -244,8 +244,17 @@ class ExitMonitor:
             return None
 
         now_utc = datetime.now(timezone.utc)
-        et_hour = (now_utc.hour - 5) % 24
-        et_minute = now_utc.minute
+
+        # Use proper timezone for ET (handles DST automatically)
+        try:
+            from zoneinfo import ZoneInfo
+            now_et = now_utc.astimezone(ZoneInfo("America/New_York"))
+            et_hour = now_et.hour
+            et_minute = now_et.minute
+        except ImportError:
+            # Fallback: approximate ET as UTC-5 (EST)
+            et_hour = (now_utc.hour - 5) % 24
+            et_minute = now_utc.minute
 
         parts = self.config.eod_close_time.split(":")
         close_hour = int(parts[0])

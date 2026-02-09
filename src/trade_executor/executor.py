@@ -7,6 +7,7 @@ the full trade lifecycle: validate → size → route → monitor → exit.
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, time, timezone, timedelta
 from enum import Enum
@@ -327,6 +328,7 @@ class TradeExecutor:
         self.config = config or ExecutorConfig()
         self.sizer = PositionSizer(self.config)
         self.kill_switch = KillSwitch(self.config)
+        self._lock = threading.RLock()
         self.positions: list[Position] = []
         self.signal_queue: list[TradeSignal] = []
         self.execution_history: list[ExecutionResult] = []
@@ -334,70 +336,75 @@ class TradeExecutor:
     def process_signal(self, signal: TradeSignal, account: AccountState) -> ExecutionResult:
         """Full pipeline: validate → size → route → confirm.
 
-        This is a synchronous version for simplicity. In production,
-        broker calls would be async via the OrderRouter.
+        Thread-safe: protected by RLock to prevent race conditions
+        between risk check and position creation.
+
+        Note: For the hardened pipeline with order validation and
+        audit trail, use BotOrchestrator from src.bot_pipeline instead.
         """
-        from src.trade_executor.risk_gate import RiskGate
+        with self._lock:
+            from src.trade_executor.risk_gate import RiskGate
 
-        # Kill switch check
-        if self.kill_switch.check(account):
-            return ExecutionResult(
-                success=False,
-                signal=signal,
-                rejection_reason=f"Kill switch active: {self.kill_switch.reason}",
+            # Kill switch check
+            if self.kill_switch.check(account):
+                return ExecutionResult(
+                    success=False,
+                    signal=signal,
+                    rejection_reason=f"Kill switch active: {self.kill_switch.reason}",
+                )
+
+            # Risk gate validation
+            risk_gate = RiskGate(self.config)
+            decision = risk_gate.validate(signal, account)
+            if not decision.approved:
+                return ExecutionResult(
+                    success=False,
+                    signal=signal,
+                    rejection_reason=decision.reason,
+                    risk_decision=decision,
+                )
+
+            # Position sizing
+            size = self.sizer.calculate(signal, account)
+
+            # Create position
+            position = Position(
+                ticker=signal.ticker,
+                direction=signal.direction,
+                entry_price=signal.entry_price,
+                current_price=signal.entry_price,
+                shares=size.shares,
+                stop_loss=signal.stop_loss,
+                target_price=signal.target_price,
+                entry_time=datetime.now(timezone.utc),
+                signal_id=str(id(signal)),
+                trade_type=self._classify_trade_type(signal.timeframe),
             )
 
-        # Risk gate validation
-        risk_gate = RiskGate(self.config)
-        decision = risk_gate.validate(signal, account)
-        if not decision.approved:
-            return ExecutionResult(
-                success=False,
+            self.positions.append(position)
+            result = ExecutionResult(
+                success=True,
                 signal=signal,
-                rejection_reason=decision.reason,
-                risk_decision=decision,
+                position=position,
+                order_id=f"ORD-{id(signal)}",
             )
-
-        # Position sizing
-        size = self.sizer.calculate(signal, account)
-
-        # Create position
-        position = Position(
-            ticker=signal.ticker,
-            direction=signal.direction,
-            entry_price=signal.entry_price,
-            current_price=signal.entry_price,
-            shares=size.shares,
-            stop_loss=signal.stop_loss,
-            target_price=signal.target_price,
-            entry_time=datetime.now(timezone.utc),
-            signal_id=str(id(signal)),
-            trade_type=self._classify_trade_type(signal.timeframe),
-        )
-
-        self.positions.append(position)
-        result = ExecutionResult(
-            success=True,
-            signal=signal,
-            position=position,
-            order_id=f"ORD-{id(signal)}",
-        )
-        self.execution_history.append(result)
-        return result
+            self.execution_history.append(result)
+            return result
 
     def close_position(self, ticker: str, exit_reason: str) -> Optional[Position]:
-        """Close a position by ticker."""
-        for i, pos in enumerate(self.positions):
-            if pos.ticker == ticker:
-                closed = self.positions.pop(i)
-                pnl_pct = closed.unrealized_pnl_pct
-                self.kill_switch.record_trade_result(pnl_pct)
-                logger.info(
-                    "Closed %s %s: P&L %.2f%% (%s)",
-                    closed.direction, closed.ticker, pnl_pct * 100, exit_reason,
-                )
-                return closed
-        return None
+        """Close a position by ticker. Thread-safe."""
+        with self._lock:
+            for i, pos in enumerate(self.positions):
+                if pos.ticker == ticker:
+                    closed = self.positions.pop(i)
+                    pnl_pct = closed.unrealized_pnl_pct
+                    self.kill_switch.record_trade_result(pnl_pct)
+                    logger.info(
+                        "Closed %s %s: P&L %.2f%% (%s)",
+                        closed.direction, closed.ticker, pnl_pct * 100, exit_reason,
+                    )
+                    return closed
+            return None
 
     def get_account_snapshot(self, equity: float, cash: float) -> AccountState:
         """Build an AccountState from current executor state."""
