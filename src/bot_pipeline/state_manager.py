@@ -101,6 +101,9 @@ class PersistentStateManager:
             self._state["daily_pnl"] = self._state.get("daily_pnl", 0.0) + pnl
             self._state["daily_trade_count"] = self._state.get("daily_trade_count", 0) + 1
 
+            # PRD-171: Track lifetime realized P&L
+            self._state["total_realized_pnl"] = self._state.get("total_realized_pnl", 0.0) + pnl
+
             # Track consecutive losses for kill switch
             if pnl < 0:
                 losses = self._state.get("consecutive_losses", [])
@@ -122,6 +125,38 @@ class PersistentStateManager:
             self._state["daily_pnl"] = 0.0
             self._state["daily_trade_count"] = 0
             self._state["daily_date"] = date.today().isoformat()
+            self._save()
+
+    # ── PRD-171: Lifetime & Timestamp Tracking ────────────────────────
+
+    @property
+    def total_realized_pnl(self) -> float:
+        """Lifetime realized P&L (survives daily resets)."""
+        with self._lock:
+            return self._state.get("total_realized_pnl", 0.0)
+
+    @property
+    def last_signal_time(self) -> Optional[str]:
+        """ISO timestamp of last signal received."""
+        with self._lock:
+            return self._state.get("last_signal_time")
+
+    @property
+    def last_trade_time(self) -> Optional[str]:
+        """ISO timestamp of last trade executed."""
+        with self._lock:
+            return self._state.get("last_trade_time")
+
+    def record_signal_time(self) -> None:
+        """Record current time as last signal received."""
+        with self._lock:
+            self._state["last_signal_time"] = datetime.now(timezone.utc).isoformat()
+            self._save()
+
+    def record_trade_time(self) -> None:
+        """Record current time as last trade executed."""
+        with self._lock:
+            self._state["last_trade_time"] = datetime.now(timezone.utc).isoformat()
             self._save()
 
     # ── Circuit Breaker ──────────────────────────────────────────────
@@ -192,4 +227,8 @@ class PersistentStateManager:
             "circuit_breaker_status": "closed",
             "circuit_breaker_reason": "",
             "circuit_breaker_changed_at": None,
+            # PRD-171: Lifetime & timestamp tracking
+            "total_realized_pnl": 0.0,
+            "last_signal_time": None,
+            "last_trade_time": None,
         }

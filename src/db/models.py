@@ -5152,3 +5152,24 @@ class BotReconciliationReportRecord(Base):
     details_json = Column(Text)
     reconciled_at = Column(DateTime(timezone=True), index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-171: Bot Lifecycle Hardening
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class BotLifecycleEventRecord(Base):
+    """Bot lifecycle events: signal guard rejections, exits, emergency close, etc."""
+
+    __tablename__ = "bot_lifecycle_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String(50), unique=True, index=True, nullable=False)
+    event_type = Column(String(30), nullable=False, index=True)
+    ticker = Column(String(20), index=True)
+    direction = Column(String(10))
+    details_json = Column(Text)
+    pipeline_run_id = Column(String(50))
+    event_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

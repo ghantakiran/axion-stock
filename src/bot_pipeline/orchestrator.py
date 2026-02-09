@@ -1,24 +1,31 @@
 """Bot Pipeline Orchestrator — central coordinator for the trading bot.
 
 Replaces direct TradeExecutor.process_signal() with a hardened pipeline
-that integrates all PRD-162-169 enhancement modules:
+that integrates all PRD-162-170 enhancement modules:
 
-Pipeline flow:
-    Signal → PersistentKillSwitch → SignalRecorder → UnifiedRisk
+Pipeline flow (PRD-171 hardened):
+    Signal → PersistentKillSwitch → SignalGuard (fresh+dedup)
+    → SignalRecorder → UnifiedRisk → InstrumentRouter
     → PositionSizer → OrderRouter (w/ retry) → OrderValidator
-    → Position → SignalFeedback
+    → Position → Journal → SignalFeedback → DailyLossCheck
 
 Key improvements over direct executor:
 - Thread-safe (RLock around entire pipeline)
 - Persistent kill switch (survives restarts)
+- Signal freshness + deduplication guard (PRD-171)
 - Order fill validation (no ghost positions)
 - Full signal audit trail (PRD-162)
 - Unified risk context (PRD-163, replaces basic RiskGate)
+- Instrument routing: options/ETF/stock (PRD-171)
+- Trade journal integration (PRD-171)
+- Daily loss auto-kill (PRD-171)
+- Capped execution history (PRD-171)
 - Signal performance feedback (PRD-166)
 """
 
 from __future__ import annotations
 
+import collections
 import logging
 import threading
 from dataclasses import dataclass, field
@@ -35,6 +42,7 @@ from src.trade_executor.executor import (
 from src.trade_executor.router import Order, OrderResult, OrderRouter
 
 from src.bot_pipeline.order_validator import FillValidation, OrderValidator
+from src.bot_pipeline.signal_guard import SignalGuard
 from src.bot_pipeline.state_manager import PersistentStateManager
 
 logger = logging.getLogger(__name__)
@@ -61,6 +69,18 @@ class PipelineConfig:
     max_order_retries: int = 3
     retry_backoff_base: float = 1.0
     state_dir: str = ".bot_state"
+
+    # PRD-171: Signal guards
+    max_signal_age_seconds: float = 120.0
+    dedup_window_seconds: float = 300.0
+
+    # PRD-171: Lifecycle
+    enable_instrument_routing: bool = True
+    enable_journaling: bool = True
+    max_history_size: int = 10_000
+
+    # PRD-171: Auto-kill on daily loss
+    auto_kill_on_daily_loss: bool = True
 
 
 @dataclass
@@ -142,6 +162,10 @@ class BotOrchestrator:
         signal_recorder: Any = None,
         risk_context: Any = None,
         performance_tracker: Any = None,
+        signal_guard: SignalGuard | None = None,
+        journal: Any = None,
+        instrument_router: Any = None,
+        etf_sizer: Any = None,
     ) -> None:
         self.config = config or PipelineConfig()
         self._lock = threading.RLock()
@@ -155,9 +179,29 @@ class BotOrchestrator:
         )
         self._validator = order_validator or OrderValidator()
 
+        # PRD-171: Signal guard (freshness + dedup)
+        self._signal_guard = signal_guard or SignalGuard(
+            max_age_seconds=self.config.max_signal_age_seconds,
+            dedup_window_seconds=self.config.dedup_window_seconds,
+        )
+
+        # PRD-171: Trade journal
+        self._journal = journal
+        if self._journal is None and self.config.enable_journaling:
+            self._journal = self._lazy_load_journal()
+
+        # PRD-171: Instrument routing
+        self._instrument_router = instrument_router
+        self._etf_sizer = etf_sizer
+        if self._instrument_router is None and self.config.enable_instrument_routing:
+            self._instrument_router = self._lazy_load_instrument_router()
+            self._etf_sizer = self._lazy_load_etf_sizer()
+
         # Position store (thread-safe via _lock)
         self.positions: list[Position] = []
-        self.execution_history: list[PipelineResult] = []
+        self.execution_history: collections.deque[PipelineResult] = collections.deque(
+            maxlen=self.config.max_history_size,
+        )
 
         # PRD-162: Signal persistence (optional)
         self._recorder = signal_recorder
@@ -215,6 +259,19 @@ class BotOrchestrator:
                     rejection_reason=f"Kill switch active: {self._state.kill_switch_reason}",
                     pipeline_stage="kill_switch",
                 )
+
+            # ── Stage 1.5: Signal guard (PRD-171) ────────────────
+            guard_reason = self._signal_guard.check(signal)
+            if guard_reason:
+                return PipelineResult(
+                    success=False,
+                    signal=signal,
+                    rejection_reason=guard_reason,
+                    pipeline_stage="signal_guard",
+                )
+
+            # Update state timestamps
+            self._state.record_signal_time()
 
             # ── Stage 2: Record signal (PRD-162) ────────────────
             if self._recorder:
@@ -291,12 +348,48 @@ class BotOrchestrator:
                         pipeline_stage="basic_risk_check",
                     )
 
+            # ── Stage 3.5: Instrument routing (PRD-171) ─────────
+            trade_type = self._classify_trade_type(signal.timeframe)
+            instrument_decision = None
+            order_ticker = signal.ticker
+            position_instrument_type = "stock"
+            position_leverage = 1.0
+
+            if self._instrument_router:
+                try:
+                    instrument_decision = self._instrument_router.route(
+                        signal, trade_type=trade_type,
+                    )
+                    order_ticker = instrument_decision.ticker
+                    position_instrument_type = instrument_decision.instrument_type
+                    position_leverage = instrument_decision.leverage
+                except Exception as e:
+                    logger.warning("Instrument routing failed (fallback to stock): %s", e)
+
             # ── Stage 4: Position sizing ─────────────────────────
-            size = self._sizer.calculate(signal, account)
+            if (
+                self._etf_sizer
+                and instrument_decision
+                and instrument_decision.instrument_type == "leveraged_etf"
+            ):
+                try:
+                    from src.trade_executor.instrument_router import ETFSelection
+                    etf_sel = ETFSelection(
+                        ticker=instrument_decision.ticker,
+                        leverage=instrument_decision.leverage,
+                        tracks=instrument_decision.etf_metadata.get("tracks", "") if instrument_decision.etf_metadata else "",
+                        is_inverse=instrument_decision.is_inverse,
+                    )
+                    size = self._etf_sizer.calculate(signal, etf_sel, account)
+                except Exception as e:
+                    logger.warning("ETF sizing failed (fallback to standard): %s", e)
+                    size = self._sizer.calculate(signal, account)
+            else:
+                size = self._sizer.calculate(signal, account)
 
             # ── Stage 5: Order submission ────────────────────────
             order = Order(
-                ticker=signal.ticker,
+                ticker=order_ticker,
                 side="buy" if signal.direction == "long" else "sell",
                 qty=size.shares,
                 order_type=size.order_type,
@@ -304,6 +397,7 @@ class BotOrchestrator:
                 stop_price=signal.stop_loss if size.order_type == "stop" else None,
                 time_in_force=self.config.executor_config.default_time_in_force,
                 signal_id=signal_id or str(id(signal)),
+                metadata={"entry_price": signal.entry_price},
             )
 
             order_result = self._submit_with_retry(order)
@@ -330,7 +424,7 @@ class BotOrchestrator:
 
             # ── Stage 7: Position creation ───────────────────────
             position = Position(
-                ticker=signal.ticker,
+                ticker=order_ticker,
                 direction=signal.direction,
                 entry_price=validation.fill_price,
                 current_price=validation.fill_price,
@@ -339,7 +433,9 @@ class BotOrchestrator:
                 target_price=signal.target_price,
                 entry_time=datetime.now(timezone.utc),
                 signal_id=signal_id or str(id(signal)),
-                trade_type=self._classify_trade_type(signal.timeframe),
+                trade_type=trade_type,
+                instrument_type=position_instrument_type,
+                leverage=position_leverage,
             )
             self.positions.append(position)
 
@@ -361,6 +457,16 @@ class BotOrchestrator:
                     )
                 except Exception as e:
                     logger.warning("Execution recording failed: %s", e)
+
+            # ── Stage 8.5: Journal entry (PRD-171) ────────────────
+            if self._journal:
+                try:
+                    self._journal.record_entry(signal, order_result, position)
+                except Exception as e:
+                    logger.warning("Journal entry recording failed: %s", e)
+
+            # Update state timestamps
+            self._state.record_trade_time()
 
             result = PipelineResult(
                 success=True,
@@ -405,6 +511,20 @@ class BotOrchestrator:
                     # Check kill switch triggers
                     self._check_kill_switch_triggers()
 
+                    # PRD-171: Daily loss auto-kill
+                    self._check_daily_loss_limit()
+
+                    # PRD-171: Journal exit recording
+                    if self._journal:
+                        try:
+                            self._journal.record_exit(
+                                position=closed,
+                                exit_reason=exit_reason,
+                                exit_price=price,
+                            )
+                        except Exception as e:
+                            logger.warning("Journal exit recording failed: %s", e)
+
                     # Update feedback tracker (PRD-166)
                     if self._perf_tracker:
                         try:
@@ -429,7 +549,7 @@ class BotOrchestrator:
         with self._lock:
             total = len(self.execution_history)
             successes = sum(1 for r in self.execution_history if r.success)
-            return {
+            stats = {
                 "total_signals_processed": total,
                 "successful_executions": successes,
                 "rejection_rate": (total - successes) / max(total, 1) * 100,
@@ -438,7 +558,12 @@ class BotOrchestrator:
                 "circuit_breaker_status": self._state.circuit_breaker_status,
                 "daily_pnl": self._state.daily_pnl,
                 "daily_trades": self._state.daily_trade_count,
+                "history_size": total,
+                "history_max_size": self.config.max_history_size,
             }
+            if self._signal_guard:
+                stats["signal_guard"] = self._signal_guard.get_stats()
+            return stats
 
     # ── Internal ─────────────────────────────────────────────────────
 
@@ -474,6 +599,23 @@ class BotOrchestrator:
             broker="none",
             rejection_reason=f"All {self.config.max_order_retries} attempts failed: {last_error}",
         )
+
+    def _check_daily_loss_limit(self) -> None:
+        """Activate kill switch if daily P&L exceeds daily_loss_limit.
+
+        Uses the equity estimate and the configured daily_loss_limit fraction.
+        """
+        if not self.config.auto_kill_on_daily_loss:
+            return
+        cfg = self.config.executor_config
+        equity = self._get_equity_estimate()
+        max_loss = cfg.daily_loss_limit * equity
+        daily_pnl = self._state.daily_pnl
+        if daily_pnl < 0 and abs(daily_pnl) >= max_loss:
+            self._state.activate_kill_switch(
+                f"Daily loss limit hit: ${daily_pnl:.2f} exceeds "
+                f"-${max_loss:.2f} ({cfg.daily_loss_limit:.0%} of ${equity:.0f})"
+            )
 
     def _check_kill_switch_triggers(self) -> None:
         """Check if kill switch should be activated based on persistent state."""
@@ -525,4 +667,32 @@ class BotOrchestrator:
             return PerformanceTracker()
         except ImportError:
             logger.info("signal_feedback not available — tracking disabled")
+            return None
+
+    @staticmethod
+    def _lazy_load_journal():
+        try:
+            from src.trade_executor.journal import TradeJournalWriter
+            return TradeJournalWriter()
+        except ImportError:
+            logger.info("TradeJournalWriter not available — journaling disabled")
+            return None
+
+    @staticmethod
+    def _lazy_load_instrument_router():
+        try:
+            from src.trade_executor.instrument_router import InstrumentRouter
+            return InstrumentRouter()
+        except ImportError:
+            logger.info("InstrumentRouter not available — routing disabled")
+            return None
+
+    @staticmethod
+    def _lazy_load_etf_sizer():
+        try:
+            from src.trade_executor.etf_sizer import LeveragedETFSizer
+            from src.trade_executor.executor import ExecutorConfig
+            return LeveragedETFSizer(ExecutorConfig())
+        except ImportError:
+            logger.info("LeveragedETFSizer not available — ETF sizing disabled")
             return None

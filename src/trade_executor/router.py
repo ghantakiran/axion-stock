@@ -158,11 +158,19 @@ class OrderRouter:
         return list(self._order_history)
 
     def _simulate_fill(self, order: Order) -> OrderResult:
-        """Paper mode: simulate an immediate fill."""
+        """Paper mode: simulate an immediate fill.
+
+        Price fallback chain: limit_price → stop_price → metadata[entry_price] → 100.0
+        The metadata fallback uses the signal's entry_price, which is the real
+        market price at signal generation time. This prevents the $100 bug
+        (PRD-171) that corrupted all paper-mode P&L calculations.
+        """
         fill_price = order.limit_price or order.stop_price or 0.0
         if fill_price <= 0:
-            # For market orders, use a nominal price
-            fill_price = 100.0  # Would be replaced by actual market price
+            # PRD-171: Use entry_price from order metadata instead of hardcoded $100
+            fill_price = order.metadata.get("entry_price", 0.0) if order.metadata else 0.0
+        if fill_price <= 0:
+            fill_price = 100.0  # Last resort fallback
 
         result = OrderResult(
             order_id=f"PAPER-{uuid.uuid4().hex[:8]}",
