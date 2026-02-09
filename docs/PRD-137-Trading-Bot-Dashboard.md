@@ -39,6 +39,7 @@ Centralized bot state management.
 class BotState:
     """Current state of the trading bot, refreshed every tick."""
     status: Literal["live", "paused", "killed", "paper"]
+    instrument_mode: Literal["options", "leveraged_etf", "both"]
     uptime_seconds: int
     account_equity: float
     starting_equity: float                    # Today's starting equity
@@ -122,6 +123,7 @@ class DailyMetrics:
     avg_hold_time: timedelta
     stocks_traded: int
     options_scalped: int
+    etfs_scalped: int
 ```
 
 ### `src/bot_dashboard/charts.py` (~300 lines)
@@ -161,6 +163,7 @@ The primary monitoring view.
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Status: 🟢 LIVE    Uptime: 4h 23m    Broker: Alpaca (Paper)    │
+│  Mode: [⚡Options] [📈 Lev. ETF] [🔀 Both]     Instrument: BOTH │
 │  [⏸ Pause] [▶ Resume] [🛑 Kill Switch]                          │
 ├──────────┬──────────┬──────────┬──────────┬─────────────────────┤
 │ Day P&L  │ Win Rate │ Trades   │ Exposure │ Max Drawdown        │
@@ -169,11 +172,12 @@ The primary monitoring view.
 ├──────────┴──────────┴──────────┴──────────┴─────────────────────┤
 │  [Intraday P&L Chart — line chart updated every 30 seconds]      │
 ├──────────────────────────────────────────────────────────────────┤
-│  Active Positions (4)                                            │
+│  Active Positions (5)                                            │
 │  NVDA  LONG  150 shares  +$234 (+1.2%)  Stop: $128.50  Cloud: ✅│
 │  TSLA  LONG  80 shares   -$45  (-0.3%)  Stop: $245.00  Cloud: ✅│
-│  SPY   CALL  3 contracts +$180 (+22%)   Target: 30%    0DTE     │
-│  QQQ   PUT   2 contracts -$90  (-18%)   Stop: -50%     1DTE     │
+│  SPY   CALL  3 contracts +$180 (+22%)   Target: 30%    0DTE  OPT│
+│  TQQQ  LONG  200 shares  +$156 (+1.8%)  Stop: $71.20   3x   ETF│
+│  SOXS  LONG  150 shares  -$48  (-0.5%)  Stop: $4.85    3x   ETF│
 ├──────────────────────────────────────────────────────────────────┤
 │  Recent Signals                                                  │
 │  14:23  AAPL  CLOUD_CROSS_BULLISH  Conv: 82  → EXECUTED         │
@@ -189,7 +193,7 @@ Detailed position view with management controls.
 - Full position table (ticker, direction, shares/contracts, entry, current, P&L, stop, target, time held)
 - Per-position EMA cloud mini-chart (shows current cloud state relative to entry)
 - Manual override buttons: [Close Position] [Adjust Stop] [Add to Position]
-- Position grouping: Day Trades vs Swing Trades vs Options Scalps
+- Position grouping: Day Trades vs Swing Trades vs Options Scalps vs ETF Scalps
 
 ### Tab 3: Signals
 Live signal feed and history.
@@ -216,14 +220,18 @@ Analytics and reporting.
 - Profit factor, Sharpe ratio, expectancy, max drawdown
 - Calendar heatmap (daily P&L colored green/red)
 - Comparison vs buy-and-hold SPY
-- Options vs Stocks P&L split
+- Options vs Leveraged ETFs vs Stocks P&L split (by instrument type)
 
 ### Tab 6: Configuration
 Live configuration management.
 
+- **Instrument Mode selector**: Options / Leveraged ETF / Both (radio buttons with explanation)
+  - Shows active ETF universe when Leveraged ETF or Both is selected
+  - Shows options settings (delta, IV, strike) when Options or Both is selected
 - Risk parameters (editable with validation)
 - EMA cloud settings (periods, timeframes)
 - Scan universe (add/remove tickers, filter criteria)
+- Leveraged ETF settings (preferred leverage, sector mapping, hold limits)
 - Broker settings (primary/fallback, paper/live toggle)
 - Kill switch parameters
 - Schedule (market hours, pre-market scanning, FOMC avoidance)
@@ -347,17 +355,21 @@ st.Page("pages/bot_control.py", title="Bot Control", icon=":material/smart_toy:"
 ```
 1. streamlit run app/streamlit_app.py
 2. Navigate to "Bot Control" page
-3. Select mode: Paper (default) or Live
-4. Configure risk parameters (or use defaults)
-5. Click [▶ Start Bot]
-6. Bot begins:
+3. Select execution mode: Paper (default) or Live
+4. Select instrument mode: Options / Leveraged ETF / Both
+5. Configure risk parameters (or use defaults)
+6. Click [▶ Start Bot]
+7. Bot begins:
    a. UniverseScanner builds daily scan list
    b. DataFeed subscribes to real-time bars
    c. EMACloudEngine computes clouds every tick
    d. SignalDetector emits signals
-   e. TradeExecutor processes signals → places orders
-   f. OptionsScalper handles 0DTE/1DTE signals
-   g. ExitMonitor watches positions
-   h. Dashboard refreshes every 5 seconds
-7. Kill Switch available at all times
+   e. InstrumentRouter routes signals based on selected mode
+   f. TradeExecutor processes stock signals → places orders
+   g. OptionsScalper handles 0DTE/1DTE signals (if Options/Both mode)
+   h. ETFScalper handles leveraged ETF signals (if Leveraged ETF/Both mode)
+   i. ExitMonitor watches all positions (stocks, options, ETFs)
+   j. Dashboard refreshes every 5 seconds
+8. Kill Switch available at all times
+9. Instrument mode can be changed on-the-fly (new signals route to new mode; existing positions managed to completion)
 ```

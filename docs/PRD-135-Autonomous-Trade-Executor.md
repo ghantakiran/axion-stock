@@ -1,7 +1,7 @@
 # PRD-135: Autonomous Trade Executor
 
 ## Overview
-Fully autonomous order execution engine that consumes signals from the EMA Cloud Signal Engine (PRD-134), manages positions, enforces risk limits, and routes orders to Alpaca and/or Interactive Brokers. The executor handles the complete trade lifecycle: entry → position management → scaling → exit.
+Fully autonomous order execution engine that consumes signals from the EMA Cloud Signal Engine (PRD-134), manages positions, enforces risk limits, and routes orders to Alpaca and/or Interactive Brokers. Supports three instrument modes — **Options**, **Leveraged ETFs**, or **Both** — selectable by the user via the dashboard. The executor handles the complete trade lifecycle: entry → position management → scaling → exit.
 
 ## Module
 `src/trade_executor/` — Autonomous Trade Executor
@@ -10,24 +10,75 @@ Fully autonomous order execution engine that consumes signals from the EMA Cloud
 
 ## Architecture
 
+### Instrument Mode
+
+The user selects their preferred instrument mode via the Bot Dashboard (PRD-137). This determines how EMA cloud signals are translated into actual orders.
+
+```python
+class InstrumentMode(str, Enum):
+    OPTIONS = "options"            # Route scalp signals to Options Scalper (PRD-136)
+    LEVERAGED_ETF = "leveraged_etf"  # Route signals to leveraged ETF trades
+    BOTH = "both"                  # Use both: options for scalps, leveraged ETFs for day/swing
+```
+
+| Mode | Scalp Signals (1-min) | Day Trade Signals (10-min) | Swing Signals (1h/daily) |
+|------|----------------------|---------------------------|-------------------------|
+| **Options** | 0DTE/1DTE options | Stock positions | Stock positions |
+| **Leveraged ETF** | 3x ETF scalps (TQQQ/SQQQ) | 3x ETF day trades | 2x/3x ETF swing trades |
+| **Both** | 0DTE options | 3x ETF or stock (conviction-based) | Stock positions |
+
+### Leveraged ETF Universe
+
+```python
+LEVERAGED_ETF_CATALOG = {
+    # ── Index ETFs (most liquid, primary instruments) ──
+    "bull_spy_3x": {"ticker": "SPXL",  "inverse": "SPXS",  "leverage": 3, "tracks": "S&P 500"},
+    "bull_spy_3x_alt": {"ticker": "UPRO", "inverse": "SPXU", "leverage": 3, "tracks": "S&P 500"},
+    "bull_qqq_3x": {"ticker": "TQQQ",  "inverse": "SQQQ",  "leverage": 3, "tracks": "NASDAQ-100"},
+    "bull_rut_3x": {"ticker": "TNA",   "inverse": "TZA",   "leverage": 3, "tracks": "Russell 2000"},
+    "bull_dow_3x": {"ticker": "UDOW",  "inverse": "SDOW",  "leverage": 3, "tracks": "Dow 30"},
+
+    # ── Sector ETFs ──
+    "bull_semi_3x": {"ticker": "SOXL",  "inverse": "SOXS",  "leverage": 3, "tracks": "Semiconductors"},
+    "bull_fang_3x": {"ticker": "FNGU",  "inverse": "FNGD",  "leverage": 3, "tracks": "FANG+"},
+    "bull_tech_3x": {"ticker": "TECL",  "inverse": "TECS",  "leverage": 3, "tracks": "Technology"},
+    "bull_fin_3x":  {"ticker": "FAS",   "inverse": "FAZ",   "leverage": 3, "tracks": "Financials"},
+    "bull_energy_2x": {"ticker": "ERX", "inverse": "ERY",   "leverage": 2, "tracks": "Energy"},
+    "bull_bio_3x":  {"ticker": "LABU",  "inverse": "LABD",  "leverage": 3, "tracks": "Biotech"},
+    "bull_retail_3x": {"ticker": "RETL", "inverse": "RETS", "leverage": 3, "tracks": "Retail"},
+    "bull_re_3x":   {"ticker": "DRN",   "inverse": "DRV",   "leverage": 3, "tracks": "Real Estate"},
+    "bull_health_3x": {"ticker": "CURE", "inverse": None,   "leverage": 3, "tracks": "Healthcare"},
+
+    # ── Commodity / Precious Metal ETFs ──
+    "bull_gold_2x":   {"ticker": "NUGT", "inverse": "DUST",  "leverage": 2, "tracks": "Gold Miners"},
+    "bull_gold_3x":   {"ticker": "JNUG", "inverse": "JDST",  "leverage": 3, "tracks": "Jr Gold Miners"},
+    "bull_silver_2x": {"ticker": "AGQ",  "inverse": "ZSL",   "leverage": 2, "tracks": "Silver"},
+    "bull_natgas_2x": {"ticker": "BOIL", "inverse": "KOLD",  "leverage": 2, "tracks": "Natural Gas"},
+    "bull_oil_2x":    {"ticker": "UCO",  "inverse": "SCO",   "leverage": 2, "tracks": "Crude Oil"},
+
+    # ── Volatility ETFs ──
+    "bull_vix_1.5x":  {"ticker": "UVXY", "inverse": "SVXY", "leverage": 1.5, "tracks": "VIX Short-Term"},
+}
+```
+
 ### Execution Pipeline
 
 ```
-Signal Queue ──→ Risk Gate ──→ Position Sizer ──→ Order Router ──→ Broker API
-                    │                                    │
-                    ▼                                    ▼
-              [REJECTED]                         [Fill Confirmed]
-              - Daily loss limit hit                     │
-              - Max positions reached                    ▼
-              - Duplicate/conflicting              Position Manager
-              - Outside market hours                     │
-                                                         ▼
-                                                   Exit Monitor
-                                                   - Stop loss hit
-                                                   - Target reached
-                                                   - Momentum exhaustion
-                                                   - Cloud flip (reverse)
-                                                   - EOD forced close
+Signal Queue ──→ Instrument Router ──→ Risk Gate ──→ Position Sizer ──→ Order Router ──→ Broker API
+                      │                    │                                    │
+                      ▼                    ▼                                    ▼
+                Mode check:          [REJECTED]                         [Fill Confirmed]
+                - OPTIONS →          - Daily loss limit hit                     │
+                  Options Scalper     - Max positions reached                   ▼
+                - LEVERAGED_ETF →    - Duplicate/conflicting              Position Manager
+                  ETF Router         - Outside market hours                     │
+                - BOTH →                                                        ▼
+                  Split by signal                                          Exit Monitor
+                  timeframe                                                - Stop loss hit
+                                                                           - Target reached
+                                                                           - Momentum exhaustion
+                                                                           - Cloud flip (reverse)
+                                                                           - EOD forced close
 ```
 
 ### Risk Parameters (Aggressive Profile)
@@ -87,7 +138,7 @@ class PositionSizer:
 ## Source Files
 
 ### `src/trade_executor/__init__.py`
-Exports: `TradeExecutor`, `RiskGate`, `PositionSizer`, `OrderRouter`, `PositionManager`, `ExitMonitor`
+Exports: `TradeExecutor`, `RiskGate`, `PositionSizer`, `OrderRouter`, `PositionManager`, `ExitMonitor`, `InstrumentRouter`, `InstrumentMode`, `LeveragedETFSizer`, `LEVERAGED_ETF_CATALOG`
 
 ### `src/trade_executor/executor.py` (~350 lines)
 Main execution engine.
@@ -244,6 +295,94 @@ class TradeJournalWriter:
     def get_trade_history(self, ticker: str = None, days: int = 30) -> list[TradeRecord]: ...
 ```
 
+### `src/trade_executor/instrument_router.py` (~250 lines)
+Routes signals to the correct instrument based on user-selected mode.
+
+```python
+class InstrumentRouter:
+    """Route EMA cloud signals to the appropriate instrument (options vs leveraged ETFs).
+
+    The user selects their instrument mode via the dashboard. This router translates
+    directional signals into the correct tradeable instrument.
+    """
+
+    def __init__(self, mode: InstrumentMode, etf_catalog: dict = LEVERAGED_ETF_CATALOG):
+        self.mode = mode
+        self.etf_catalog = etf_catalog
+
+    def route(self, signal: TradeSignal) -> InstrumentDecision:
+        """Determine which instrument to trade for a given signal.
+
+        Logic:
+        - OPTIONS mode: scalp signals → options, day/swing → stocks
+        - LEVERAGED_ETF mode: all signals → leveraged ETFs
+        - BOTH mode: scalp signals → options, day trade → leveraged ETFs, swing → stocks
+        """
+        ...
+
+    def select_etf(self, signal: TradeSignal) -> ETFSelection:
+        """Pick the best leveraged ETF for a signal.
+
+        Selection logic:
+        1. Map signal ticker to its sector/index (e.g., AAPL → tech → TECL/TECS)
+        2. For broad market signals (SPY/QQQ): use TQQQ/SQQQ or SPXL/SPXS
+        3. Bull signal → bull ETF, bear signal → inverse ETF
+        4. Prefer 3x over 2x for day trades, 2x for swing (lower decay)
+        5. Check liquidity: avg volume > $10M/day
+        """
+        ...
+
+@dataclass
+class InstrumentDecision:
+    instrument_type: Literal["stock", "option", "leveraged_etf"]
+    ticker: str                    # The actual ticker to trade (e.g., "TQQQ" or "SPY")
+    original_signal_ticker: str    # The signal's ticker (e.g., "QQQ")
+    leverage: float                # 1.0 for stocks, 2-3x for ETFs
+    is_inverse: bool               # True if trading inverse ETF for short signals
+    etf_metadata: dict | None      # ETF catalog entry if applicable
+
+@dataclass
+class ETFSelection:
+    ticker: str                    # e.g., "TQQQ"
+    leverage: float                # e.g., 3.0
+    tracks: str                    # e.g., "NASDAQ-100"
+    avg_daily_volume: float        # For liquidity check
+    is_inverse: bool               # e.g., SQQQ = True
+```
+
+### `src/trade_executor/etf_sizer.py` (~150 lines)
+Position sizing adjusted for leveraged ETFs.
+
+```python
+class LeveragedETFSizer:
+    """Position sizing that accounts for ETF leverage.
+
+    Key differences from stock sizing:
+    - 3x ETF needs 1/3 the shares to get equivalent exposure
+    - Adjust stop distances for leverage (tighter nominal stops)
+    - Account for daily rebalancing decay on swing trades
+    - Max holding period for 3x ETFs: 5 days (decay risk)
+
+    Formula:
+    1. equivalent_exposure = desired_exposure / leverage_factor
+    2. risk_amount = account_equity * max_risk_per_trade
+    3. leveraged_stop = stop_distance / leverage_factor (stops are tighter)
+    4. shares = risk_amount / (etf_price * leveraged_stop)
+    5. Apply conviction multiplier (same as stocks)
+    6. Cap at max_single_etf_exposure
+    """
+
+    def calculate(self, signal: TradeSignal, etf: ETFSelection,
+                  account: AccountState) -> PositionSize:
+        ...
+
+    def max_hold_days(self, leverage: float) -> int:
+        """Max recommended holding period based on leverage.
+        3x → 5 days, 2x → 10 days, 1.5x → 15 days
+        """
+        ...
+```
+
 ---
 
 ## Data Models (ORM)
@@ -255,6 +394,9 @@ class TradeExecutionRecord(Base):
     id = Column(Integer, primary_key=True)
     signal_id = Column(String(50), index=True)           # Links to ema_signals
     ticker = Column(String(10), nullable=False, index=True)
+    instrument_type = Column(String(20), nullable=False, default="stock")  # stock, option, leveraged_etf
+    original_ticker = Column(String(10))                  # Signal ticker (e.g., QQQ when trading TQQQ)
+    leverage = Column(Float, default=1.0)                 # 1.0 for stocks, 2-3x for ETFs
     direction = Column(String(10), nullable=False)
     trade_type = Column(String(10), nullable=False)       # day, swing, scalp
     entry_price = Column(Float, nullable=False)
@@ -327,6 +469,9 @@ class KillSwitch:
 ```python
 @dataclass
 class ExecutorConfig:
+    # ── Instrument Mode ──────────────────────────────────
+    instrument_mode: InstrumentMode = InstrumentMode.BOTH   # "options", "leveraged_etf", "both"
+
     # Risk parameters (Aggressive)
     max_risk_per_trade: float = 0.05          # 5% of equity
     max_concurrent_positions: int = 10
@@ -352,6 +497,13 @@ class ExecutorConfig:
     time_stop_minutes: int = 120              # 2 hours
     eod_close_time: str = "15:55"             # 3:55 PM ET
     trailing_stop_cloud: str = "pullback"     # Use 8/9 cloud for trailing
+
+    # ── Leveraged ETF Settings ───────────────────────────
+    max_etf_hold_days_3x: int = 5             # Max holding period for 3x ETFs (decay risk)
+    max_etf_hold_days_2x: int = 10            # Max holding period for 2x ETFs
+    prefer_3x_for_day_trades: bool = True     # Use 3x ETFs for intraday, 2x for swing
+    min_etf_daily_volume: float = 10_000_000  # $10M min avg daily volume for ETF
+    etf_sector_mapping: bool = True           # Map signal tickers to sector ETFs
 
     # Kill switch
     consecutive_loss_threshold: int = 3
@@ -395,6 +547,9 @@ class ExecutorConfig:
 | `TestKillSwitch` | All 5 trigger conditions, activate/deactivate |
 | `TestTradeExecutor` | Full pipeline: signal → risk → size → route → fill → monitor → exit |
 | `TestTradeJournal` | Record entry/exit, daily summary, history queries |
+| `TestInstrumentRouter` | Mode routing (options/ETF/both), sector mapping, signal→instrument |
+| `TestLeveragedETFSizer` | Leverage-adjusted sizing, hold period limits, decay risk caps |
+| `TestETFCatalog` | All ETF entries valid, inverse pairs correct, liquidity checks |
 
 ---
 

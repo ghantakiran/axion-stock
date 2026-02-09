@@ -1,33 +1,40 @@
-# PRD-136: Options Scalping Engine
+# PRD-136: Options & Leveraged ETF Scalping Engine
 
 ## Overview
-Specialized 0DTE/1DTE options scalping engine using EMA cloud signals on 1-minute charts. Handles the unique requirements of fast options trading: Greeks-aware position sizing, rapid entry/exit, time decay management, and IV-adjusted strike selection. Operates as an extension of the Trade Executor (PRD-135) with options-specific logic.
+Specialized scalping engine using EMA cloud signals on 1-minute charts. Supports two modes: **Options scalping** (0DTE/1DTE with Greeks-aware sizing) and **Leveraged ETF scalping** (3x ETFs for equivalent directional exposure without options complexity). The user selects their preferred instrument via the dashboard's Instrument Mode toggle (PRD-135). Operates as an extension of the Trade Executor (PRD-135) with instrument-specific logic.
 
 ## Module
-`src/options_scalper/` — Options Scalping Engine
+`src/options_scalper/` — Options & Leveraged ETF Scalping Engine
 
 ---
 
 ## Architecture
 
-### Scalping Pipeline
+### Scalping Pipeline (Dual-Path)
 
 ```
-1-Min EMA Signal ──→ Strike Selector ──→ Greeks Gate ──→ Position Sizer ──→ Order Router
-     │                     │                  │                                    │
-     ▼                     ▼                  ▼                                    ▼
- [Conviction ≥ 50]   Select optimal     Validate:                         Broker API
- [Macro bias OK]     strike/expiry      - IV rank                        (Alpaca/IBKR)
- [Volume > avg]      based on:          - Theta burn rate                      │
-                     - Delta target      - Bid-ask spread                       ▼
-                     - Bid-ask spread    - Open interest              Fill → Exit Monitor
-                     - OI/volume                                      - 20-30% profit target
-                                                                      - 50% max loss
-                                                                      - Momentum exhaustion
-                                                                      - Time decay cutoff
+                              ┌─── OPTIONS MODE ───────────────────────────────────────┐
+                              │ Strike Selector → Greeks Gate → Options Sizer → Order  │
+                              │ (0DTE/1DTE calls/puts, delta targeting, IV filter)      │
+                              └─────────────────────────────────────────────────────────┘
+1-Min EMA Signal ──→ Mode Router ─┤
+                              ┌─── LEVERAGED ETF MODE ─────────────────────────────────┐
+                              │ ETF Picker → Liquidity Check → ETF Sizer → Order       │
+                              │ (TQQQ/SQQQ, SPXL/SPXS, sector 3x ETFs)                │
+                              └─────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+                                  Fill → Exit Monitor
+                                  - 20-30% profit target (options) / 1-3% target (ETFs)
+                                  - 50% max loss (options) / 2% max loss (ETFs)
+                                  - Momentum exhaustion
+                                  - Time decay cutoff (options only)
+                                  - Cloud flip
 ```
 
 ### Supported Instruments
+
+**Options Mode:**
 
 | Instrument | Strategy | Timeframe |
 |-----------|----------|-----------|
@@ -35,6 +42,35 @@ Specialized 0DTE/1DTE options scalping engine using EMA cloud signals on 1-minut
 | QQQ 0DTE/1DTE Calls/Puts | Directional scalps | 1-min / 5-min |
 | High-Beta Stock Options (NVDA, TSLA, etc.) | 1-5 DTE directional | 1-min / 5-min |
 | SPX 0DTE (IBKR only) | Index options scalps | 1-min |
+
+**Leveraged ETF Mode:**
+
+| Instrument | Bull / Bear | Leverage | Use Case |
+|-----------|-------------|----------|----------|
+| TQQQ / SQQQ | NASDAQ-100 | 3x | Primary scalp vehicle for QQQ signals |
+| SPXL / SPXS | S&P 500 | 3x | Primary scalp vehicle for SPY signals |
+| SOXL / SOXS | Semiconductors | 3x | Sector scalps (NVDA, AMD, etc.) |
+| FNGU / FNGD | FANG+ | 3x | Mega-cap tech signals |
+| TECL / TECS | Technology | 3x | Broad tech sector signals |
+| TNA / TZA | Russell 2000 | 3x | Small-cap signals |
+| LABU / LABD | Biotech | 3x | Biotech sector signals |
+| FAS / FAZ | Financials | 3x | Financial sector signals |
+| NUGT / DUST | Gold Miners | 2x | Gold/commodity signals |
+| BOIL / KOLD | Natural Gas | 2x | Energy/commodity signals |
+| UCO / SCO | Crude Oil | 2x | Oil signals |
+| UVXY / SVXY | VIX | 1.5x | Volatility signals |
+
+**ETF Scalp Advantages vs Options:**
+- No theta decay (can hold intraday without time penalty)
+- No strike selection needed (just buy/sell shares)
+- Simpler fills (stock orders vs options chain)
+- No minimum contract size (fractional shares possible on Alpaca)
+- Available to accounts without options approval
+
+**ETF Scalp Disadvantages vs Options:**
+- Lower leverage ceiling (3x vs potentially 10-50x with deep OTM options)
+- Daily rebalancing decay on multi-day holds
+- Can't define exact risk/reward like options spreads
 
 ### Scalping Rules (Ripster-Derived)
 
@@ -57,7 +93,7 @@ Specialized 0DTE/1DTE options scalping engine using EMA cloud signals on 1-minut
 ## Source Files
 
 ### `src/options_scalper/__init__.py`
-Exports: `OptionsScalper`, `StrikeSelector`, `GreeksGate`, `ScalpPosition`, `ScalpConfig`
+Exports: `OptionsScalper`, `ETFScalper`, `StrikeSelector`, `GreeksGate`, `ScalpPosition`, `ETFScalpPosition`, `ScalpConfig`
 
 ### `src/options_scalper/scalper.py` (~300 lines)
 Main scalping engine.
@@ -202,6 +238,78 @@ class ScalpSizer:
         ...
 ```
 
+### `src/options_scalper/etf_scalper.py` (~250 lines)
+Leveraged ETF scalping engine (alternative to options scalping).
+
+```python
+@dataclass
+class ETFScalpPosition:
+    ticker: str                          # e.g., "TQQQ"
+    original_signal_ticker: str          # e.g., "QQQ"
+    leverage: float                      # e.g., 3.0
+    direction: Literal["long", "short"]  # long TQQQ = bullish, long SQQQ = bearish
+    shares: int
+    entry_price: float
+    current_price: float
+    stop_loss: float
+    target_price: float
+    unrealized_pnl: float
+    unrealized_pnl_pct: float
+    entry_time: datetime
+    signal_id: str
+
+class ETFScalper:
+    """Leveraged ETF scalping as an alternative to options scalping.
+
+    Uses the same EMA cloud signals on 1-min charts but trades
+    leveraged ETFs instead of options contracts.
+    """
+
+    def __init__(self, config: ScalpConfig, executor_router: OrderRouter):
+        self.config = config
+        self.router = executor_router
+        self.etf_catalog = LEVERAGED_ETF_CATALOG
+        self.positions: list[ETFScalpPosition] = []
+
+    async def process_signal(self, signal: TradeSignal) -> ETFScalpResult | None:
+        """Convert EMA signal to leveraged ETF order.
+
+        1. Map signal ticker to leveraged ETF (e.g., QQQ bullish → TQQQ)
+        2. Check ETF liquidity (volume, spread)
+        3. Size position (leverage-adjusted)
+        4. Submit order
+        """
+        ...
+
+    async def monitor_positions(self):
+        """Monitor ETF scalp positions with tighter stops (leverage amplifies moves)."""
+        ...
+
+    def _map_ticker_to_etf(self, ticker: str, direction: str) -> str | None:
+        """Map a signal ticker to its corresponding leveraged ETF.
+
+        Mapping priority:
+        1. Direct index: SPY → SPXL/SPXS, QQQ → TQQQ/SQQQ
+        2. Sector: NVDA/AMD → SOXL/SOXS, AAPL/MSFT → TECL/TECS
+        3. Fallback: use TQQQ/SQQQ for any NASDAQ stock, SPXL/SPXS for any S&P stock
+        """
+        ...
+
+class ETFScalpSizer:
+    """Position sizing for leveraged ETF scalps.
+
+    Key difference from options: risk is linear (not binary).
+    - Max risk per scalp: 3% of equity (slightly more than options due to linear risk)
+    - Stop loss: 2% of ETF price (leveraged, so ~6% underlying move for 3x)
+    - Target: 1-3% of ETF price (leveraged, so ~3-9% underlying move for 3x)
+    - Max 5 concurrent ETF scalps (more than options since risk is lower per trade)
+    """
+
+    def calculate(self, etf_price: float, leverage: float,
+                  conviction: int, account_equity: float) -> int:
+        ...
+```
+
 ---
 
 ## Data Models (ORM)
@@ -226,6 +334,31 @@ class OptionsScalpRecord(Base):
     entry_theta = Column(Float)
     entry_iv = Column(Float)
     status = Column(String(20), default="open")            # open, closed, expired
+    exit_reason = Column(String(50))
+    pnl = Column(Float)
+    pnl_pct = Column(Float)
+    broker = Column(String(20))
+    order_id = Column(String(100))
+    entry_time = Column(DateTime, nullable=False)
+    exit_time = Column(DateTime)
+    metadata_json = Column(Text)
+    created_at = Column(DateTime, default=func.now())
+
+class ETFScalpRecord(Base):
+    __tablename__ = "etf_scalps"
+
+    id = Column(Integer, primary_key=True)
+    signal_id = Column(String(50), index=True)
+    ticker = Column(String(10), nullable=False, index=True)   # e.g., "TQQQ"
+    original_ticker = Column(String(10))                       # e.g., "QQQ"
+    leverage = Column(Float, nullable=False)
+    direction = Column(String(10), nullable=False)
+    shares = Column(Integer, nullable=False)
+    entry_price = Column(Float, nullable=False)
+    exit_price = Column(Float)
+    stop_loss = Column(Float)
+    target_price = Column(Float)
+    status = Column(String(20), default="open")
     exit_reason = Column(String(50))
     pnl = Column(Float)
     pnl_pct = Column(Float)
@@ -281,6 +414,16 @@ class ScalpConfig:
     # Conviction
     min_conviction_to_scalp: int = 50
     require_macro_alignment: bool = True      # 10-min macro cloud must agree
+
+    # ── Leveraged ETF Scalp Settings ─────────────────
+    etf_max_risk_per_scalp: float = 0.03      # 3% of equity per ETF scalp
+    etf_stop_loss_pct: float = 0.02           # 2% of ETF price
+    etf_profit_target_pct: float = 0.02       # 2% of ETF price (adjustable 1-3%)
+    etf_max_concurrent_scalps: int = 5
+    etf_min_daily_volume: float = 10_000_000  # $10M min avg daily volume
+    etf_max_spread_pct: float = 0.05          # 0.05% bid-ask spread max
+    etf_prefer_3x: bool = True                # Prefer 3x over 2x for scalps
+    etf_sector_mapping_enabled: bool = True   # Map individual stocks to sector ETFs
 ```
 
 ---
@@ -301,7 +444,9 @@ class ScalpConfig:
 ## Alembic Migration
 `alembic/versions/136_options_scalper.py`
 - Creates `options_scalps` table
-- Indexes on `(ticker, status)`, `(signal_id)`, `(expiry)`
+- Creates `etf_scalps` table
+- Indexes on `(ticker, status)`, `(signal_id)`, `(expiry)` for options
+- Indexes on `(ticker, status)`, `(signal_id)` for ETFs
 
 ---
 
@@ -314,7 +459,10 @@ class ScalpConfig:
 | `TestGreeksGate` | IV rank check, theta burn, spread validation, gamma filter |
 | `TestScalpSizer` | Risk-based sizing, conviction adjustment, min/max contracts |
 | `TestOptionsScalper` | Full pipeline: signal → strike → greeks → size → order |
-| `TestExitLogic` | Profit target, stop loss, exhaustion, time cutoff, cloud flip |
+| `TestETFScalper` | Signal → ETF mapping → liquidity → size → order |
+| `TestETFScalpSizer` | Leverage-adjusted sizing, stop/target calculation, max concurrent |
+| `TestTickerToETFMapping` | Individual stock → sector ETF mapping, index fallback |
+| `TestExitLogic` | Profit target, stop loss, exhaustion, time cutoff, cloud flip (both modes) |
 | `TestTimingRules` | Market hours, 0DTE cutoff, FOMC avoidance |
 
 ---
@@ -323,7 +471,8 @@ class ScalpConfig:
 `app/pages/options_scalper.py` — added to nav_config.py under "Trading & Execution"
 
 **Tabs:**
-1. **Live Scalps** — Active options positions with real-time Greeks, P&L, time-to-expiry countdown
-2. **Strike Picker** — Interactive chain view showing selected strikes, delta heatmap
-3. **Scalp History** — Trade log with entry/exit reasons, P&L, win rate, avg hold time
-4. **Performance** — Cumulative P&L curve, win rate by ticker/time/conviction, best/worst scalps
+1. **Live Scalps** — Active options AND/OR ETF positions with real-time P&L (Greeks for options, leverage for ETFs)
+2. **Strike Picker / ETF Picker** — Options chain view with delta heatmap OR leveraged ETF selector with liquidity indicators
+3. **Scalp History** — Unified trade log with instrument_type column, entry/exit reasons, P&L, win rate, avg hold time
+4. **Performance** — Cumulative P&L curve split by instrument type (Options vs ETF), win rate by ticker/time/conviction
+5. **Mode Comparison** — Side-by-side backtest of same signals executed as options vs leveraged ETFs
