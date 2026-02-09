@@ -3547,3 +3547,39 @@ class ETFScalpRecord(Base):
     exit_time = Column(DateTime(timezone=True))
     extra_metadata = Column("metadata_json", Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-137: Trading Bot Dashboard & Control Center ───────────────────
+
+
+class BotSessionRecord(Base):
+    """A bot trading session record."""
+
+    __tablename__ = "bot_sessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(50), unique=True, index=True)
+    started_at = Column(DateTime(timezone=True), nullable=False)
+    ended_at = Column(DateTime(timezone=True))
+    status = Column(String(20), nullable=False)
+    starting_equity = Column(Float, nullable=False)
+    ending_equity = Column(Float)
+    total_signals = Column(Integer, server_default="0")
+    total_trades = Column(Integer, server_default="0")
+    config_json = Column(Text)
+    errors_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BotEventRecord(Base):
+    """A bot event log entry."""
+
+    __tablename__ = "bot_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(50), index=True)
+    event_type = Column(String(50), nullable=False)
+    severity = Column(String(10), nullable=False)
+    message = Column(Text, nullable=False)
+    extra_metadata = Column("metadata_json", Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
