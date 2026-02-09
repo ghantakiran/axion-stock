@@ -3583,3 +3583,1275 @@ class BotEventRecord(Base):
     message = Column(Text, nullable=False)
     extra_metadata = Column("metadata_json", Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ── PRD-138: Bot Strategy Backtesting Integration ─────────────────
+
+
+class BacktestRunRecord(Base):
+    """A bot strategy backtest run record."""
+
+    __tablename__ = "bot_backtest_runs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(200))
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    initial_capital = Column(Float, nullable=False)
+    tickers_json = Column(Text)
+    config_json = Column(Text)
+    total_return = Column(Float)
+    cagr = Column(Float)
+    sharpe_ratio = Column(Float)
+    max_drawdown = Column(Float)
+    total_trades = Column(Integer)
+    win_rate = Column(Float)
+    profit_factor = Column(Float)
+    total_signals = Column(Integer)
+    attribution_json = Column(Text)
+    equity_curve_json = Column(Text)
+    extra_metadata = Column("metadata_json", Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SignalAttributionRecord(Base):
+    """Signal-type attribution stats from a backtest run."""
+
+    __tablename__ = "bot_signal_attribution"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String(50), index=True, nullable=False)
+    signal_type = Column(String(50), nullable=False, index=True)
+    total_trades = Column(Integer, nullable=False)
+    winning_trades = Column(Integer)
+    losing_trades = Column(Integer)
+    win_rate = Column(Float)
+    total_pnl = Column(Float)
+    avg_pnl = Column(Float)
+    profit_factor = Column(Float)
+    avg_conviction = Column(Float)
+    avg_hold_bars = Column(Float)
+    extra_metadata = Column("metadata_json", Text)
+
+
+# ── PRD-139: Alpaca Live Broker Integration ────────────────────────
+
+
+class AlpacaConnectionRecord(Base):
+    """Alpaca API connection state."""
+
+    __tablename__ = "alpaca_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_id = Column(String(100))
+    environment = Column(String(10), nullable=False)
+    status = Column(String(20), nullable=False)
+    mode = Column(String(10))
+    equity = Column(Float)
+    buying_power = Column(Float)
+    cash = Column(Float)
+    position_count = Column(Integer)
+    last_sync = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    config_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AlpacaOrderLogRecord(Base):
+    """Alpaca order execution log entry."""
+
+    __tablename__ = "alpaca_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    local_id = Column(String(50), index=True, nullable=False)
+    alpaca_order_id = Column(String(100), index=True)
+    symbol = Column(String(10), nullable=False, index=True)
+    side = Column(String(10), nullable=False)
+    qty = Column(Float, nullable=False)
+    order_type = Column(String(20), nullable=False)
+    time_in_force = Column(String(10))
+    limit_price = Column(Float)
+    stop_price = Column(Float)
+    status = Column(String(20), nullable=False)
+    filled_qty = Column(Float)
+    filled_avg_price = Column(Float)
+    signal_id = Column(String(50))
+    strategy = Column(String(50))
+    error_message = Column(Text)
+    submitted_at = Column(DateTime(timezone=True))
+    filled_at = Column(DateTime(timezone=True))
+    canceled_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AlpacaPositionSnapshotRecord(Base):
+    """Alpaca position snapshot for historical tracking."""
+
+    __tablename__ = "alpaca_position_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), index=True, nullable=False)
+    symbol = Column(String(10), nullable=False, index=True)
+    qty = Column(Float, nullable=False)
+    avg_entry_price = Column(Float)
+    current_price = Column(Float)
+    market_value = Column(Float)
+    unrealized_pnl = Column(Float)
+    side = Column(String(10))
+    snapshot_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-140: Social Signal Crawler ─────────────────────────────────
+
+
+class SocialCrawlRunRecord(Base):
+    """Social crawl run log entry."""
+
+    __tablename__ = "social_crawl_runs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    platform = Column(String(20), nullable=False, index=True)
+    post_count = Column(Integer, nullable=False)
+    tickers_found_json = Column(Text)
+    errors_json = Column(Text)
+    crawl_duration_ms = Column(Float)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SocialPostRecord(Base):
+    """Archived social media post."""
+
+    __tablename__ = "social_posts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    platform = Column(String(20), nullable=False, index=True)
+    author = Column(String(100))
+    text = Column(Text, nullable=False)
+    tickers_json = Column(Text)
+    sentiment = Column(Float, index=True)
+    upvotes = Column(Integer, server_default="0")
+    comments = Column(Integer, server_default="0")
+    url = Column(Text)
+    post_timestamp = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-141: Social Signal Intelligence ────────────────────────────
+
+
+class SocialSignalScoreRecord(Base):
+    """Social signal composite score record."""
+
+    __tablename__ = "social_signal_scores"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    score = Column(Float, nullable=False)
+    strength = Column(String(20))
+    direction = Column(String(20))
+    sentiment_score = Column(Float)
+    engagement_score = Column(Float)
+    velocity_score = Column(Float)
+    freshness_score = Column(Float)
+    credibility_score = Column(Float)
+    mention_count = Column(Integer)
+    platforms_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SocialVolumeAnomalyRecord(Base):
+    """Social mention volume anomaly record."""
+
+    __tablename__ = "social_volume_anomalies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    current_volume = Column(Integer, nullable=False)
+    baseline_mean = Column(Float)
+    baseline_std = Column(Float)
+    z_score = Column(Float)
+    volume_ratio = Column(Float)
+    severity = Column(String(20))
+    is_extreme = Column(Boolean, server_default="false")
+    is_sustained = Column(Boolean, server_default="false")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SocialInfluencerProfileRecord(Base):
+    """Social media influencer profile record."""
+
+    __tablename__ = "social_influencer_profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    author_id = Column(String(100), nullable=False)
+    platform = Column(String(20), nullable=False)
+    tier = Column(String(20))
+    total_posts = Column(Integer, server_default="0")
+    total_upvotes = Column(Integer, server_default="0")
+    accuracy_rate = Column(Float)
+    impact_score = Column(Float)
+    top_tickers_json = Column(Text)
+    last_seen = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SocialTradingSignalRecord(Base):
+    """Social intelligence trading signal record."""
+
+    __tablename__ = "social_trading_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    action = Column(String(20), nullable=False)
+    confidence = Column(Float)
+    direction = Column(String(20))
+    final_score = Column(Float)
+    has_volume_anomaly = Column(Boolean, server_default="false")
+    has_influencer_signal = Column(Boolean, server_default="false")
+    is_consensus = Column(Boolean, server_default="false")
+    reasons_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-142: Alert & Notification Network ──────────────────────────
+
+
+class AlertRuleRecord(Base):
+    """User-configurable alert rule."""
+
+    __tablename__ = "alert_rules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    rule_id = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(200), nullable=False)
+    trigger_type = Column(String(30), nullable=False)
+    symbol = Column(String(20), index=True)
+    threshold = Column(Float)
+    channels_json = Column(Text)
+    enabled = Column(Boolean, server_default="true")
+    cooldown_minutes = Column(Integer, server_default="30")
+    max_daily_alerts = Column(Integer, server_default="10")
+    user_id = Column(String(50), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class NotificationDeliveryLogRecord(Base):
+    """Notification delivery attempt log."""
+
+    __tablename__ = "notification_delivery_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    delivery_id = Column(String(50), index=True)
+    rule_id = Column(String(50), index=True)
+    channel = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False)
+    symbol = Column(String(20), index=True)
+    message = Column(Text)
+    error = Column(Text)
+    attempts = Column(Integer, server_default="1")
+    user_id = Column(String(50))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class NotificationPreferenceRecord(Base):
+    """User notification preferences."""
+
+    __tablename__ = "notification_preferences"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(50), unique=True, nullable=False)
+    quiet_hours_enabled = Column(Boolean, server_default="false")
+    quiet_hours_start = Column(Integer, server_default="22")
+    quiet_hours_end = Column(Integer, server_default="7")
+    max_per_hour = Column(Integer, server_default="20")
+    max_per_day = Column(Integer, server_default="100")
+    batch_enabled = Column(Boolean, server_default="false")
+    enabled_channels_json = Column(Text)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-143: Robinhood Broker Integration ──────────────────────────
+
+
+class RobinhoodConnectionRecord(Base):
+    """Robinhood API connection state."""
+
+    __tablename__ = "robinhood_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    username = Column(String(200))
+    status = Column(String(20), nullable=False)
+    mode = Column(String(10))
+    account_number = Column(String(50))
+    equity = Column(Float)
+    buying_power = Column(Float)
+    cash = Column(Float)
+    position_count = Column(Integer)
+    last_sync = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    config_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class RobinhoodOrderLogRecord(Base):
+    """Robinhood order execution log entry."""
+
+    __tablename__ = "robinhood_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    local_id = Column(String(50), index=True, nullable=False)
+    rh_order_id = Column(String(100), index=True)
+    symbol = Column(String(10), nullable=False, index=True)
+    side = Column(String(10), nullable=False)
+    qty = Column(Float, nullable=False)
+    order_type = Column(String(20), nullable=False)
+    time_in_force = Column(String(10))
+    limit_price = Column(Float)
+    stop_price = Column(Float)
+    status = Column(String(20), nullable=False)
+    filled_qty = Column(Float)
+    filled_avg_price = Column(Float)
+    signal_id = Column(String(50))
+    strategy = Column(String(50))
+    error_message = Column(Text)
+    submitted_at = Column(DateTime(timezone=True))
+    filled_at = Column(DateTime(timezone=True))
+    canceled_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-144: Coinbase Broker Integration ──────────────────────────────
+
+
+class CoinbaseConnectionRecord(Base):
+    """Coinbase API connection state."""
+
+    __tablename__ = "coinbase_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_id = Column(String(100))
+    status = Column(String(20), nullable=False)
+    mode = Column(String(10))
+    total_value_usd = Column(Float)
+    crypto_count = Column(Integer)
+    usd_balance = Column(Float)
+    last_sync = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    config_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CoinbaseOrderLogRecord(Base):
+    """Coinbase order execution log entry."""
+
+    __tablename__ = "coinbase_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    local_id = Column(String(50), index=True, nullable=False)
+    coinbase_order_id = Column(String(100), index=True)
+    product_id = Column(String(20), nullable=False, index=True)
+    side = Column(String(10), nullable=False)
+    size = Column(Float, nullable=False)
+    order_type = Column(String(20), nullable=False)
+    limit_price = Column(Float)
+    status = Column(String(20), nullable=False)
+    filled_size = Column(Float)
+    filled_price = Column(Float)
+    fee = Column(Float)
+    signal_id = Column(String(50))
+    error_message = Column(Text)
+    submitted_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CoinbaseAccountSnapshotRecord(Base):
+    """Coinbase account snapshot for historical tracking."""
+
+    __tablename__ = "coinbase_account_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), index=True, nullable=False)
+    currency = Column(String(10), nullable=False, index=True)
+    balance = Column(Float, nullable=False)
+    available = Column(Float)
+    native_value_usd = Column(Float)
+    price_usd = Column(Float)
+    allocation_pct = Column(Float)
+    snapshot_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-145: Schwab Broker Integration ──────────────────────────────
+
+
+class SchwabConnectionRecord(Base):
+    """Schwab API connection state."""
+
+    __tablename__ = "schwab_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_number = Column(String(100))
+    account_type = Column(String(30))
+    status = Column(String(20), nullable=False)
+    mode = Column(String(10))
+    equity = Column(Float)
+    buying_power = Column(Float)
+    cash = Column(Float)
+    position_count = Column(Integer)
+    last_sync = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    config_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SchwabOrderLogRecord(Base):
+    """Schwab order execution log entry."""
+
+    __tablename__ = "schwab_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    local_id = Column(String(50), index=True, nullable=False)
+    schwab_order_id = Column(String(100), index=True)
+    account_number = Column(String(100))
+    symbol = Column(String(10), nullable=False, index=True)
+    instruction = Column(String(20), nullable=False)
+    qty = Column(Float, nullable=False)
+    order_type = Column(String(20), nullable=False)
+    duration = Column(String(10))
+    limit_price = Column(Float)
+    stop_price = Column(Float)
+    status = Column(String(20), nullable=False)
+    filled_qty = Column(Float)
+    filled_avg_price = Column(Float)
+    signal_id = Column(String(50))
+    strategy = Column(String(50))
+    error_message = Column(Text)
+    submitted_at = Column(DateTime(timezone=True))
+    filled_at = Column(DateTime(timezone=True))
+    canceled_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-146: Smart Multi-Broker Execution ──────────────────────────────
+
+
+class MultiBrokerConnectionRecord(Base):
+    """Multi-broker connection registry entry."""
+
+    __tablename__ = "multi_broker_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    broker_name = Column(String(50), unique=True, index=True, nullable=False)
+    status = Column(String(20), nullable=False)
+    asset_types = Column(Text)
+    fee_json = Column(Text)
+    priority = Column(Integer, server_default="0")
+    latency_ms = Column(Float)
+    last_sync = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class MultiBrokerRouteRecord(Base):
+    """Multi-broker routing decision log entry."""
+
+    __tablename__ = "multi_broker_routes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    order_id = Column(String(50), index=True, nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    asset_type = Column(String(20), nullable=False)
+    routed_to = Column(String(50), nullable=False)
+    reason = Column(Text)
+    score = Column(Float)
+    fee = Column(Float)
+    latency_ms = Column(Float)
+    failover = Column(Boolean, server_default="false")
+    failover_from = Column(String(50))
+    status = Column(String(20))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-147: Signal Fusion Agent ───────────────────────────────────────
+
+
+class SignalFusionScanRecord(Base):
+    """Signal fusion scan execution log."""
+
+    __tablename__ = "signal_fusion_scans"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scan_id = Column(String(50), unique=True, index=True, nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False)
+    signals_count = Column(Integer, nullable=False)
+    fusions_count = Column(Integer, nullable=False)
+    recommendations_count = Column(Integer, nullable=False)
+    state_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SignalFusionRecommendationRecord(Base):
+    """Signal fusion recommendation record."""
+
+    __tablename__ = "signal_fusion_recommendations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    rec_id = Column(String(50), unique=True, index=True, nullable=False)
+    scan_id = Column(String(50), index=True, nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    action = Column(String(20), nullable=False)
+    composite_score = Column(Float, nullable=False)
+    confidence = Column(Float, nullable=False)
+    position_size_pct = Column(Float)
+    reasoning_json = Column(Text)
+    executed = Column(Boolean, server_default="false")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-148: Adaptive Strategy Optimizer ───────────────────────────────
+
+
+class StrategyOptimizationRunRecord(Base):
+    """Strategy optimization run history."""
+
+    __tablename__ = "strategy_optimization_runs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String(50), unique=True, index=True, nullable=False)
+    param_space_json = Column(Text)
+    best_params_json = Column(Text)
+    best_score = Column(Float, nullable=False)
+    generations_run = Column(Integer, nullable=False)
+    convergence = Column(Float)
+    regime = Column(String(20))
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StrategyDriftCheckRecord(Base):
+    """Strategy drift check history."""
+
+    __tablename__ = "strategy_drift_checks"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    check_id = Column(String(50), unique=True, index=True, nullable=False)
+    status = Column(String(20), nullable=False)
+    current_sharpe = Column(Float)
+    baseline_sharpe = Column(Float)
+    sharpe_delta = Column(Float)
+    current_drawdown = Column(Float)
+    recommendation = Column(String(50))
+    checked_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-149: Live Signal-to-Trade Pipeline ─────────────────────────
+
+
+class PipelineOrderRecord(Base):
+    """Pipeline order log entry."""
+
+    __tablename__ = "pipeline_orders"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    order_id = Column(String(50), unique=True, index=True, nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    side = Column(String(10), nullable=False)
+    order_type = Column(String(20), nullable=False)
+    qty = Column(Float, nullable=False)
+    limit_price = Column(Float)
+    stop_price = Column(Float)
+    asset_type = Column(String(20))
+    signal_type = Column(String(20), nullable=False, index=True)
+    confidence = Column(Float)
+    position_size_pct = Column(Float)
+    stop_loss_pct = Column(Float)
+    take_profit_pct = Column(Float)
+    time_horizon = Column(String(20))
+    risk_level = Column(String(20))
+    reasoning = Column(Text)
+    source_data_json = Column(Text)
+    status = Column(String(20), nullable=False, index=True)
+    rejection_reason = Column(Text)
+    broker_name = Column(String(50))
+    fill_price = Column(Float)
+    fill_qty = Column(Float)
+    fee = Column(Float)
+    latency_ms = Column(Float)
+    stages_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PipelinePositionRecord(Base):
+    """Pipeline position tracking."""
+
+    __tablename__ = "pipeline_positions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), unique=True, index=True, nullable=False)
+    qty = Column(Float, nullable=False)
+    avg_entry_price = Column(Float, nullable=False)
+    current_price = Column(Float)
+    side = Column(String(10), nullable=False)
+    signal_type = Column(String(20))
+    stop_loss_price = Column(Float)
+    target_price = Column(Float)
+    unrealized_pnl = Column(Float)
+    order_ids_json = Column(Text)
+    opened_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PipelineReconciliationRecord(Base):
+    """Pipeline execution reconciliation."""
+
+    __tablename__ = "pipeline_reconciliations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    record_id = Column(String(50), unique=True, index=True, nullable=False)
+    order_id = Column(String(50), index=True, nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    expected_price = Column(Float)
+    actual_price = Column(Float)
+    expected_qty = Column(Float)
+    actual_qty = Column(Float)
+    slippage_pct = Column(Float)
+    fill_ratio = Column(Float)
+    broker_name = Column(String(50))
+    latency_ms = Column(Float)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-150: Advanced Risk Management ──────────────────────────────
+
+
+class RiskSnapshotRecord(Base):
+    """Portfolio risk snapshot record."""
+
+    __tablename__ = "risk_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    risk_level = Column(String(20), nullable=False, index=True)
+    gross_leverage = Column(Float)
+    net_leverage = Column(Float)
+    long_exposure = Column(Float)
+    short_exposure = Column(Float)
+    sector_concentrations_json = Column(Text)
+    largest_position_pct = Column(Float)
+    vix_adjusted_size_pct = Column(Float)
+    warnings_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CircuitBreakerEventRecord(Base):
+    """Circuit breaker state change event."""
+
+    __tablename__ = "circuit_breaker_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String(50), unique=True, index=True, nullable=False)
+    status = Column(String(20), nullable=False)
+    trip_reason = Column(Text)
+    consecutive_losses = Column(Integer)
+    daily_pnl = Column(Float)
+    trip_count = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class KillSwitchEventRecord(Base):
+    """Kill switch activation/deactivation event."""
+
+    __tablename__ = "kill_switch_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String(50), unique=True, index=True, nullable=False)
+    action = Column(String(20), nullable=False)
+    reason = Column(Text)
+    equity_at_event = Column(Float)
+    daily_pnl = Column(Float)
+    triggered_by = Column(String(50))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-151: LLM Sentiment Engine ────────────────────────────────────
+
+
+class LLMSentimentResultRecord(Base):
+    """LLM sentiment analysis result."""
+
+    __tablename__ = "llm_sentiment_results"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    result_id = Column(String(50), unique=True, index=True, nullable=False)
+    text_hash = Column(String(64), index=True, nullable=False)
+    text_preview = Column(Text)
+    sentiment = Column(String(20), nullable=False, index=True)
+    score = Column(Float, nullable=False)
+    confidence = Column(Float)
+    reasoning = Column(Text)
+    themes_json = Column(Text)
+    tickers_json = Column(Text)
+    urgency = Column(String(20))
+    time_horizon = Column(String(20))
+    model_used = Column(String(100))
+    input_tokens = Column(Integer)
+    output_tokens = Column(Integer)
+    cost_usd = Column(Float)
+    source_type = Column(String(50))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class LLMEntitySentimentRecord(Base):
+    """Entity-level sentiment from LLM analysis."""
+
+    __tablename__ = "llm_entity_sentiments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    entity_id = Column(String(50), unique=True, index=True, nullable=False)
+    result_id = Column(String(50), index=True, nullable=False)
+    entity_name = Column(String(200), nullable=False)
+    entity_type = Column(String(30), nullable=False, index=True)
+    ticker = Column(String(20), index=True)
+    sentiment = Column(String(20), nullable=False)
+    score = Column(Float, nullable=False)
+    confidence = Column(Float)
+    context = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class LLMSentimentForecastRecord(Base):
+    """Sentiment forecast record."""
+
+    __tablename__ = "llm_sentiment_forecasts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    forecast_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    horizon = Column(String(10), nullable=False)
+    current_score = Column(Float)
+    predicted_score = Column(Float)
+    predicted_direction = Column(String(20))
+    confidence = Column(Float)
+    momentum = Column(Float)
+    reversal_probability = Column(Float)
+    half_life_hours = Column(Float)
+    observation_count = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-152: Influencer Intelligence Platform ────────────────────────
+
+
+class InfluencerProfileRecord(Base):
+    """Persistent influencer profile."""
+
+    __tablename__ = "influencer_profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(String(50), unique=True, index=True, nullable=False)
+    author_id = Column(String(100), nullable=False, index=True)
+    platform = Column(String(30), nullable=False, index=True)
+    tier = Column(String(20), nullable=False)
+    total_posts = Column(Integer)
+    total_upvotes = Column(Integer)
+    accuracy_rate = Column(Float)
+    impact_score = Column(Float)
+    discovery_score = Column(Float)
+    top_tickers_json = Column(Text)
+    sector_accuracy_json = Column(Text)
+    first_seen = Column(DateTime(timezone=True))
+    last_seen = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class InfluencerPredictionRecord(Base):
+    """Influencer prediction tracking."""
+
+    __tablename__ = "influencer_predictions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    prediction_id = Column(String(50), unique=True, index=True, nullable=False)
+    author_id = Column(String(100), nullable=False, index=True)
+    platform = Column(String(30), nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    direction = Column(String(20), nullable=False)
+    sentiment_score = Column(Float)
+    entry_price = Column(Float)
+    exit_price = Column(Float)
+    actual_return_pct = Column(Float)
+    was_correct = Column(Boolean)
+    sector = Column(String(50))
+    predicted_at = Column(DateTime(timezone=True))
+    evaluated_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class InfluencerClusterRecord(Base):
+    """Detected influencer community cluster."""
+
+    __tablename__ = "influencer_clusters"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cluster_id = Column(String(50), unique=True, index=True, nullable=False)
+    members_json = Column(Text, nullable=False)
+    shared_tickers_json = Column(Text)
+    avg_sentiment = Column(Float)
+    coordination_score = Column(Float)
+    size = Column(Integer)
+    detected_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-153: Real-Time Signal Streaming ──────────────────────────────
+
+
+class StreamEventRecord(Base):
+    """Stream event log for debugging and replay."""
+
+    __tablename__ = "stream_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String(50), unique=True, index=True, nullable=False)
+    channel = Column(String(30), nullable=False, index=True)
+    ticker = Column(String(20), index=True)
+    message_type = Column(String(30), nullable=False)
+    data_json = Column(Text)
+    sequence = Column(Integer)
+    latency_ms = Column(Float)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StreamHealthSnapshotRecord(Base):
+    """Stream health point-in-time snapshot."""
+
+    __tablename__ = "stream_health_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    status = Column(String(20), nullable=False)
+    messages_in = Column(Integer)
+    messages_out = Column(Integer)
+    messages_filtered = Column(Integer)
+    messages_errored = Column(Integer)
+    avg_latency_ms = Column(Float)
+    max_latency_ms = Column(Float)
+    throughput_per_min = Column(Float)
+    error_rate = Column(Float)
+    active_tickers = Column(Integer)
+    queue_depth = Column(Integer)
+    issues_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-154: Multi-Agent Trade Consensus ─────────────────────────────
+
+
+class ConsensusDecisionRecord(Base):
+    """Consensus decision log."""
+
+    __tablename__ = "consensus_decisions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    decision_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    signal_type = Column(String(50))
+    direction = Column(String(10))
+    conviction = Column(Integer)
+    decision = Column(String(20), nullable=False, index=True)
+    approval_rate = Column(Float)
+    weighted_score = Column(Float)
+    total_votes = Column(Integer)
+    approve_count = Column(Integer)
+    reject_count = Column(Integer)
+    abstain_count = Column(Integer)
+    vetoed = Column(Boolean, default=False)
+    veto_reason = Column(Text)
+    risk_assessment = Column(String(20))
+    debated = Column(Boolean, default=False)
+    debate_rounds = Column(Integer)
+    votes_json = Column(Text)
+    adjustments_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ConsensusAgentVoteRecord(Base):
+    """Per-agent vote history."""
+
+    __tablename__ = "consensus_agent_votes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vote_id = Column(String(50), unique=True, index=True, nullable=False)
+    decision_id = Column(String(50), nullable=False, index=True)
+    agent_type = Column(String(50), nullable=False, index=True)
+    decision = Column(String(20), nullable=False)
+    confidence = Column(Float)
+    reasoning = Column(Text)
+    risk_assessment = Column(String(20))
+    suggested_adjustments_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-155: Regime-Adaptive Strategy ────────────────────────────────
+
+
+class RegimeAdaptationRecord(Base):
+    """Regime adaptation log."""
+
+    __tablename__ = "regime_adaptations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    adaptation_id = Column(String(50), unique=True, index=True, nullable=False)
+    regime = Column(String(20), nullable=False, index=True)
+    confidence = Column(Float)
+    profile_used = Column(String(50))
+    changes_json = Column(Text)
+    original_config_json = Column(Text)
+    adapted_config_json = Column(Text)
+    is_blended = Column(Boolean, default=False)
+    transition_from = Column(String(20))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class RegimeTransitionRecord(Base):
+    """Regime transition history."""
+
+    __tablename__ = "regime_transitions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    transition_id = Column(String(50), unique=True, index=True, nullable=False)
+    from_regime = Column(String(20), nullable=False)
+    to_regime = Column(String(20), nullable=False, index=True)
+    confidence = Column(Float)
+    method = Column(String(30))
+    circuit_broken = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-156: Fidelity Broker ─────────────────────────────────────────
+
+
+class FidelityConnectionRecord(Base):
+    """Fidelity broker connection state."""
+
+    __tablename__ = "fidelity_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_number = Column(String(30), nullable=False, index=True)
+    account_type = Column(String(30))
+    status = Column(String(20), nullable=False, index=True)
+    mode = Column(String(10))
+    equity = Column(Float)
+    buying_power = Column(Float)
+    position_count = Column(Integer)
+    last_sync_at = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FidelityOrderLogRecord(Base):
+    """Fidelity order audit log."""
+
+    __tablename__ = "fidelity_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    log_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_number = Column(String(30), nullable=False, index=True)
+    order_id = Column(String(50), nullable=False)
+    symbol = Column(String(20), nullable=False, index=True)
+    side = Column(String(20))
+    order_type = Column(String(20))
+    quantity = Column(Float)
+    filled_quantity = Column(Float)
+    price = Column(Float)
+    status = Column(String(20), index=True)
+    duration = Column(String(10))
+    asset_type = Column(String(20))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-157: IBKR Broker ─────────────────────────────────────────────
+
+
+class IBKRConnectionRecord(Base):
+    """IBKR broker connection state."""
+
+    __tablename__ = "ibkr_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_id = Column(String(30), nullable=False, index=True)
+    account_type = Column(String(30))
+    status = Column(String(20), nullable=False, index=True)
+    mode = Column(String(10))
+    gateway_host = Column(String(100))
+    gateway_port = Column(Integer)
+    net_liquidation = Column(Float)
+    buying_power = Column(Float)
+    position_count = Column(Integer)
+    base_currency = Column(String(5))
+    last_sync_at = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class IBKROrderLogRecord(Base):
+    """IBKR order audit log."""
+
+    __tablename__ = "ibkr_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    log_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_id = Column(String(30), nullable=False, index=True)
+    order_id = Column(String(50), nullable=False)
+    conid = Column(Integer)
+    symbol = Column(String(20), nullable=False, index=True)
+    sec_type = Column(String(10))
+    side = Column(String(20))
+    order_type = Column(String(20))
+    quantity = Column(Float)
+    filled_quantity = Column(Float)
+    price = Column(Float)
+    status = Column(String(20), index=True)
+    exchange = Column(String(20))
+    currency = Column(String(5))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-158: tastytrade Broker ────────────────────────────────────────
+
+
+class TastytradeConnectionRecord(Base):
+    """tastytrade broker connection state."""
+
+    __tablename__ = "tastytrade_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_number = Column(String(30), nullable=False, index=True)
+    account_type = Column(String(30))
+    status = Column(String(20), nullable=False, index=True)
+    mode = Column(String(10))
+    net_liquidating_value = Column(Float)
+    option_level = Column(Integer)
+    futures_enabled = Column(Boolean, default=False)
+    position_count = Column(Integer)
+    last_sync_at = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TastytradeOrderLogRecord(Base):
+    """tastytrade order audit log."""
+
+    __tablename__ = "tastytrade_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    log_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_number = Column(String(30), nullable=False, index=True)
+    order_id = Column(String(50), nullable=False)
+    symbol = Column(String(30), nullable=False, index=True)
+    instrument_type = Column(String(20))
+    order_type = Column(String(20))
+    order_class = Column(String(20))
+    size = Column(Float)
+    filled_size = Column(Float)
+    price = Column(Float)
+    status = Column(String(20), index=True)
+    legs_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-159: Webull Broker ────────────────────────────────────────────
+
+
+class WebullConnectionRecord(Base):
+    """Webull broker connection state."""
+
+    __tablename__ = "webull_connections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_id = Column(String(30), nullable=False, index=True)
+    account_type = Column(String(30))
+    status = Column(String(20), nullable=False, index=True)
+    mode = Column(String(10))
+    device_id = Column(String(50))
+    net_liquidation = Column(Float)
+    buying_power = Column(Float)
+    day_trades_remaining = Column(Integer)
+    position_count = Column(Integer)
+    last_sync_at = Column(DateTime(timezone=True))
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class WebullOrderLogRecord(Base):
+    """Webull order audit log."""
+
+    __tablename__ = "webull_order_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    log_id = Column(String(50), unique=True, index=True, nullable=False)
+    account_id = Column(String(30), nullable=False, index=True)
+    order_id = Column(String(50), nullable=False)
+    ticker_id = Column(Integer)
+    symbol = Column(String(20), nullable=False, index=True)
+    action = Column(String(20))
+    order_type = Column(String(20))
+    quantity = Column(Float)
+    filled_quantity = Column(Float)
+    price = Column(Float)
+    status = Column(String(20), index=True)
+    outside_regular_hours = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-160: Live Trade Attribution ─────────────────────────────────
+
+
+class TradeAttributionLinkRecord(Base):
+    """Trade-to-signal linkage record."""
+
+    __tablename__ = "trade_attribution_links"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    link_id = Column(String(50), unique=True, index=True, nullable=False)
+    trade_id = Column(String(50), nullable=False, index=True)
+    signal_id = Column(String(50), index=True)
+    signal_type = Column(String(30), index=True)
+    signal_conviction = Column(Integer)
+    signal_direction = Column(String(10))
+    symbol = Column(String(20), nullable=False, index=True)
+    entry_price = Column(Float)
+    exit_price = Column(Float)
+    entry_shares = Column(Float)
+    realized_pnl = Column(Float)
+    realized_pnl_pct = Column(Float)
+    hold_duration_seconds = Column(Integer)
+    exit_reason = Column(String(30))
+    regime_at_entry = Column(String(20))
+    regime_at_exit = Column(String(20))
+    broker = Column(String(20))
+    entry_time = Column(DateTime(timezone=True))
+    exit_time = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TradePnlDecompositionRecord(Base):
+    """P&L decomposition per trade."""
+
+    __tablename__ = "trade_pnl_decomposition"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    decomp_id = Column(String(50), unique=True, index=True, nullable=False)
+    trade_id = Column(String(50), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False)
+    total_pnl = Column(Float)
+    entry_quality = Column(Float)
+    market_movement = Column(Float)
+    exit_timing = Column(Float)
+    transaction_costs = Column(Float)
+    residual = Column(Float)
+    entry_score = Column(Float)
+    exit_score = Column(Float)
+    method = Column(String(20))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SignalPerformanceSnapshotRecord(Base):
+    """Rolling signal performance snapshot."""
+
+    __tablename__ = "signal_performance_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    signal_type = Column(String(30), nullable=False, index=True)
+    window = Column(String(20), nullable=False)
+    trade_count = Column(Integer)
+    win_rate = Column(Float)
+    total_pnl = Column(Float)
+    avg_pnl = Column(Float)
+    profit_factor = Column(Float)
+    sharpe_ratio = Column(Float)
+    avg_entry_score = Column(Float)
+    avg_exit_score = Column(Float)
+    regime = Column(String(20))
+    snapshot_time = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-161: Social Signal Backtester ───────────────────────────────
+
+
+class SocialSignalArchiveRecord(Base):
+    """Archived social signal for backtesting replay."""
+
+    __tablename__ = "social_signal_archive"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    composite_score = Column(Float)
+    direction = Column(String(10), index=True)
+    action = Column(String(20))
+    sentiment_avg = Column(Float)
+    platform_count = Column(Integer)
+    platform_consensus = Column(Float)
+    influencer_signal = Column(Boolean, default=False)
+    volume_anomaly = Column(Boolean, default=False)
+    mention_count = Column(Integer)
+    confidence = Column(Float)
+    signal_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SocialSignalOutcomeRecord(Base):
+    """Signal outcome validation record."""
+
+    __tablename__ = "social_signal_outcomes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    outcome_id = Column(String(50), unique=True, index=True, nullable=False)
+    signal_id = Column(String(50), nullable=False, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    signal_direction = Column(String(10))
+    signal_score = Column(Float)
+    price_at_signal = Column(Float)
+    return_1d = Column(Float)
+    return_5d = Column(Float)
+    return_10d = Column(Float)
+    return_30d = Column(Float)
+    direction_correct_1d = Column(Boolean)
+    direction_correct_5d = Column(Boolean)
+    direction_correct_30d = Column(Boolean)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SocialCorrelationCacheRecord(Base):
+    """Correlation analysis cache."""
+
+    __tablename__ = "social_correlation_cache"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cache_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    lag_days = Column(Integer)
+    correlation = Column(Float)
+    p_value = Column(Float)
+    sample_size = Column(Integer)
+    is_significant = Column(Boolean)
+    lookback_days = Column(Integer)
+    computed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

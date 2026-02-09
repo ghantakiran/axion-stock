@@ -22,6 +22,7 @@ class BrokerType(str, Enum):
     ROBINHOOD = "robinhood"
     TRADIER = "tradier"
     WEBULL = "webull"
+    TASTYTRADE = "tastytrade"
     ETRADE = "etrade"
 
 
@@ -225,6 +226,25 @@ BROKER_CAPABILITIES = {
         extended_hours=True, fractional_shares=True,
         trailing_stops=True,
         auth_method=AuthMethod.OAUTH2,
+        rate_limit_per_minute=60,
+    ),
+    BrokerType.TASTYTRADE: BrokerCapabilities(
+        broker=BrokerType.TASTYTRADE,
+        stocks=True, options=True, etfs=True, futures=True, crypto=True,
+        margin=True, short_selling=True,
+        extended_hours=True, fractional_shares=False,
+        trailing_stops=True,
+        auth_method=AuthMethod.USERNAME_PASSWORD,
+        rate_limit_per_minute=60,
+        supports_websocket=True,
+    ),
+    BrokerType.WEBULL: BrokerCapabilities(
+        broker=BrokerType.WEBULL,
+        stocks=True, options=True, etfs=True, crypto=True,
+        margin=True, short_selling=True,
+        extended_hours=True, fractional_shares=True,
+        trailing_stops=True,
+        auth_method=AuthMethod.API_KEY,
         rate_limit_per_minute=60,
     ),
 }
