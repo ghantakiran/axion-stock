@@ -1,0 +1,251 @@
+"""Strategy Selector — dynamic routing between EMA Cloud and Mean-Reversion.
+
+Routes signals to the appropriate strategy based on market regime and
+ADX trend strength. Tracks strategy performance for A/B comparison.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Optional
+
+from src.strategy_selector.adx_gate import ADXConfig, ADXGate, TrendStrength
+from src.strategy_selector.mean_reversion import (
+    MeanReversionConfig,
+    MeanReversionSignal,
+    MeanReversionStrategy,
+)
+
+
+@dataclass
+class SelectorConfig:
+    """Configuration for the strategy selector.
+
+    Attributes:
+        adx_config: ADX gate configuration.
+        mr_config: Mean-reversion strategy configuration.
+        force_strategy: Force a specific strategy (None = auto-select).
+        blend_mode: Whether to blend both strategies in transition zones.
+        blend_ema_weight: EMA Cloud weight when blending (0-1).
+        regime_override: Map regime → forced strategy.
+    """
+
+    adx_config: ADXConfig = field(default_factory=ADXConfig)
+    mr_config: MeanReversionConfig = field(default_factory=MeanReversionConfig)
+    force_strategy: Optional[str] = None
+    blend_mode: bool = False
+    blend_ema_weight: float = 0.6
+    regime_override: dict[str, str] = field(default_factory=lambda: {
+        "crisis": "mean_reversion",
+    })
+
+
+@dataclass
+class StrategyChoice:
+    """Result of strategy selection for a ticker.
+
+    Attributes:
+        ticker: Symbol analyzed.
+        selected_strategy: Which strategy was chosen.
+        trend_strength: ADX trend strength classification.
+        adx_value: Raw ADX value.
+        regime: Current market regime.
+        mean_reversion_signal: MR signal if MR was selected/computed.
+        confidence: Confidence in strategy selection 0-100.
+        reasoning: Why this strategy was selected.
+        timestamp: When the selection was made.
+    """
+
+    ticker: str = ""
+    selected_strategy: str = "ema_cloud"
+    trend_strength: TrendStrength = TrendStrength.NO_TREND
+    adx_value: float = 0.0
+    regime: str = "sideways"
+    mean_reversion_signal: Optional[MeanReversionSignal] = None
+    confidence: float = 50.0
+    reasoning: str = ""
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ticker": self.ticker,
+            "selected_strategy": self.selected_strategy,
+            "trend_strength": self.trend_strength.value,
+            "adx_value": round(self.adx_value, 1),
+            "regime": self.regime,
+            "mean_reversion_signal": (
+                self.mean_reversion_signal.to_dict()
+                if self.mean_reversion_signal else None
+            ),
+            "confidence": round(self.confidence, 1),
+            "reasoning": self.reasoning,
+            "timestamp": self.timestamp.isoformat(),
+        }
+
+
+class StrategySelector:
+    """Routes between EMA Cloud and Mean-Reversion based on conditions.
+
+    Decision logic:
+      1. Check for regime override (crisis → always mean-reversion)
+      2. Check for forced strategy configuration
+      3. Compute ADX to measure trend strength
+      4. Route to appropriate strategy
+
+    Tracks per-strategy hit rates for walk-forward A/B comparison.
+
+    Args:
+        config: SelectorConfig with routing rules.
+
+    Example:
+        selector = StrategySelector()
+        choice = selector.select(
+            ticker="AAPL",
+            highs=[...], lows=[...], closes=[...],
+            regime="bull"
+        )
+        print(f"Use {choice.selected_strategy} for AAPL (ADX={choice.adx_value:.1f})")
+    """
+
+    def __init__(self, config: SelectorConfig | None = None) -> None:
+        self.config = config or SelectorConfig()
+        self._adx_gate = ADXGate(self.config.adx_config)
+        self._mr_strategy = MeanReversionStrategy(self.config.mr_config)
+
+        # Performance tracking for A/B comparison
+        self._strategy_stats: dict[str, dict[str, float]] = {
+            "ema_cloud": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "mean_reversion": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+        }
+
+    def select(
+        self,
+        ticker: str,
+        highs: list[float],
+        lows: list[float],
+        closes: list[float],
+        regime: str = "sideways",
+    ) -> StrategyChoice:
+        """Select the best strategy for current market conditions.
+
+        Args:
+            ticker: Symbol to analyze.
+            highs: High prices for ADX.
+            lows: Low prices for ADX.
+            closes: Close prices for all indicators.
+            regime: Current market regime.
+
+        Returns:
+            StrategyChoice with selected strategy and reasoning.
+        """
+        # 1. Regime override
+        if regime in self.config.regime_override:
+            forced = self.config.regime_override[regime]
+            mr_signal = None
+            if forced == "mean_reversion":
+                mr_signal = self._mr_strategy.analyze(ticker, closes)
+            return StrategyChoice(
+                ticker=ticker,
+                selected_strategy=forced,
+                regime=regime,
+                mean_reversion_signal=mr_signal,
+                confidence=80.0,
+                reasoning=f"Regime override: {regime} → {forced}",
+            )
+
+        # 2. Forced strategy
+        if self.config.force_strategy:
+            return StrategyChoice(
+                ticker=ticker,
+                selected_strategy=self.config.force_strategy,
+                regime=regime,
+                confidence=100.0,
+                reasoning=f"Forced strategy: {self.config.force_strategy}",
+            )
+
+        # 3. ADX-based selection
+        strategy_name, strength, adx = self._adx_gate.analyze_and_select(
+            highs, lows, closes
+        )
+
+        mr_signal = None
+        if strategy_name == "mean_reversion":
+            mr_signal = self._mr_strategy.analyze(ticker, closes)
+
+        # Compute confidence based on ADX clarity
+        if strength == TrendStrength.STRONG_TREND:
+            confidence = 90.0
+            reasoning = f"Strong trend (ADX={adx:.1f}) → EMA Cloud"
+        elif strength == TrendStrength.MODERATE_TREND:
+            confidence = 70.0
+            reasoning = f"Moderate trend (ADX={adx:.1f}) → EMA Cloud"
+        elif strength == TrendStrength.WEAK_TREND:
+            confidence = 55.0
+            reasoning = f"Weak trend (ADX={adx:.1f}) → Mean-Reversion"
+        else:
+            confidence = 75.0
+            reasoning = f"No trend (ADX={adx:.1f}) → Mean-Reversion"
+
+        return StrategyChoice(
+            ticker=ticker,
+            selected_strategy=strategy_name,
+            trend_strength=strength,
+            adx_value=adx,
+            regime=regime,
+            mean_reversion_signal=mr_signal,
+            confidence=confidence,
+            reasoning=reasoning,
+        )
+
+    def select_batch(
+        self,
+        market_data: dict[str, dict[str, list[float]]],
+        regime: str = "sideways",
+    ) -> dict[str, StrategyChoice]:
+        """Select strategies for multiple tickers.
+
+        Args:
+            market_data: Dict of ticker → {"highs": [...], "lows": [...], "closes": [...]}.
+            regime: Current market regime.
+
+        Returns:
+            Dict of ticker → StrategyChoice.
+        """
+        results = {}
+        for ticker, data in market_data.items():
+            highs = data.get("highs", [])
+            lows = data.get("lows", [])
+            closes = data.get("closes", [])
+            if closes:
+                results[ticker] = self.select(ticker, highs, lows, closes, regime)
+        return results
+
+    def record_outcome(self, strategy: str, pnl: float) -> None:
+        """Record a trade outcome for A/B comparison tracking.
+
+        Args:
+            strategy: Which strategy produced this trade.
+            pnl: Realized P&L.
+        """
+        if strategy not in self._strategy_stats:
+            self._strategy_stats[strategy] = {"signals": 0, "wins": 0, "total_pnl": 0.0}
+        stats = self._strategy_stats[strategy]
+        stats["signals"] += 1
+        if pnl > 0:
+            stats["wins"] += 1
+        stats["total_pnl"] += pnl
+
+    def get_strategy_stats(self) -> dict[str, dict]:
+        """Get A/B comparison statistics."""
+        result = {}
+        for name, stats in self._strategy_stats.items():
+            total = stats["signals"]
+            result[name] = {
+                "signals": total,
+                "wins": stats["wins"],
+                "win_rate": stats["wins"] / max(total, 1) * 100,
+                "total_pnl": round(stats["total_pnl"], 2),
+                "avg_pnl": round(stats["total_pnl"] / max(total, 1), 2),
+            }
+        return result

@@ -4855,3 +4855,255 @@ class SocialCorrelationCacheRecord(Base):
     lookback_days = Column(Integer)
     computed_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-162: Signal Persistence & Audit Trail ─────────────────────
+
+
+class PersistentSignalRecord(Base):
+    """Persisted raw signal for audit trail and replay."""
+
+    __tablename__ = "persistent_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), unique=True, index=True, nullable=False)
+    source = Column(String(30), nullable=False, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    direction = Column(String(10), nullable=False, index=True)
+    strength = Column(Float)
+    confidence = Column(Float)
+    status = Column(String(20), index=True)
+    fusion_id = Column(String(50), index=True)
+    execution_id = Column(String(50), index=True)
+    source_metadata = Column(Text)
+    signal_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PersistentFusionRecord(Base):
+    """Persisted signal fusion decision."""
+
+    __tablename__ = "persistent_fusions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fusion_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    direction = Column(String(10))
+    composite_score = Column(Float)
+    confidence = Column(Float)
+    source_count = Column(Integer)
+    agreement_ratio = Column(Float)
+    input_signal_ids = Column(Text)
+    source_weights_used = Column(Text)
+    fusion_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PersistentRiskDecisionRecord(Base):
+    """Persisted risk gate decision for audit."""
+
+    __tablename__ = "persistent_risk_decisions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    decision_id = Column(String(50), unique=True, index=True, nullable=False)
+    signal_id = Column(String(50), nullable=False, index=True)
+    fusion_id = Column(String(50), index=True)
+    approved = Column(Boolean, nullable=False)
+    rejection_reason = Column(Text)
+    checks_run = Column(Text)
+    checks_passed = Column(Text)
+    checks_failed = Column(Text)
+    account_snapshot = Column(Text)
+    decision_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PersistentExecutionRecord(Base):
+    """Persisted trade execution linked to originating signal."""
+
+    __tablename__ = "persistent_executions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    execution_id = Column(String(50), unique=True, index=True, nullable=False)
+    signal_id = Column(String(50), nullable=False, index=True)
+    fusion_id = Column(String(50), index=True)
+    decision_id = Column(String(50), index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    direction = Column(String(10))
+    order_type = Column(String(20))
+    quantity = Column(Float)
+    fill_price = Column(Float)
+    requested_price = Column(Float)
+    slippage = Column(Float)
+    broker = Column(String(30))
+    status = Column(String(20), index=True)
+    config_snapshot = Column(Text)
+    fill_time = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-163: Unified Risk Context & Correlation Guard ────────────
+
+
+class CorrelationSnapshotRecord(Base):
+    """Point-in-time portfolio correlation snapshot."""
+
+    __tablename__ = "correlation_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    tickers = Column(Text)
+    matrix_json = Column(Text)
+    clusters = Column(Text)
+    max_correlation = Column(Float)
+    concentration_score = Column(Float)
+    position_count = Column(Integer)
+    computed_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UnifiedRiskAssessmentRecord(Base):
+    """Persisted unified risk assessment."""
+
+    __tablename__ = "unified_risk_assessments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    assessment_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    approved = Column(Boolean, nullable=False)
+    rejection_reason = Column(Text)
+    daily_pnl = Column(Float)
+    daily_pnl_pct = Column(Float)
+    regime = Column(String(20))
+    concentration_score = Column(Float)
+    portfolio_var_pct = Column(Float)
+    max_position_size = Column(Float)
+    circuit_breaker_status = Column(String(20))
+    kill_switch_active = Column(Boolean)
+    warnings = Column(Text)
+    checks_run = Column(Text)
+    assessed_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-165: Multi-Strategy Selector ─────────────────────────────
+
+
+class StrategySelectionRecord(Base):
+    """Record of strategy selection decisions."""
+
+    __tablename__ = "strategy_selections"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    selection_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    selected_strategy = Column(String(30), nullable=False, index=True)
+    trend_strength = Column(String(20))
+    adx_value = Column(Float)
+    regime = Column(String(20))
+    confidence = Column(Float)
+    reasoning = Column(Text)
+    selected_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class MeanReversionSignalRecord(Base):
+    """Record of mean-reversion signals generated."""
+
+    __tablename__ = "mean_reversion_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    direction = Column(String(10), index=True)
+    conviction = Column(Float)
+    rsi = Column(Float)
+    zscore = Column(Float)
+    bb_position = Column(Float)
+    entry_price = Column(Float)
+    target_price = Column(Float)
+    stop_price = Column(Float)
+    signal_type = Column(String(30), index=True)
+    signal_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-166: Signal Performance Feedback Loop ────────────────────
+
+
+class SignalSourcePerformanceRecord(Base):
+    """Rolling performance metrics per signal source."""
+
+    __tablename__ = "signal_source_performance"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    record_id = Column(String(50), unique=True, index=True, nullable=False)
+    source = Column(String(30), nullable=False, index=True)
+    trade_count = Column(Integer)
+    win_count = Column(Integer)
+    win_rate = Column(Float)
+    total_pnl = Column(Float)
+    avg_pnl = Column(Float)
+    sharpe_ratio = Column(Float)
+    profit_factor = Column(Float)
+    avg_conviction = Column(Float)
+    snapshot_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class WeightAdjustmentRecord(Base):
+    """Record of signal fusion weight adjustments."""
+
+    __tablename__ = "weight_adjustments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    adjustment_id = Column(String(50), unique=True, index=True, nullable=False)
+    old_weights = Column(Text)
+    new_weights = Column(Text)
+    adjustments_detail = Column(Text)
+    adjusted_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── PRD-167: Enhanced Backtesting Realism ────────────────────────
+
+
+class MonteCarloRunRecord(Base):
+    """Record of a Monte Carlo simulation run."""
+
+    __tablename__ = "monte_carlo_runs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String(50), unique=True, index=True, nullable=False)
+    strategy = Column(String(30), index=True)
+    num_simulations = Column(Integer)
+    initial_equity = Column(Float)
+    median_final_equity = Column(Float)
+    worst_case_drawdown = Column(Float)
+    probability_of_profit = Column(Float)
+    probability_of_ruin = Column(Float)
+    ci_return_low = Column(Float)
+    ci_return_high = Column(Float)
+    percentiles_json = Column(Text)
+    run_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BacktestImpactAnalysisRecord(Base):
+    """Record of market impact analysis in backtests."""
+
+    __tablename__ = "backtest_impact_analysis"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    analysis_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    order_size = Column(Float)
+    daily_volume = Column(Float)
+    participation_rate = Column(Float)
+    total_impact_bps = Column(Float)
+    temporary_impact_bps = Column(Float)
+    permanent_impact_bps = Column(Float)
+    effective_price = Column(Float)
+    slippage_dollars = Column(Float)
+    analyzed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

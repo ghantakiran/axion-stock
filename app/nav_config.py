@@ -90,6 +90,11 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/trade_pipeline.py", title="Trade Pipeline", icon=":material/conveyor_belt:"),
             st.Page("pages/risk_manager.py", title="Risk Manager", icon=":material/shield:"),
             st.Page("pages/trade_attribution.py", title="Trade Attribution", icon=":material/link:"),
+            st.Page("pages/signal_persistence.py", title="Signal Audit Trail", icon=":material/history_edu:"),
+            st.Page("pages/unified_risk.py", title="Unified Risk Center", icon=":material/verified_user:"),
+            st.Page("pages/strategy_selector.py", title="Strategy Selector", icon=":material/swap_calls:"),
+            st.Page("pages/signal_feedback.py", title="Signal Feedback", icon=":material/autorenew:"),
+            st.Page("pages/integration_pipeline.py", title="Pipeline Monitor", icon=":material/device_hub:"),
         ],
 
         # ── Portfolio & Risk ─────────────────────────────────
@@ -150,6 +155,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/backtest.py", title="Backtesting", icon=":material/replay:"),
             st.Page("pages/backtesting.py", title="Backtesting Engine", icon=":material/fast_rewind:"),
             st.Page("pages/bot_backtesting.py", title="Bot Backtesting", icon=":material/science:"),
+            st.Page("pages/enhanced_backtest.py", title="Enhanced Backtesting", icon=":material/query_stats:"),
             st.Page("pages/watchlist.py", title="Watchlist", icon=":material/bookmark:"),
             st.Page("pages/alerts.py", title="Alerts", icon=":material/notifications:"),
             st.Page("pages/notifications.py", title="Notification Settings", icon=":material/notification_add:"),
