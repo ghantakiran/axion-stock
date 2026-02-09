@@ -3431,3 +3431,56 @@ class EMASignalRecord(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     executed = Column(Boolean, server_default="false")
     execution_id = Column(String(50))
+
+
+# ── PRD-135: Autonomous Trade Executor ────────────────────────────────
+
+
+class TradeExecutionRecord(Base):
+    """A trade execution with full lifecycle data."""
+
+    __tablename__ = "bot_trade_executions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), index=True)
+    ticker = Column(String(10), nullable=False, index=True)
+    instrument_type = Column(String(20), nullable=False, server_default="stock")
+    original_ticker = Column(String(10))
+    leverage = Column(Float, server_default="1.0")
+    direction = Column(String(10), nullable=False)
+    trade_type = Column(String(10), nullable=False)
+    entry_price = Column(Float, nullable=False)
+    exit_price = Column(Float)
+    shares = Column(Integer, nullable=False)
+    stop_loss = Column(Float)
+    target_price = Column(Float)
+    conviction = Column(Integer)
+    status = Column(String(20), nullable=False, server_default="open")
+    exit_reason = Column(String(50))
+    pnl = Column(Float)
+    pnl_pct = Column(Float)
+    broker = Column(String(20))
+    order_id = Column(String(100))
+    entry_time = Column(DateTime(timezone=True), nullable=False)
+    exit_time = Column(DateTime(timezone=True))
+    extra_metadata = Column("metadata_json", Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DailyPnLRecord(Base):
+    """Daily P&L snapshot for the trading bot."""
+
+    __tablename__ = "bot_daily_pnl"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date, nullable=False, unique=True, index=True)
+    starting_equity = Column(Float, nullable=False)
+    ending_equity = Column(Float, nullable=False)
+    realized_pnl = Column(Float, nullable=False)
+    unrealized_pnl = Column(Float, nullable=False)
+    total_trades = Column(Integer, nullable=False)
+    winning_trades = Column(Integer, nullable=False)
+    losing_trades = Column(Integer, nullable=False)
+    max_drawdown = Column(Float)
+    kill_switch_triggered = Column(Boolean, server_default="false")
+    extra_metadata = Column("metadata_json", Text)
