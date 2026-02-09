@@ -3484,3 +3484,66 @@ class DailyPnLRecord(Base):
     max_drawdown = Column(Float)
     kill_switch_triggered = Column(Boolean, server_default="false")
     extra_metadata = Column("metadata_json", Text)
+
+
+# ── PRD-136: Options & Leveraged ETF Scalping Engine ──────────────────
+
+
+class OptionsScalpRecord(Base):
+    """An options scalp trade record."""
+
+    __tablename__ = "options_scalps"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), index=True)
+    ticker = Column(String(10), nullable=False, index=True)
+    option_symbol = Column(String(30), nullable=False)
+    option_type = Column(String(4), nullable=False)
+    strike = Column(Float, nullable=False)
+    expiry = Column(Date, nullable=False)
+    dte = Column(Integer, nullable=False)
+    direction = Column(String(20), nullable=False)
+    contracts = Column(Integer, nullable=False)
+    entry_premium = Column(Float, nullable=False)
+    exit_premium = Column(Float)
+    entry_delta = Column(Float)
+    entry_theta = Column(Float)
+    entry_iv = Column(Float)
+    status = Column(String(20), server_default="open")
+    exit_reason = Column(String(50))
+    pnl = Column(Float)
+    pnl_pct = Column(Float)
+    broker = Column(String(20))
+    order_id = Column(String(100))
+    entry_time = Column(DateTime(timezone=True), nullable=False)
+    exit_time = Column(DateTime(timezone=True))
+    extra_metadata = Column("metadata_json", Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ETFScalpRecord(Base):
+    """A leveraged ETF scalp trade record."""
+
+    __tablename__ = "etf_scalps"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), index=True)
+    ticker = Column(String(10), nullable=False, index=True)
+    original_ticker = Column(String(10))
+    leverage = Column(Float, nullable=False)
+    direction = Column(String(10), nullable=False)
+    shares = Column(Integer, nullable=False)
+    entry_price = Column(Float, nullable=False)
+    exit_price = Column(Float)
+    stop_loss = Column(Float)
+    target_price = Column(Float)
+    status = Column(String(20), server_default="open")
+    exit_reason = Column(String(50))
+    pnl = Column(Float)
+    pnl_pct = Column(Float)
+    broker = Column(String(20))
+    order_id = Column(String(100))
+    entry_time = Column(DateTime(timezone=True), nullable=False)
+    exit_time = Column(DateTime(timezone=True))
+    extra_metadata = Column("metadata_json", Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
