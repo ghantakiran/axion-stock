@@ -496,11 +496,4 @@ Apply these in order for maximum fidelity:
 
 ### Bot Backtest vs. Standard Backtest
 
-| Feature | BacktestEngine | BotBacktestRunner |
-|---|---|---|
-| Data input | Price DataFrame | OHLCV dict per ticker |
-| Strategy | `Strategy` protocol (on_bar) | `EMACloudStrategy` adapter |
-| Signals | Generic Signal objects | `TradeSignal` with SignalType |
-| Attribution | By symbol only | By signal type, direction, exit |
-| Output | `BacktestResult` | `EnrichedBacktestResult` with attribution |
-| Replay | Not supported | `SignalReplay` for A/B risk configs |
+`BacktestEngine` takes a Price DataFrame with generic `Strategy` protocol and outputs `BacktestResult` with symbol-level attribution. `BotBacktestRunner` takes OHLCV dicts, uses `EMACloudStrategy` adapter with `TradeSignal`/`SignalType`, and outputs `EnrichedBacktestResult` with per-signal-type/direction/exit attribution plus `SignalReplay` for A/B risk config testing.

@@ -1,7 +1,7 @@
 """Navigation configuration for Axion platform.
 
 Defines all page groupings, display names, and icons for st.navigation().
-All 102 pages (101 existing + 1 home) organized into 10 collapsible sections.
+All 149 pages organized into 10 collapsible sections.
 """
 
 import streamlit as st
@@ -103,6 +103,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/bot_analytics.py", title="Bot Analytics", icon=":material/insights:"),
             st.Page("pages/adaptive_feedback.py", title="Adaptive Feedback", icon=":material/autorenew:"),
             st.Page("pages/strategies.py", title="Strategies", icon=":material/category:"),
+            st.Page("pages/bot_dashboard.py", title="Bot Dashboard", icon=":material/dashboard_customize:"),
         ],
 
         # ── Portfolio & Risk ─────────────────────────────────
@@ -118,6 +119,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/scenarios.py", title="Scenarios", icon=":material/ssid_chart:"),
             st.Page("pages/attribution.py", title="Attribution", icon=":material/pie_chart:"),
             st.Page("pages/performance_report.py", title="Performance Report", icon=":material/assessment:"),
+            st.Page("pages/factors.py", title="Factor Engine", icon=":material/functions:"),
             st.Page("pages/factor_builder.py", title="Factor Builder", icon=":material/build:"),
             st.Page("pages/pairs.py", title="Pairs Trading", icon=":material/compare_arrows:"),
             st.Page("pages/crossasset.py", title="Cross-Asset Signals", icon=":material/swap_horiz:"),
@@ -128,6 +130,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/options.py", title="Options Analytics", icon=":material/candlestick_chart:"),
             st.Page("pages/options_chain.py", title="Options Chain", icon=":material/table_chart:"),
             st.Page("pages/crypto_options.py", title="Crypto Options", icon=":material/currency_bitcoin:"),
+            st.Page("pages/blockchain.py", title="Blockchain Settlement", icon=":material/link:"),
         ],
 
         # ── ML & AI ──────────────────────────────────────────
@@ -168,6 +171,7 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/alerts.py", title="Alerts", icon=":material/notifications:"),
             st.Page("pages/notifications.py", title="Notification Settings", icon=":material/notification_add:"),
             st.Page("pages/trade_journal.py", title="Trade Journal", icon=":material/menu_book:"),
+            st.Page("pages/journal.py", title="Journal Analytics", icon=":material/analytics:"),
             st.Page("pages/reports.py", title="Reports", icon=":material/summarize:"),
             st.Page("pages/tax.py", title="Tax Optimization", icon=":material/request_quote:"),
             st.Page("pages/marketplace.py", title="Strategy Marketplace", icon=":material/storefront:"),
