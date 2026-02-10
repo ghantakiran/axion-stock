@@ -12,12 +12,48 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from src.api.websocket import WebSocketManager
 
 logger = logging.getLogger(__name__)
 
 # Shared WebSocket manager instance
 _ws_manager = WebSocketManager()
+
+# ── FastAPI Router ────────────────────────────────────────────────────
+router = APIRouter(tags=["bot-websocket"])
+
+
+@router.websocket("/ws/bot")
+async def bot_websocket_endpoint(websocket: WebSocket) -> None:
+    """WebSocket endpoint for real-time bot event streaming.
+
+    Clients connect and are auto-subscribed to all bot channels
+    (signals, orders, alerts, lifecycle, metrics). They can send
+    JSON messages to subscribe/unsubscribe/heartbeat.
+    """
+    await websocket.accept()
+    user_id = websocket.query_params.get("user_id", "anonymous")
+    conn_id, success, msg = handle_bot_connect(user_id)
+
+    if not success:
+        await websocket.send_json({"error": msg})
+        await websocket.close()
+        return
+
+    await websocket.send_json({"event": "connected", "connection_id": conn_id})
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            responses = handle_bot_message(conn_id, raw)
+            for resp in responses:
+                await websocket.send_json(resp)
+    except WebSocketDisconnect:
+        handle_bot_disconnect(conn_id)
+    except Exception:
+        handle_bot_disconnect(conn_id)
 
 
 def get_ws_manager() -> WebSocketManager:

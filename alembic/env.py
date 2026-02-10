@@ -1,5 +1,6 @@
 """Alembic environment configuration."""
 
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -18,6 +19,11 @@ from src.db.models import (  # noqa: F401 - ensure models are registered
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Override database URL from environment variable if set
+env_url = os.environ.get("AXION_DATABASE_SYNC_URL")
+if env_url:
+    config.set_main_option("sqlalchemy.url", env_url)
 
 target_metadata = Base.metadata
 

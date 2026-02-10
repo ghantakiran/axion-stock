@@ -7,8 +7,9 @@ import logging
 import secrets
 from datetime import date
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.dependencies import AuthContext, check_rate_limit, require_scope
 from src.api.models import (
     BacktestRequest,
     BacktestResponse,
@@ -22,7 +23,7 @@ _backtests: dict[str, BacktestResponse] = {}
 
 
 @router.post("", response_model=BacktestResponse, status_code=201)
-async def run_backtest(request: BacktestRequest) -> BacktestResponse:
+async def run_backtest(request: BacktestRequest, auth: AuthContext = Depends(require_scope("write"))) -> BacktestResponse:
     """Run a backtest."""
     backtest_id = secrets.token_hex(8)
 
@@ -39,7 +40,7 @@ async def run_backtest(request: BacktestRequest) -> BacktestResponse:
 
 
 @router.get("/{backtest_id}", response_model=BacktestResponse)
-async def get_backtest(backtest_id: str) -> BacktestResponse:
+async def get_backtest(backtest_id: str, auth: AuthContext = Depends(check_rate_limit)) -> BacktestResponse:
     """Get backtest results."""
     result = _backtests.get(backtest_id)
     if not result:
@@ -48,7 +49,7 @@ async def get_backtest(backtest_id: str) -> BacktestResponse:
 
 
 @router.get("/{backtest_id}/tearsheet")
-async def get_tearsheet(backtest_id: str) -> dict:
+async def get_tearsheet(backtest_id: str, auth: AuthContext = Depends(check_rate_limit)) -> dict:
     """Get backtest tear sheet."""
     result = _backtests.get(backtest_id)
     if not result:

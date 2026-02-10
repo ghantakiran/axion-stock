@@ -10,9 +10,10 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from src.api.dependencies import AuthContext, check_rate_limit, require_scope
 from src.bot_dashboard.state import BotController, DashboardConfig
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class MessageResponse(BaseModel):
 
 
 @router.post("/start", response_model=MessageResponse)
-async def start_bot(request: StartRequest) -> MessageResponse:
+async def start_bot(request: StartRequest, auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Start the trading bot in paper or live mode."""
     ctrl = get_controller()
     if ctrl.state.is_active:
@@ -100,7 +101,7 @@ async def start_bot(request: StartRequest) -> MessageResponse:
 
 
 @router.post("/stop", response_model=MessageResponse)
-async def stop_bot() -> MessageResponse:
+async def stop_bot(auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Gracefully stop the bot (pause + clear state)."""
     ctrl = get_controller()
     ctrl.pause()
@@ -108,7 +109,7 @@ async def stop_bot() -> MessageResponse:
 
 
 @router.post("/pause", response_model=MessageResponse)
-async def pause_bot() -> MessageResponse:
+async def pause_bot(auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Pause signal processing (keep monitoring positions)."""
     ctrl = get_controller()
     if ctrl.state.status == "paused":
@@ -118,7 +119,7 @@ async def pause_bot() -> MessageResponse:
 
 
 @router.post("/resume", response_model=MessageResponse)
-async def resume_bot() -> MessageResponse:
+async def resume_bot(auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Resume signal processing."""
     ctrl = get_controller()
     if ctrl.state.status != "paused":
@@ -128,7 +129,7 @@ async def resume_bot() -> MessageResponse:
 
 
 @router.post("/kill", response_model=MessageResponse)
-async def kill_bot(request: KillRequest) -> MessageResponse:
+async def kill_bot(request: KillRequest, auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Emergency kill switch — halt all trading immediately."""
     ctrl = get_controller()
     ctrl.kill(reason=request.reason)
@@ -136,7 +137,7 @@ async def kill_bot(request: KillRequest) -> MessageResponse:
 
 
 @router.post("/kill/reset", response_model=MessageResponse)
-async def reset_kill_switch() -> MessageResponse:
+async def reset_kill_switch(auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Reset the kill switch (bot goes to paused state)."""
     ctrl = get_controller()
     if not ctrl.state.kill_switch_active:
@@ -146,7 +147,7 @@ async def reset_kill_switch() -> MessageResponse:
 
 
 @router.get("/status", response_model=BotStatusResponse)
-async def get_status() -> BotStatusResponse:
+async def get_status(auth: AuthContext = Depends(check_rate_limit)) -> BotStatusResponse:
     """Get full bot state snapshot."""
     ctrl = get_controller()
     state = ctrl.state
@@ -154,7 +155,7 @@ async def get_status() -> BotStatusResponse:
 
 
 @router.get("/positions")
-async def get_positions() -> list[dict]:
+async def get_positions(auth: AuthContext = Depends(check_rate_limit)) -> list[dict]:
     """Get open positions with P&L."""
     # Positions come from the orchestrator if wired, otherwise empty
     return []
@@ -164,6 +165,7 @@ async def get_positions() -> list[dict]:
 async def get_history(
     limit: int = 50,
     offset: int = 0,
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> list[dict]:
     """Get execution history (paginated)."""
     ctrl = get_controller()
@@ -173,7 +175,7 @@ async def get_history(
 
 
 @router.put("/config", response_model=MessageResponse)
-async def update_config(update: ConfigUpdate) -> MessageResponse:
+async def update_config(update: ConfigUpdate, auth: AuthContext = Depends(require_scope("write"))) -> MessageResponse:
     """Hot-update bot configuration parameters."""
     ctrl = get_controller()
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
@@ -184,7 +186,7 @@ async def update_config(update: ConfigUpdate) -> MessageResponse:
 
 
 @router.get("/config")
-async def get_config() -> dict:
+async def get_config(auth: AuthContext = Depends(check_rate_limit)) -> dict:
     """Get current bot configuration."""
     ctrl = get_controller()
     cfg = ctrl.config

@@ -7,8 +7,9 @@ import logging
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.dependencies import AuthContext, check_rate_limit
 from src.api.models import (
     FactorScoreResponse,
     ScreenRequest,
@@ -24,6 +25,7 @@ router = APIRouter(prefix="/factors", tags=["Factors"])
 async def get_factor_scores(
     symbol: str,
     as_of: Optional[date] = None,
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> FactorScoreResponse:
     """Get all factor scores for a symbol."""
     symbol = symbol.upper()
@@ -41,6 +43,7 @@ async def get_factor_history(
     start: Optional[date] = None,
     end: Optional[date] = None,
     limit: int = Query(default=252, ge=1, le=1260),
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> dict:
     """Get historical factor scores for a symbol."""
     symbol = symbol.upper()
@@ -60,6 +63,7 @@ async def screen_factors(
     universe: str = Query(default="sp500"),
     sector: Optional[str] = None,
     min_market_cap: Optional[float] = None,
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> ScreenResponse:
     """Screen stocks by factor scores."""
     return ScreenResponse(
@@ -71,7 +75,7 @@ async def screen_factors(
 
 
 @router.get("/regime", response_model=RegimeResponse)
-async def get_regime() -> RegimeResponse:
+async def get_regime(auth: AuthContext = Depends(check_rate_limit)) -> RegimeResponse:
     """Get current market regime."""
     return RegimeResponse(
         regime="unknown",

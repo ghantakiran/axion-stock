@@ -48,9 +48,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
 
-    # User notification preferences
+    # Alert network notification preferences
     op.create_table(
-        "notification_preferences",
+        "alert_network_preferences",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
         sa.Column("user_id", sa.String(50), unique=True, nullable=False),
         sa.Column("quiet_hours_enabled", sa.Boolean, server_default="false"),
@@ -65,6 +65,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("notification_preferences")
+    op.drop_table("alert_network_preferences")
     op.drop_table("notification_delivery_log")
     op.drop_table("alert_rules")

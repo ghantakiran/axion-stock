@@ -7,8 +7,9 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from src.api.dependencies import AuthContext, check_rate_limit, require_scope
 from src.api.models import (
     ChatRequest,
     ChatResponse,
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/ai", tags=["AI & Predictions"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+async def chat(request: ChatRequest, auth: AuthContext = Depends(require_scope("write"))) -> ChatResponse:
     """Chat with AI assistant."""
     return ChatResponse(
         response="AI chat is not available in this demo.",
@@ -31,7 +32,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
 
 @router.get("/predictions/{symbol}", response_model=PredictionResponse)
-async def get_prediction(symbol: str) -> PredictionResponse:
+async def get_prediction(symbol: str, auth: AuthContext = Depends(check_rate_limit)) -> PredictionResponse:
     """Get ML prediction for a symbol."""
     return PredictionResponse(
         symbol=symbol.upper(),
@@ -41,7 +42,7 @@ async def get_prediction(symbol: str) -> PredictionResponse:
 
 
 @router.get("/sentiment/{symbol}", response_model=SentimentResponse)
-async def get_sentiment(symbol: str) -> SentimentResponse:
+async def get_sentiment(symbol: str, auth: AuthContext = Depends(check_rate_limit)) -> SentimentResponse:
     """Get sentiment analysis for a symbol."""
     return SentimentResponse(
         symbol=symbol.upper(),
@@ -53,6 +54,7 @@ async def get_sentiment(symbol: str) -> SentimentResponse:
 async def get_picks(
     category: str,
     limit: int = Query(default=10, ge=1, le=50),
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> dict:
     """Get AI stock picks by category."""
     valid = ["momentum", "value", "growth", "income", "overall"]

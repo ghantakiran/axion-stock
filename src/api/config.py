@@ -62,8 +62,12 @@ class APIConfig:
     description: str = "Algorithmic Trading Platform API"
     prefix: str = "/api/v1"
     docs_url: str = "/docs"
-    cors_origins: list[str] = field(default_factory=lambda: ["*"])
-    cors_methods: list[str] = field(default_factory=lambda: ["*"])
+    cors_origins: list[str] = field(default_factory=lambda: [
+        "http://localhost:8501",   # Streamlit dashboard
+        "http://localhost:8000",   # API self-reference
+        "http://localhost:3000",   # Grafana
+    ])
+    cors_methods: list[str] = field(default_factory=lambda: ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     cors_headers: list[str] = field(default_factory=lambda: ["*"])
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 30

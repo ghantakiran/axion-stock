@@ -8,8 +8,9 @@ import secrets
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.dependencies import AuthContext, check_rate_limit, require_scope
 from src.api.models import (
     CreateOrderRequest,
     OrderResponse,
@@ -25,7 +26,7 @@ _orders: dict[str, OrderResponse] = {}
 
 
 @router.post("", response_model=OrderResponse, status_code=201)
-async def create_order(request: CreateOrderRequest) -> OrderResponse:
+async def create_order(request: CreateOrderRequest, auth: AuthContext = Depends(require_scope("write"))) -> OrderResponse:
     """Submit a new order."""
     order_id = secrets.token_hex(8)
 
@@ -48,7 +49,7 @@ async def create_order(request: CreateOrderRequest) -> OrderResponse:
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str) -> OrderResponse:
+async def get_order(order_id: str, auth: AuthContext = Depends(check_rate_limit)) -> OrderResponse:
     """Get order by ID."""
     order = _orders.get(order_id)
     if not order:
@@ -57,7 +58,7 @@ async def get_order(order_id: str) -> OrderResponse:
 
 
 @router.delete("/{order_id}", response_model=OrderResponse)
-async def cancel_order(order_id: str) -> OrderResponse:
+async def cancel_order(order_id: str, auth: AuthContext = Depends(require_scope("write"))) -> OrderResponse:
     """Cancel an order."""
     order = _orders.get(order_id)
     if not order:
@@ -78,6 +79,7 @@ async def list_orders(
     status: Optional[str] = Query(default=None),
     symbol: Optional[str] = None,
     limit: int = Query(default=20, ge=1, le=100),
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> list[OrderResponse]:
     """List orders with optional filters."""
     orders = list(_orders.values())
@@ -94,6 +96,7 @@ async def list_orders(
 async def get_trade_history(
     symbol: Optional[str] = None,
     limit: int = Query(default=20, ge=1, le=100),
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> list[TradeResponse]:
     """Get trade history."""
     return []

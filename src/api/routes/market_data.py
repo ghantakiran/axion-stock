@@ -7,8 +7,9 @@ import logging
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.dependencies import AuthContext, check_rate_limit
 from src.api.models import (
     QuoteResponse,
     OHLCVResponse,
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/market", tags=["Market Data"])
 
 
 @router.get("/quotes/{symbol}", response_model=QuoteResponse)
-async def get_quote(symbol: str) -> QuoteResponse:
+async def get_quote(symbol: str, auth: AuthContext = Depends(check_rate_limit)) -> QuoteResponse:
     """Get current quote for a symbol."""
     symbol = symbol.upper()
 
@@ -40,6 +41,7 @@ async def get_ohlcv(
     start: Optional[date] = None,
     end: Optional[date] = None,
     limit: int = Query(default=100, ge=1, le=1000),
+    auth: AuthContext = Depends(check_rate_limit),
 ) -> OHLCVResponse:
     """Get historical OHLCV bars."""
     symbol = symbol.upper()
@@ -53,7 +55,7 @@ async def get_ohlcv(
 
 
 @router.get("/fundamentals/{symbol}", response_model=FundamentalsResponse)
-async def get_fundamentals(symbol: str) -> FundamentalsResponse:
+async def get_fundamentals(symbol: str, auth: AuthContext = Depends(check_rate_limit)) -> FundamentalsResponse:
     """Get fundamental data for a symbol."""
     symbol = symbol.upper()
 
@@ -63,7 +65,7 @@ async def get_fundamentals(symbol: str) -> FundamentalsResponse:
 
 
 @router.get("/universe/{index}")
-async def get_universe(index: str) -> dict:
+async def get_universe(index: str, auth: AuthContext = Depends(check_rate_limit)) -> dict:
     """Get constituent symbols for a market index/universe."""
     index = index.lower()
     valid_indices = ["sp500", "nasdaq100", "dowjones", "russell2000"]

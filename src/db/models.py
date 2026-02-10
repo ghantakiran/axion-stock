@@ -3856,10 +3856,10 @@ class NotificationDeliveryLogRecord(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class NotificationPreferenceRecord(Base):
-    """User notification preferences."""
+class AlertNetworkPreferenceRecord(Base):
+    """Alert network notification preferences (PRD-142)."""
 
-    __tablename__ = "notification_preferences"
+    __tablename__ = "alert_network_preferences"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(50), unique=True, nullable=False)

@@ -6,8 +6,9 @@ Endpoints for positions, optimization, rebalancing, and risk.
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from src.api.dependencies import AuthContext, check_rate_limit, require_scope
 from src.api.models import (
     PortfolioResponse,
     OptimizeRequest,
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
 
 
 @router.get("", response_model=PortfolioResponse)
-async def get_portfolio() -> PortfolioResponse:
+async def get_portfolio(auth: AuthContext = Depends(check_rate_limit)) -> PortfolioResponse:
     """Get current portfolio positions."""
     return PortfolioResponse(
         total_value=0.0,
@@ -32,7 +33,7 @@ async def get_portfolio() -> PortfolioResponse:
 
 
 @router.post("/optimize", response_model=OptimizeResponse)
-async def optimize_portfolio(request: OptimizeRequest) -> OptimizeResponse:
+async def optimize_portfolio(request: OptimizeRequest, auth: AuthContext = Depends(require_scope("write"))) -> OptimizeResponse:
     """Run portfolio optimization."""
     return OptimizeResponse(
         method=request.method,
@@ -41,7 +42,7 @@ async def optimize_portfolio(request: OptimizeRequest) -> OptimizeResponse:
 
 
 @router.post("/rebalance")
-async def generate_rebalance() -> dict:
+async def generate_rebalance(auth: AuthContext = Depends(require_scope("write"))) -> dict:
     """Generate rebalance trades for current portfolio."""
     return {
         "trades": [],
@@ -51,13 +52,13 @@ async def generate_rebalance() -> dict:
 
 
 @router.get("/risk", response_model=RiskResponse)
-async def get_risk_metrics() -> RiskResponse:
+async def get_risk_metrics(auth: AuthContext = Depends(check_rate_limit)) -> RiskResponse:
     """Get portfolio risk metrics."""
     return RiskResponse()
 
 
 @router.get("/performance")
-async def get_performance(period: str = "1y") -> dict:
+async def get_performance(period: str = "1y", auth: AuthContext = Depends(check_rate_limit)) -> dict:
     """Get portfolio performance history."""
     return {
         "period": period,
