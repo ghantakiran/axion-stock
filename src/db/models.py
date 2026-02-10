@@ -5173,3 +5173,173 @@ class BotLifecycleEventRecord(Base):
     pipeline_run_id = Column(String(50))
     event_time = Column(DateTime(timezone=True), index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-172: Bot API & WebSocket Control
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class BotAPISessionRecord(Base):
+    """Tracks Bot API sessions and WebSocket connections."""
+
+    __tablename__ = "bot_api_sessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(50), unique=True, index=True, nullable=False)
+    user_id = Column(String(100), index=True)
+    session_type = Column(String(20))  # 'rest' or 'websocket'
+    ip_address = Column(String(45))
+    is_active = Column(Boolean, default=True)
+    started_at = Column(DateTime(timezone=True), index=True)
+    ended_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-173: Strategy Pipeline Integration
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class StrategyDecisionRecord(Base):
+    """Records strategy routing decisions for audit."""
+
+    __tablename__ = "strategy_decisions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    decision_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), index=True, nullable=False)
+    selected_strategy = Column(String(30), nullable=False)
+    regime = Column(String(20))
+    adx_value = Column(Float)
+    confidence = Column(Float)
+    reasoning = Column(Text)
+    decided_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-174: Bot Alerting & Notifications
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class BotAlertHistoryRecord(Base):
+    """Stores bot pipeline alert history."""
+
+    __tablename__ = "bot_alert_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_id = Column(String(50), unique=True, index=True, nullable=False)
+    title = Column(String(200), nullable=False)
+    message = Column(Text)
+    severity = Column(String(20), index=True)
+    category = Column(String(20))
+    source = Column(String(30))
+    dedup_key = Column(String(100), index=True)
+    ticker = Column(String(20), index=True)
+    fired_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-175: Live Bot Analytics
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class BotPerformanceSnapshotRecord(Base):
+    """Point-in-time bot performance snapshots."""
+
+    __tablename__ = "bot_performance_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    total_trades = Column(Integer)
+    winning_trades = Column(Integer)
+    losing_trades = Column(Integer)
+    win_rate = Column(Float)
+    total_pnl = Column(Float)
+    sharpe = Column(Float)
+    sortino = Column(Float)
+    calmar = Column(Float)
+    max_drawdown = Column(Float)
+    by_signal_json = Column(Text)
+    by_strategy_json = Column(Text)
+    snapshot_time = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BotTradeMetricRecord(Base):
+    """Individual trade metrics for analytics."""
+
+    __tablename__ = "bot_trade_metrics"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    trade_id = Column(String(50), unique=True, index=True, nullable=False)
+    ticker = Column(String(20), index=True, nullable=False)
+    direction = Column(String(10))
+    pnl = Column(Float)
+    signal_type = Column(String(30), index=True)
+    strategy = Column(String(30), index=True)
+    entry_price = Column(Float)
+    exit_price = Column(Float)
+    shares = Column(Float)
+    exit_reason = Column(String(50))
+    closed_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-176: Adaptive Feedback Loop
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class SignalWeightHistoryRecord(Base):
+    """Tracks signal fusion weight changes over time."""
+
+    __tablename__ = "signal_weight_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, index=True, nullable=False)
+    weights_json = Column(Text, nullable=False)
+    trigger = Column(String(20))  # 'auto', 'manual', 'initial'
+    trade_count = Column(Integer)
+    recorded_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRD-177: Multi-Strategy Bot
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class StrategyRegistryRecord(Base):
+    """Registered bot strategies."""
+
+    __tablename__ = "strategy_registry"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    strategy_name = Column(String(50), unique=True, index=True, nullable=False)
+    description = Column(Text)
+    category = Column(String(30))
+    is_enabled = Column(Boolean, default=True)
+    config_json = Column(Text)
+    registered_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StrategySignalRecord(Base):
+    """Signals generated by registered strategies."""
+
+    __tablename__ = "strategy_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(50), unique=True, index=True, nullable=False)
+    strategy_name = Column(String(50), index=True, nullable=False)
+    ticker = Column(String(20), index=True, nullable=False)
+    direction = Column(String(10))
+    conviction = Column(Float)
+    entry_price = Column(Float)
+    stop_loss = Column(Float)
+    target_price = Column(Float)
+    generated_at = Column(DateTime(timezone=True), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -82,6 +82,20 @@ class PipelineConfig:
     # PRD-171: Auto-kill on daily loss
     auto_kill_on_daily_loss: bool = True
 
+    # PRD-173: Strategy pipeline integration
+    enable_strategy_selection: bool = True
+    enable_signal_fusion: bool = True
+    enable_regime_adaptation: bool = True
+
+    # PRD-174: Bot alerting
+    enable_alerting: bool = True
+
+    # PRD-175: Live analytics
+    enable_analytics: bool = True
+
+    # PRD-176: Adaptive feedback
+    feedback_adjust_every_n_trades: int = 50
+
 
 @dataclass
 class PipelineResult:
@@ -166,6 +180,16 @@ class BotOrchestrator:
         journal: Any = None,
         instrument_router: Any = None,
         etf_sizer: Any = None,
+        # PRD-173: Strategy bridges
+        regime_bridge: Any = None,
+        fusion_bridge: Any = None,
+        strategy_bridge: Any = None,
+        # PRD-174: Alerting bridge
+        alert_bridge: Any = None,
+        # PRD-175: Analytics tracker
+        analytics_tracker: Any = None,
+        # PRD-176: Feedback bridge
+        feedback_bridge: Any = None,
     ) -> None:
         self.config = config or PipelineConfig()
         self._lock = threading.RLock()
@@ -217,6 +241,34 @@ class BotOrchestrator:
         self._perf_tracker = performance_tracker
         if self._perf_tracker is None and self.config.enable_feedback_loop:
             self._perf_tracker = self._lazy_load_tracker()
+
+        # PRD-173: Strategy pipeline integration
+        self._regime_bridge = regime_bridge
+        if self._regime_bridge is None and self.config.enable_regime_adaptation:
+            self._regime_bridge = self._lazy_load_regime_bridge()
+
+        self._fusion_bridge = fusion_bridge
+        if self._fusion_bridge is None and self.config.enable_signal_fusion:
+            self._fusion_bridge = self._lazy_load_fusion_bridge()
+
+        self._strategy_bridge = strategy_bridge
+        if self._strategy_bridge is None and self.config.enable_strategy_selection:
+            self._strategy_bridge = self._lazy_load_strategy_bridge()
+
+        # PRD-174: Bot alerting
+        self._alert_bridge = alert_bridge
+        if self._alert_bridge is None and self.config.enable_alerting:
+            self._alert_bridge = self._lazy_load_alert_bridge()
+
+        # PRD-175: Analytics tracker
+        self._analytics = analytics_tracker
+        if self._analytics is None and self.config.enable_analytics:
+            self._analytics = self._lazy_load_analytics()
+
+        # PRD-176: Feedback bridge
+        self._feedback_bridge = feedback_bridge
+        if self._feedback_bridge is None and self.config.enable_feedback_loop:
+            self._feedback_bridge = self._lazy_load_feedback_bridge()
 
     def process_signal(
         self,
@@ -272,6 +324,17 @@ class BotOrchestrator:
 
             # Update state timestamps
             self._state.record_signal_time()
+
+            # ── Stage 0.5: Regime adaptation (PRD-173) ────────────
+            if self._regime_bridge:
+                try:
+                    profile = self._regime_bridge.get_strategy_profile(regime)
+                    self.config.executor_config = self._regime_bridge.adapt_config(
+                        self.config.executor_config, profile,
+                    )
+                    self._sizer = PositionSizer(self.config.executor_config)
+                except Exception as e:
+                    logger.warning("Regime adaptation failed (non-fatal): %s", e)
 
             # ── Stage 2: Record signal (PRD-162) ────────────────
             if self._recorder:
@@ -465,6 +528,18 @@ class BotOrchestrator:
                 except Exception as e:
                     logger.warning("Journal entry recording failed: %s", e)
 
+            # ── Stage 8.75: Alert on trade execution (PRD-174) ───
+            if self._alert_bridge:
+                try:
+                    self._alert_bridge.on_trade_executed(
+                        ticker=order_ticker,
+                        direction=signal.direction,
+                        shares=float(validation.adjusted_qty),
+                        price=validation.fill_price,
+                    )
+                except Exception as e:
+                    logger.warning("Alert on trade executed failed: %s", e)
+
             # Update state timestamps
             self._state.record_trade_time()
 
@@ -526,9 +601,10 @@ class BotOrchestrator:
                             logger.warning("Journal exit recording failed: %s", e)
 
                     # Update feedback tracker (PRD-166)
+                    signal_source = getattr(closed, "_signal_source", "ema_cloud")
+                    strategy_name = getattr(closed, "_strategy", "unknown")
                     if self._perf_tracker:
                         try:
-                            signal_source = getattr(closed, "_signal_source", "ema_cloud")
                             self._perf_tracker.record_outcome(
                                 source=signal_source,
                                 pnl=pnl,
@@ -536,6 +612,46 @@ class BotOrchestrator:
                             )
                         except Exception as e:
                             logger.warning("Feedback tracking failed: %s", e)
+
+                    # PRD-174: Alert on position close
+                    if self._alert_bridge:
+                        try:
+                            self._alert_bridge.on_position_closed(
+                                ticker=ticker,
+                                direction=closed.direction,
+                                pnl=pnl,
+                                exit_reason=exit_reason,
+                            )
+                        except Exception as e:
+                            logger.warning("Alert on position close failed: %s", e)
+
+                    # PRD-175: Record trade in analytics
+                    if self._analytics:
+                        try:
+                            self._analytics.record_trade(
+                                ticker=ticker,
+                                direction=closed.direction,
+                                pnl=pnl,
+                                signal_type=signal_source,
+                                strategy=strategy_name,
+                                entry_price=closed.entry_price,
+                                exit_price=price,
+                                shares=closed.shares,
+                                exit_reason=exit_reason,
+                            )
+                        except Exception as e:
+                            logger.warning("Analytics recording failed: %s", e)
+
+                    # PRD-176: Feedback bridge — trigger weight adjustment
+                    if self._feedback_bridge:
+                        try:
+                            self._feedback_bridge.on_trade_closed(
+                                source=signal_source,
+                                pnl=pnl,
+                                conviction=50.0,
+                            )
+                        except Exception as e:
+                            logger.warning("Feedback bridge update failed: %s", e)
 
                     logger.info(
                         "Closed %s %s: P&L $%.2f (%.2f%%) — %s",
@@ -695,4 +811,66 @@ class BotOrchestrator:
             return LeveragedETFSizer(ExecutorConfig())
         except ImportError:
             logger.info("LeveragedETFSizer not available — ETF sizing disabled")
+            return None
+
+    # PRD-173: Strategy pipeline bridges
+
+    @staticmethod
+    def _lazy_load_regime_bridge():
+        try:
+            from src.bot_pipeline.regime_bridge import RegimeBridge
+            return RegimeBridge()
+        except ImportError:
+            logger.info("RegimeBridge not available — regime adaptation disabled")
+            return None
+
+    @staticmethod
+    def _lazy_load_fusion_bridge():
+        try:
+            from src.bot_pipeline.fusion_bridge import FusionBridge
+            return FusionBridge()
+        except ImportError:
+            logger.info("FusionBridge not available — signal fusion disabled")
+            return None
+
+    @staticmethod
+    def _lazy_load_strategy_bridge():
+        try:
+            from src.bot_pipeline.strategy_bridge import StrategyBridge
+            return StrategyBridge()
+        except ImportError:
+            logger.info("StrategyBridge not available — strategy selection disabled")
+            return None
+
+    # PRD-174: Alert bridge
+
+    @staticmethod
+    def _lazy_load_alert_bridge():
+        try:
+            from src.bot_pipeline.alert_bridge import BotAlertBridge
+            return BotAlertBridge()
+        except ImportError:
+            logger.info("BotAlertBridge not available — alerting disabled")
+            return None
+
+    # PRD-175: Analytics tracker
+
+    @staticmethod
+    def _lazy_load_analytics():
+        try:
+            from src.bot_analytics.tracker import BotPerformanceTracker
+            return BotPerformanceTracker()
+        except ImportError:
+            logger.info("BotPerformanceTracker not available — analytics disabled")
+            return None
+
+    # PRD-176: Feedback bridge
+
+    @staticmethod
+    def _lazy_load_feedback_bridge():
+        try:
+            from src.bot_pipeline.feedback_bridge import FeedbackBridge
+            return FeedbackBridge()
+        except ImportError:
+            logger.info("FeedbackBridge not available — adaptive feedback disabled")
             return None

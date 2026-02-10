@@ -11,6 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.config import APIConfig, DEFAULT_API_CONFIG
 from src.api.routes import market_data, factors, portfolio, trading, ai, options, backtesting
+from src.api.routes import bot as bot_routes
+from src.api.routes import bot_ws
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,7 @@ def create_app(config: Optional[APIConfig] = None) -> FastAPI:
     app.include_router(ai.router, prefix=config.prefix)
     app.include_router(options.router, prefix=config.prefix)
     app.include_router(backtesting.router, prefix=config.prefix)
+    app.include_router(bot_routes.router, prefix=config.prefix)
 
     logger.info(f"Axion API v{config.version} initialized")
     return app

@@ -97,6 +97,12 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/integration_pipeline.py", title="Pipeline Monitor", icon=":material/device_hub:"),
             st.Page("pages/bot_pipeline.py", title="Bot Pipeline", icon=":material/security:"),
             st.Page("pages/bot_lifecycle.py", title="Bot Lifecycle", icon=":material/cycle:"),
+            st.Page("pages/bot_api.py", title="Bot API", icon=":material/api:"),
+            st.Page("pages/strategy_integration.py", title="Strategy Integration", icon=":material/merge_type:"),
+            st.Page("pages/bot_alerting.py", title="Bot Alerting", icon=":material/notification_important:"),
+            st.Page("pages/bot_analytics.py", title="Bot Analytics", icon=":material/insights:"),
+            st.Page("pages/adaptive_feedback.py", title="Adaptive Feedback", icon=":material/autorenew:"),
+            st.Page("pages/strategies.py", title="Strategies", icon=":material/category:"),
         ],
 
         # ── Portfolio & Risk ─────────────────────────────────
