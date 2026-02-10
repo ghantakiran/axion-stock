@@ -27,5 +27,8 @@ env/
 .vscode/
 .idea/
 
+# Bot runtime state
+.bot_state/
+
 # OS
 .DS_Store

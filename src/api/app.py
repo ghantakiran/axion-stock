@@ -21,6 +21,7 @@ from src.api.routes import market_data, factors, portfolio, trading, ai, options
 from src.api.routes import bot as bot_routes
 from src.api.routes import bot_ws
 from src.api.routes import keys as keys_routes
+from src.api.routes import strategies as strategy_routes
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +191,7 @@ def create_app(config: Optional[APIConfig] = None) -> FastAPI:
     app.include_router(options.router, prefix=config.prefix)
     app.include_router(backtesting.router, prefix=config.prefix)
     app.include_router(bot_routes.router, prefix=config.prefix)
+    app.include_router(strategy_routes.router, prefix=config.prefix)
     app.include_router(keys_routes.router, prefix=config.prefix)
 
     # WebSocket endpoint (no prefix — path is absolute /ws/bot)

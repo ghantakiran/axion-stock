@@ -1,7 +1,8 @@
 """PRD-173: Strategy Bridge — wraps StrategySelector for pipeline use.
 
 Translates between the bot pipeline and the StrategySelector,
-enabling ADX-gated strategy routing within the orchestrator.
+enabling ADX-gated strategy routing with Ripster sub-strategy
+refinement within the orchestrator.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ class StrategyDecision:
     """Pipeline-friendly strategy decision."""
 
     ticker: str
-    strategy: str  # 'ema_cloud' or 'mean_reversion'
+    strategy: str  # 'ema_cloud', 'mean_reversion', 'pullback_to_cloud', 'trend_day', 'session_scalp'
     confidence: float
     adx_value: float
     reasoning: str
@@ -58,6 +59,8 @@ class StrategyBridge:
         lows: list[float],
         closes: list[float],
         regime: str = "sideways",
+        opens: list[float] | None = None,
+        volumes: list[float] | None = None,
     ) -> StrategyDecision:
         """Select the best strategy for the given market data.
 
@@ -67,11 +70,16 @@ class StrategyBridge:
             lows: Low prices for ADX.
             closes: Close prices.
             regime: Current market regime.
+            opens: Open prices (enables Ripster sub-strategy refinement).
+            volumes: Volume data (enables Ripster sub-strategy refinement).
 
         Returns:
             StrategyDecision with selected strategy.
         """
-        choice = self._selector.select(ticker, highs, lows, closes, regime)
+        choice = self._selector.select(
+            ticker, highs, lows, closes, regime,
+            opens=opens, volumes=volumes,
+        )
 
         decision = StrategyDecision(
             ticker=ticker,

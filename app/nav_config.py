@@ -103,6 +103,9 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/bot_analytics.py", title="Bot Analytics", icon=":material/insights:"),
             st.Page("pages/adaptive_feedback.py", title="Adaptive Feedback", icon=":material/autorenew:"),
             st.Page("pages/strategies.py", title="Strategies", icon=":material/category:"),
+            st.Page("pages/pullback_strategy.py", title="Pullback Strategy", icon=":material/trending_down:"),
+            st.Page("pages/trend_day_strategy.py", title="Trend Day Strategy", icon=":material/trending_up:"),
+            st.Page("pages/session_scalp_strategy.py", title="Session Scalp", icon=":material/schedule:"),
             st.Page("pages/bot_dashboard.py", title="Bot Dashboard", icon=":material/dashboard_customize:"),
         ],
 

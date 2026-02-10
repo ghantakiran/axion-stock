@@ -1,7 +1,9 @@
 """Strategy Selector — dynamic routing between EMA Cloud and Mean-Reversion.
 
 Routes signals to the appropriate strategy based on market regime and
-ADX trend strength. Tracks strategy performance for A/B comparison.
+ADX trend strength. When EMA Cloud is selected, further refines to a
+specific Ripster sub-strategy (pullback_to_cloud, trend_day, session_scalp,
+or generic ema_cloud). Tracks strategy performance for A/B comparison.
 """
 
 from __future__ import annotations
@@ -113,11 +115,32 @@ class StrategySelector:
         self._adx_gate = ADXGate(self.config.adx_config)
         self._mr_strategy = MeanReversionStrategy(self.config.mr_config)
 
+        # Ripster sub-strategies (lazy-loaded)
+        self._ripster_strategies: dict = {}
+        self._load_ripster_strategies()
+
         # Performance tracking for A/B comparison
         self._strategy_stats: dict[str, dict[str, float]] = {
             "ema_cloud": {"signals": 0, "wins": 0, "total_pnl": 0.0},
             "mean_reversion": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "pullback_to_cloud": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "trend_day": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "session_scalp": {"signals": 0, "wins": 0, "total_pnl": 0.0},
         }
+
+    def _load_ripster_strategies(self) -> None:
+        """Load Ripster sub-strategies for EMA Cloud refinement."""
+        try:
+            from src.strategies.pullback_strategy import PullbackToCloudStrategy
+            from src.strategies.trend_day_strategy import TrendDayStrategy
+            from src.strategies.session_scalp_strategy import SessionScalpStrategy
+            self._ripster_strategies = {
+                "pullback_to_cloud": PullbackToCloudStrategy(),
+                "trend_day": TrendDayStrategy(),
+                "session_scalp": SessionScalpStrategy(),
+            }
+        except ImportError:
+            self._ripster_strategies = {}
 
     def select(
         self,
@@ -126,6 +149,8 @@ class StrategySelector:
         lows: list[float],
         closes: list[float],
         regime: str = "sideways",
+        opens: list[float] | None = None,
+        volumes: list[float] | None = None,
     ) -> StrategyChoice:
         """Select the best strategy for current market conditions.
 
@@ -135,6 +160,8 @@ class StrategySelector:
             lows: Low prices for ADX.
             closes: Close prices for all indicators.
             regime: Current market regime.
+            opens: Open prices (optional, enables Ripster sub-strategy refinement).
+            volumes: Volume data (optional, enables Ripster sub-strategy refinement).
 
         Returns:
             StrategyChoice with selected strategy and reasoning.
@@ -173,6 +200,22 @@ class StrategySelector:
         if strategy_name == "mean_reversion":
             mr_signal = self._mr_strategy.analyze(ticker, closes)
 
+        # 4. Refine EMA Cloud to specific Ripster sub-strategy
+        if strategy_name == "ema_cloud" and opens and volumes:
+            refined, refined_conf = self.refine_ema_strategy(
+                ticker, opens, highs, lows, closes, volumes, strength,
+            )
+            if refined != "ema_cloud":
+                return StrategyChoice(
+                    ticker=ticker,
+                    selected_strategy=refined,
+                    trend_strength=strength,
+                    adx_value=adx,
+                    regime=regime,
+                    confidence=refined_conf,
+                    reasoning=f"{strength.value} (ADX={adx:.1f}) → {refined}",
+                )
+
         # Compute confidence based on ADX clarity
         if strength == TrendStrength.STRONG_TREND:
             confidence = 90.0
@@ -197,6 +240,67 @@ class StrategySelector:
             confidence=confidence,
             reasoning=reasoning,
         )
+
+    def refine_ema_strategy(
+        self,
+        ticker: str,
+        opens: list[float],
+        highs: list[float],
+        lows: list[float],
+        closes: list[float],
+        volumes: list[float],
+        trend_strength: TrendStrength,
+    ) -> tuple[str, float]:
+        """Refine EMA Cloud selection to a specific Ripster sub-strategy.
+
+        Tries each Ripster strategy in priority order. Returns the first
+        one that produces a signal, or falls back to generic 'ema_cloud'.
+
+        Priority:
+          1. trend_day (highest conviction, rare — strong trends only)
+          2. pullback_to_cloud (core entry pattern)
+          3. session_scalp (session-aware routing)
+          4. ema_cloud (fallback — use generic EMA signals)
+
+        Returns:
+            (strategy_name, confidence) tuple.
+        """
+        if not self._ripster_strategies:
+            return "ema_cloud", 70.0
+
+        # Trend day only in strong trends
+        if trend_strength == TrendStrength.STRONG_TREND:
+            td = self._ripster_strategies.get("trend_day")
+            if td:
+                try:
+                    sig = td.analyze(ticker, opens, highs, lows, closes, volumes)
+                    if sig:
+                        return "trend_day", 90.0
+                except Exception:
+                    pass
+
+        # Pullback-to-cloud in moderate+ trends
+        if trend_strength in (TrendStrength.STRONG_TREND, TrendStrength.MODERATE_TREND):
+            pb = self._ripster_strategies.get("pullback_to_cloud")
+            if pb:
+                try:
+                    sig = pb.analyze(ticker, opens, highs, lows, closes, volumes)
+                    if sig:
+                        return "pullback_to_cloud", 80.0
+                except Exception:
+                    pass
+
+        # Session scalp in any trending condition
+        ss = self._ripster_strategies.get("session_scalp")
+        if ss:
+            try:
+                sig = ss.analyze(ticker, opens, highs, lows, closes, volumes)
+                if sig:
+                    return "session_scalp", 65.0
+            except Exception:
+                pass
+
+        return "ema_cloud", 70.0
 
     def select_batch(
         self,
