@@ -1,6 +1,6 @@
 """Continuous position monitoring for exit conditions.
 
-Monitors open positions against 7 exit strategies:
+Monitors open positions against 9 exit strategies:
 1. Stop loss
 2. Momentum exhaustion
 3. Cloud flip
@@ -8,12 +8,14 @@ Monitors open positions against 7 exit strategies:
 5. Time stop
 6. EOD close
 7. Trailing stop
+8. Trail to breakeven
+9. Partial scale-out
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta, timezone
 from typing import Optional
 
@@ -30,9 +32,10 @@ class ExitSignal:
     """Signal to exit a position."""
 
     ticker: str
-    exit_type: str  # stop_loss, exhaustion, cloud_flip, target, time_stop, eod, trailing
+    exit_type: str  # stop_loss, exhaustion, cloud_flip, target, time_stop, eod, trailing, trail_to_breakeven, scale_out
     priority: int  # 1 = highest
     reason: str
+    metadata: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -40,13 +43,14 @@ class ExitSignal:
             "exit_type": self.exit_type,
             "priority": self.priority,
             "reason": self.reason,
+            "metadata": self.metadata,
         }
 
 
 class ExitMonitor:
     """Monitor open positions for exit signals.
 
-    Checks all 7 exit conditions and returns the highest-priority
+    Checks all 9 exit conditions and returns the highest-priority
     exit signal if any conditions are met.
     """
 
@@ -103,6 +107,16 @@ class ExitMonitor:
             sig = self.check_trailing_stop(position, bars)
             if sig:
                 signals.append(sig)
+
+        # 8. Trail to breakeven (priority 8)
+        sig = self.check_trail_to_breakeven(position, current_price)
+        if sig:
+            signals.append(sig)
+
+        # 9. Scale out (priority 9)
+        sig = self.check_scale_out(position, current_price)
+        if sig:
+            signals.append(sig)
 
         if not signals:
             return None
@@ -298,3 +312,88 @@ class ExitMonitor:
                 reason=f"Trailing stop: price ${current_close:.2f} above pullback cloud ${pullback_upper:.2f}",
             )
         return None
+
+    def check_trail_to_breakeven(
+        self, position: Position, current_price: float,
+    ) -> Optional[ExitSignal]:
+        """Move stop to breakeven once position reaches 1R profit.
+
+        When unrealized P&L equals or exceeds the initial risk (1:1 R:R),
+        the stop is moved to entry + 0.1% buffer. This fires once per
+        position — subsequent calls are no-ops after the stop is moved.
+        """
+        # Check if breakeven already applied (via position metadata or stop check)
+        risk = abs(position.entry_price - position.stop_loss)
+        if risk <= 0:
+            return None
+
+        buffer = position.entry_price * 0.001  # 0.1% buffer
+
+        if position.direction == "long":
+            target_for_be = position.entry_price + risk  # 1R profit
+            if current_price >= target_for_be:
+                new_stop = position.entry_price + buffer
+                if position.stop_loss < new_stop:
+                    position.stop_loss = new_stop
+                    return ExitSignal(
+                        ticker=position.ticker,
+                        exit_type="trail_to_breakeven",
+                        priority=8,  # Low priority — informational
+                        reason=f"Stop moved to breakeven+: ${new_stop:.2f} (1R reached at ${target_for_be:.2f})",
+                        metadata={"new_stop": new_stop, "trigger_price": target_for_be},
+                    )
+        else:  # short
+            target_for_be = position.entry_price - risk
+            if current_price <= target_for_be:
+                new_stop = position.entry_price - buffer
+                if position.stop_loss > new_stop:
+                    position.stop_loss = new_stop
+                    return ExitSignal(
+                        ticker=position.ticker,
+                        exit_type="trail_to_breakeven",
+                        priority=8,
+                        reason=f"Stop moved to breakeven+: ${new_stop:.2f} (1R reached at ${target_for_be:.2f})",
+                        metadata={"new_stop": new_stop, "trigger_price": target_for_be},
+                    )
+        return None
+
+    def check_scale_out(
+        self, position: Position, current_price: float,
+    ) -> Optional[ExitSignal]:
+        """Scale out 50% at 1:1 R:R target.
+
+        When position hits 1R profit and has more than 1 share,
+        signals to sell half the position. Returns ExitSignal with
+        metadata indicating this is a partial close.
+        """
+        if position.shares <= 1:
+            return None
+
+        risk = abs(position.entry_price - position.stop_loss)
+        if risk <= 0:
+            return None
+
+        if position.direction == "long":
+            one_r_target = position.entry_price + risk
+            if current_price >= one_r_target:
+                scale_qty = position.shares // 2
+                if scale_qty > 0:
+                    return ExitSignal(
+                        ticker=position.ticker,
+                        exit_type="scale_out",
+                        priority=9,
+                        reason=f"Scale out {scale_qty} shares at 1R: ${current_price:.2f} >= ${one_r_target:.2f}",
+                        metadata={"partial": True, "scale_pct": 0.5, "scale_qty": scale_qty},
+                    )
+        else:
+            one_r_target = position.entry_price - risk
+            if current_price <= one_r_target:
+                scale_qty = position.shares // 2
+                if scale_qty > 0:
+                    return ExitSignal(
+                        ticker=position.ticker,
+                        exit_type="scale_out",
+                        priority=9,
+                        reason=f"Scale out {scale_qty} shares at 1R: ${current_price:.2f} <= ${one_r_target:.2f}",
+                        metadata={"partial": True, "scale_pct": 0.5, "scale_qty": scale_qty},
+                    )

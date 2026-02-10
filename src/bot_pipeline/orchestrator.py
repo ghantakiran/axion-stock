@@ -560,25 +560,51 @@ class BotOrchestrator:
 
     def close_position(
         self, ticker: str, exit_reason: str, exit_price: float = 0.0,
+        partial_qty: int = 0,
     ) -> Optional[Position]:
-        """Close a position and update feedback tracking.
+        """Close a position (fully or partially) and update feedback tracking.
 
         Args:
             ticker: Symbol to close.
             exit_reason: Why the position is being closed.
             exit_price: Exit price (uses current_price if 0).
+            partial_qty: If > 0 and < position shares, close only this many shares.
 
         Returns:
-            The closed Position, or None if not found.
+            The closed Position (or partial copy), or None if not found.
         """
         with self._lock:
             for i, pos in enumerate(self.positions):
                 if pos.ticker == ticker:
-                    closed = self.positions.pop(i)
-                    price = exit_price or closed.current_price
-                    mult = 1 if closed.direction == "long" else -1
-                    pnl = mult * (price - closed.entry_price) * closed.shares
-                    pnl_pct = mult * (price - closed.entry_price) / closed.entry_price if closed.entry_price > 0 else 0
+                    price = exit_price or pos.current_price
+
+                    # Handle partial close
+                    if partial_qty > 0 and partial_qty < pos.shares:
+                        # Partial close: reduce position, don't remove
+                        mult = 1 if pos.direction == "long" else -1
+                        pnl = mult * (price - pos.entry_price) * partial_qty
+                        pnl_pct = mult * (price - pos.entry_price) / pos.entry_price if pos.entry_price > 0 else 0
+                        pos.shares -= partial_qty
+                        closed = Position(
+                            ticker=pos.ticker,
+                            direction=pos.direction,
+                            entry_price=pos.entry_price,
+                            current_price=price,
+                            shares=partial_qty,
+                            stop_loss=pos.stop_loss,
+                            target_price=pos.target_price,
+                            entry_time=pos.entry_time,
+                            signal_id=pos.signal_id,
+                            trade_type=pos.trade_type,
+                            instrument_type=pos.instrument_type,
+                            leverage=pos.leverage,
+                        )
+                    else:
+                        # Full close: remove from positions
+                        closed = self.positions.pop(i)
+                        mult = 1 if closed.direction == "long" else -1
+                        pnl = mult * (price - closed.entry_price) * closed.shares
+                        pnl_pct = mult * (price - closed.entry_price) / closed.entry_price if closed.entry_price > 0 else 0
 
                     # Update persistent state
                     self._state.record_trade_pnl(pnl)

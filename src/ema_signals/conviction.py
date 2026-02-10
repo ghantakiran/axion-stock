@@ -1,10 +1,11 @@
 """Conviction scoring system for EMA cloud trade signals.
 
-Scores each signal 0-100 based on 6 weighted factors:
+Scores each signal 0-100 based on 7 weighted factors:
 - Cloud alignment (25): How many cloud layers agree
 - MTF confluence (25): How many timeframes confirm
 - Volume confirmation (15): Current vs average volume
-- Cloud thickness (10): Wider cloud = stronger support/resistance
+- Cloud thickness (5): Wider cloud = stronger support/resistance
+- Cloud slope (5): Rising/falling cloud midpoints
 - Candle quality (10): Full-body candles vs wicks/dojis
 - Factor score (15): Integration with Axion multi-factor model
 """
@@ -30,6 +31,7 @@ class ConvictionScore:
     mtf_confluence: float
     volume_confirmation: float
     cloud_thickness: float
+    cloud_slope: float
     candle_quality: float
     factor_score: float
     breakdown: dict = field(default_factory=dict)
@@ -58,7 +60,8 @@ class ConvictionScorer:
         cloud_alignment: 25
         mtf_confluence:  25
         volume:          15
-        cloud_thickness: 10
+        cloud_thickness:  5
+        cloud_slope:      5
         candle_quality:  10
         factor_score:    15
     """
@@ -66,7 +69,8 @@ class ConvictionScorer:
     WEIGHT_CLOUD_ALIGNMENT = 25.0
     WEIGHT_MTF_CONFLUENCE = 25.0
     WEIGHT_VOLUME = 15.0
-    WEIGHT_THICKNESS = 10.0
+    WEIGHT_THICKNESS = 5.0
+    WEIGHT_SLOPE = 5.0
     WEIGHT_CANDLE = 10.0
     WEIGHT_FACTOR = 15.0
 
@@ -90,11 +94,12 @@ class ConvictionScorer:
         mtf_pts = self._score_mtf_confluence(signal.metadata)
         vol_pts = self._score_volume(volume_data)
         thick_pts = self._score_thickness(signal.cloud_states)
+        slope_pts = self._score_cloud_slope(signal.cloud_states)
         candle_pts = self._score_candle_quality(signal.metadata)
         factor_pts = self._score_factor(factor_scores)
 
         total = int(
-            min(100, cloud_pts + mtf_pts + vol_pts + thick_pts + candle_pts + factor_pts)
+            min(100, cloud_pts + mtf_pts + vol_pts + thick_pts + slope_pts + candle_pts + factor_pts)
         )
 
         return ConvictionScore(
@@ -103,6 +108,7 @@ class ConvictionScorer:
             mtf_confluence=round(mtf_pts, 2),
             volume_confirmation=round(vol_pts, 2),
             cloud_thickness=round(thick_pts, 2),
+            cloud_slope=round(slope_pts, 2),
             candle_quality=round(candle_pts, 2),
             factor_score=round(factor_pts, 2),
             breakdown={
@@ -119,6 +125,8 @@ class ConvictionScorer:
                     if volume_data
                     else 0
                 ),
+                "slope_rising": sum(1 for cs in signal.cloud_states if cs.slope_direction == "rising"),
+                "slope_falling": sum(1 for cs in signal.cloud_states if cs.slope_direction == "falling"),
             },
         )
 
@@ -177,6 +185,17 @@ class ConvictionScorer:
         elif ratio >= 1.0:
             return self.WEIGHT_VOLUME * 0.5
         return self.WEIGHT_VOLUME * 0.2
+
+    def _score_cloud_slope(self, cloud_states: list[CloudState]) -> float:
+        """Score based on cloud slope alignment (rising clouds = stronger uptrend)."""
+        if not cloud_states:
+            return 0.0
+        rising = sum(1 for cs in cloud_states if cs.slope_direction == "rising")
+        falling = sum(1 for cs in cloud_states if cs.slope_direction == "falling")
+        # More aligned slopes = higher score
+        dominant = max(rising, falling)
+        ratio = dominant / len(cloud_states)
+        return ratio * self.WEIGHT_SLOPE
 
     def _score_thickness(self, cloud_states: list[CloudState]) -> float:
         """Score based on cloud thickness (wider = stronger support/resistance)."""

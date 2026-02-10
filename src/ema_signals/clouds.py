@@ -1,10 +1,11 @@
 """EMA Cloud computation engine.
 
-Implements the Ripster EMA Cloud methodology with 4 cloud layers:
+Implements the Ripster EMA Cloud methodology with 5 cloud layers:
 - Fast (5/12): Fluid trendline for day trades
 - Pullback (8/9): Pullback support/resistance levels
 - Trend (20/21): Intermediate trend confirmation
 - Macro (34/50): Major trend bias and risk boundary
+- Long-term (72/89): Major trend structure and institutional bias
 """
 
 from __future__ import annotations
@@ -28,6 +29,8 @@ class CloudConfig:
     trend_long: int = 21
     macro_short: int = 34
     macro_long: int = 50
+    long_term_short: int = 72
+    long_term_long: int = 89
 
     def get_pairs(self) -> list[tuple[str, int, int]]:
         """Return (cloud_name, short_period, long_period) tuples."""
@@ -36,12 +39,13 @@ class CloudConfig:
             ("pullback", self.pullback_short, self.pullback_long),
             ("trend", self.trend_short, self.trend_long),
             ("macro", self.macro_short, self.macro_long),
+            ("long_term", self.long_term_short, self.long_term_long),
         ]
 
     @property
     def max_period(self) -> int:
         """Minimum bars required for all EMAs to be valid."""
-        return self.macro_long
+        return self.long_term_long
 
 
 @dataclass
@@ -56,6 +60,8 @@ class CloudState:
     price_above: bool
     price_inside: bool
     price_below: bool
+    slope: float = 0.0
+    slope_direction: str = "flat"  # "rising", "falling", "flat"
 
     def to_dict(self) -> dict:
         return {
@@ -67,6 +73,8 @@ class CloudState:
             "price_above": self.price_above,
             "price_inside": self.price_inside,
             "price_below": self.price_below,
+            "slope": round(self.slope, 6),
+            "slope_direction": self.slope_direction,
         }
 
 
@@ -105,7 +113,7 @@ class EMACloudCalculator:
     """Compute EMA clouds from OHLCV data.
 
     Uses pandas ewm() for vectorized EMA computation across
-    all 4 cloud layers (fast, pullback, trend, macro).
+    all 5 cloud layers (fast, pullback, trend, macro, long_term).
     """
 
     def __init__(self, config: Optional[CloudConfig] = None):
@@ -116,8 +124,8 @@ class EMACloudCalculator:
 
         Expects columns: open, high, low, close, volume.
         Adds columns:
-        - ema_{period} for each EMA period (8 columns)
-        - cloud_{name}_bull boolean for each cloud layer (4 columns)
+        - ema_{period} for each EMA period (10 columns)
+        - cloud_{name}_bull boolean for each cloud layer (5 columns)
         """
         result = df.copy()
         close = result["close"]
@@ -135,8 +143,25 @@ class EMACloudCalculator:
 
         return result
 
+    def _compute_slope(self, df: pd.DataFrame, short_col: str, long_col: str, lookback: int = 5) -> tuple[float, str]:
+        """Compute cloud midpoint slope over last `lookback` bars.
+
+        Returns (slope_value, slope_direction) where direction is
+        'rising', 'falling', or 'flat' based on ±0.001 threshold.
+        """
+        if len(df) < lookback + 1:
+            return 0.0, "flat"
+        midpoints = (df[short_col] + df[long_col]) / 2
+        recent = midpoints.iloc[-(lookback + 1):]
+        slope = (float(recent.iloc[-1]) - float(recent.iloc[0])) / (lookback * float(recent.iloc[0])) if float(recent.iloc[0]) > 0 else 0.0
+        if slope > 0.001:
+            return slope, "rising"
+        elif slope < -0.001:
+            return slope, "falling"
+        return slope, "flat"
+
     def get_cloud_states(self, df: pd.DataFrame) -> list[CloudState]:
-        """Return current CloudState for all 4 layers from the latest bar.
+        """Return current CloudState for all 5 layers from the latest bar.
 
         The DataFrame must already have EMA columns computed via compute_clouds().
         """
@@ -156,6 +181,8 @@ class EMACloudCalculator:
 
             thickness = abs(short_val - long_val) / price if price > 0 else 0.0
 
+            slope, slope_dir = self._compute_slope(cloud_df, f"ema_{short_p}", f"ema_{long_p}")
+
             states.append(
                 CloudState(
                     cloud_name=cloud_name,
@@ -166,6 +193,8 @@ class EMACloudCalculator:
                     price_above=price > upper,
                     price_inside=lower <= price <= upper,
                     price_below=price < lower,
+                    slope=slope,
+                    slope_direction=slope_dir,
                 )
             )
 

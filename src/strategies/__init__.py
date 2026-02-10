@@ -1,7 +1,8 @@
 """PRD-177: Multi-Strategy Bot — pluggable strategy framework.
 
 Provides a BotStrategy protocol, a StrategyRegistry for dynamic
-registration, and 3 built-in strategies: VWAP, ORB, RSI Divergence.
+registration, and 6 built-in strategies: VWAP, ORB, RSI Divergence,
+Pullback-to-Cloud, Trend Day, and Session Scalp.
 """
 
 from src.strategies.base import BotStrategy
@@ -9,6 +10,9 @@ from src.strategies.registry import StrategyRegistry
 from src.strategies.vwap_strategy import VWAPStrategy
 from src.strategies.orb_strategy import ORBStrategy
 from src.strategies.rsi_divergence import RSIDivergenceStrategy
+from src.strategies.pullback_strategy import PullbackToCloudStrategy
+from src.strategies.trend_day_strategy import TrendDayStrategy
+from src.strategies.session_scalp_strategy import SessionScalpStrategy
 
 __all__ = [
     "BotStrategy",
@@ -16,4 +20,7 @@ __all__ = [
     "VWAPStrategy",
     "ORBStrategy",
     "RSIDivergenceStrategy",
+    "PullbackToCloudStrategy",
+    "TrendDayStrategy",
+    "SessionScalpStrategy",
 ]

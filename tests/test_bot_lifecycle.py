@@ -301,7 +301,7 @@ class TestLifecycleManager:
         orch.positions.append(pos)
 
         mgr = LifecycleManager(orch)
-        exits = mgr.check_exits({"AAPL": 155.0})  # Above stop
+        exits = mgr.check_exits({"AAPL": 152.0})  # Above stop, below 1R target
         assert len(exits) == 0
 
     def test_execute_exits(self):

@@ -1,7 +1,8 @@
 """Signal detection from EMA cloud states.
 
-Detects 10 signal types: cloud crosses, cloud flips, cloud bounces,
-trend alignment, momentum exhaustion, and multi-timeframe confluence.
+Detects 12 signal types: cloud crosses, cloud flips, cloud bounces,
+trend alignment, momentum exhaustion, multi-timeframe confluence,
+and candlestick patterns at cloud boundaries.
 """
 
 from __future__ import annotations
@@ -30,6 +31,8 @@ class SignalType(str, Enum):
     TREND_ALIGNED_SHORT = "trend_aligned_short"
     MOMENTUM_EXHAUSTION = "momentum_exhaustion"
     MTF_CONFLUENCE = "mtf_confluence"
+    CANDLESTICK_BULLISH = "candlestick_bullish"
+    CANDLESTICK_BEARISH = "candlestick_bearish"
 
 
 @dataclass
@@ -77,7 +80,7 @@ class SignalDetector:
     momentum exhaustion.
     """
 
-    CLOUD_NAMES = ["fast", "pullback", "trend", "macro"]
+    CLOUD_NAMES = ["fast", "pullback", "trend", "macro", "long_term"]
     BOUNCE_THRESHOLD = 0.002  # Price within 0.2% of cloud = "touching"
     EXHAUSTION_CANDLES = 3  # Consecutive candles outside cloud
 
@@ -127,6 +130,10 @@ class SignalDetector:
         sig = self._detect_momentum_exhaustion(cloud_df, ticker, timeframe, cloud_states)
         if sig:
             signals.append(sig)
+
+        # Candlestick patterns at cloud levels
+        candle_signals = self._detect_candlestick_patterns(cloud_df, ticker, timeframe, cloud_states)
+        signals.extend(candle_signals)
 
         return signals
 
@@ -407,3 +414,140 @@ class SignalDetector:
                 "consecutive_bars": n,
             },
         )
+
+    def _detect_candlestick_patterns(
+        self,
+        df: pd.DataFrame,
+        ticker: str,
+        timeframe: str,
+        cloud_states: list[CloudState],
+    ) -> list[TradeSignal]:
+        """Detect candlestick patterns occurring at cloud boundaries.
+
+        Patterns: hammer, inverted hammer, bullish engulfing, bearish engulfing,
+        doji at cloud, pin bar. Only emits signals when the pattern occurs
+        within BOUNCE_THRESHOLD of a cloud level.
+        """
+        if len(df) < 3:
+            return []
+
+        signals: list[TradeSignal] = []
+        curr = df.iloc[-1]
+        prev = df.iloc[-2]
+        price = float(curr["close"])
+
+        o, h, l, c = float(curr["open"]), float(curr["high"]), float(curr["low"]), float(curr["close"])
+        body = abs(c - o)
+        total_range = h - l
+        if total_range < 1e-10:
+            return signals
+
+        body_ratio = body / total_range
+        upper_wick = h - max(o, c)
+        lower_wick = min(o, c) - l
+
+        po, ph, pl, pc = float(prev["open"]), float(prev["high"]), float(prev["low"]), float(prev["close"])
+        prev_body = abs(pc - po)
+
+        # Check if price is near any cloud level
+        near_cloud = False
+        for cs in cloud_states:
+            upper = max(cs.short_ema, cs.long_ema)
+            lower = min(cs.short_ema, cs.long_ema)
+            if (abs(price - upper) / max(price, 0.01) <= self.BOUNCE_THRESHOLD
+                    or abs(price - lower) / max(price, 0.01) <= self.BOUNCE_THRESHOLD
+                    or abs(l - upper) / max(price, 0.01) <= self.BOUNCE_THRESHOLD
+                    or abs(h - lower) / max(price, 0.01) <= self.BOUNCE_THRESHOLD):
+                near_cloud = True
+                break
+
+        if not near_cloud:
+            return signals
+
+        macro_ema = float(df[f"ema_{self.calculator.config.macro_long}"].iloc[-1])
+
+        # Hammer (bullish): small body at top, long lower wick >= 2x body
+        if body_ratio < 0.35 and lower_wick >= body * 2 and c > o:
+            signals.append(TradeSignal(
+                signal_type=SignalType.CANDLESTICK_BULLISH,
+                direction="long",
+                ticker=ticker,
+                timeframe=timeframe,
+                conviction=0,
+                entry_price=price,
+                stop_loss=l * 0.998,
+                cloud_states=cloud_states,
+                metadata={"pattern": "hammer", "body_ratio": round(body_ratio, 3)},
+            ))
+
+        # Inverted hammer (bullish): small body at bottom, long upper wick >= 2x body
+        if body_ratio < 0.35 and upper_wick >= body * 2 and c > o:
+            signals.append(TradeSignal(
+                signal_type=SignalType.CANDLESTICK_BULLISH,
+                direction="long",
+                ticker=ticker,
+                timeframe=timeframe,
+                conviction=0,
+                entry_price=price,
+                stop_loss=l * 0.998,
+                cloud_states=cloud_states,
+                metadata={"pattern": "inverted_hammer", "body_ratio": round(body_ratio, 3)},
+            ))
+
+        # Bullish engulfing: current green candle engulfs previous red candle
+        if c > o and pc < po and c > po and o < pc and body > prev_body:
+            signals.append(TradeSignal(
+                signal_type=SignalType.CANDLESTICK_BULLISH,
+                direction="long",
+                ticker=ticker,
+                timeframe=timeframe,
+                conviction=0,
+                entry_price=price,
+                stop_loss=min(l, pl) * 0.998,
+                cloud_states=cloud_states,
+                metadata={"pattern": "bullish_engulfing", "body_ratio": round(body_ratio, 3)},
+            ))
+
+        # Bearish engulfing: current red candle engulfs previous green candle
+        if c < o and pc > po and o > pc and c < po and body > prev_body:
+            signals.append(TradeSignal(
+                signal_type=SignalType.CANDLESTICK_BEARISH,
+                direction="short",
+                ticker=ticker,
+                timeframe=timeframe,
+                conviction=0,
+                entry_price=price,
+                stop_loss=max(h, ph) * 1.002,
+                cloud_states=cloud_states,
+                metadata={"pattern": "bearish_engulfing", "body_ratio": round(body_ratio, 3)},
+            ))
+
+        # Pin bar bullish: long lower wick, small body, close near high
+        if lower_wick > total_range * 0.6 and body_ratio < 0.3:
+            signals.append(TradeSignal(
+                signal_type=SignalType.CANDLESTICK_BULLISH,
+                direction="long",
+                ticker=ticker,
+                timeframe=timeframe,
+                conviction=0,
+                entry_price=price,
+                stop_loss=l * 0.998,
+                cloud_states=cloud_states,
+                metadata={"pattern": "pin_bar_bullish", "body_ratio": round(body_ratio, 3)},
+            ))
+
+        # Pin bar bearish: long upper wick, small body, close near low
+        if upper_wick > total_range * 0.6 and body_ratio < 0.3:
+            signals.append(TradeSignal(
+                signal_type=SignalType.CANDLESTICK_BEARISH,
+                direction="short",
+                ticker=ticker,
+                timeframe=timeframe,
+                conviction=0,
+                entry_price=price,
+                stop_loss=h * 1.002,
+                cloud_states=cloud_states,
+                metadata={"pattern": "pin_bar_bearish", "body_ratio": round(body_ratio, 3)},
+            ))
+
+        return signals

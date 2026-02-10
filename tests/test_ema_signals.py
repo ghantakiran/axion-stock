@@ -108,9 +108,9 @@ class TestEMACloudCalculator:
         df = _make_ohlcv(100)
         calc = EMACloudCalculator()
         states = calc.get_cloud_states(df)
-        assert len(states) == 4
+        assert len(states) == 5
         names = {s.cloud_name for s in states}
-        assert names == {"fast", "pullback", "trend", "macro"}
+        assert names == {"fast", "pullback", "trend", "macro", "long_term"}
 
     def test_cloud_state_bullish_in_uptrend(self):
         df = _make_ohlcv(100, trend="up")
@@ -248,7 +248,7 @@ class TestSignalDetector:
     def test_signal_type_enum_values(self):
         assert SignalType.CLOUD_CROSS_BULLISH.value == "cloud_cross_bullish"
         assert SignalType.MTF_CONFLUENCE.value == "mtf_confluence"
-        assert len(SignalType) == 10
+        assert len(SignalType) == 12
 
     def test_trade_signal_to_dict(self):
         sig = TradeSignal(
@@ -353,8 +353,8 @@ class TestConvictionScorer:
     def test_score_level_high(self):
         score = ConvictionScore(
             total=80, cloud_alignment=25, mtf_confluence=20,
-            volume_confirmation=15, cloud_thickness=10,
-            candle_quality=5, factor_score=5,
+            volume_confirmation=15, cloud_thickness=5,
+            cloud_slope=5, candle_quality=5, factor_score=5,
         )
         assert score.level == "high"
 
@@ -362,7 +362,7 @@ class TestConvictionScorer:
         score = ConvictionScore(
             total=55, cloud_alignment=15, mtf_confluence=15,
             volume_confirmation=10, cloud_thickness=5,
-            candle_quality=5, factor_score=5,
+            cloud_slope=2, candle_quality=5, factor_score=3,
         )
         assert score.level == "medium"
 
@@ -370,7 +370,7 @@ class TestConvictionScorer:
         score = ConvictionScore(
             total=30, cloud_alignment=10, mtf_confluence=5,
             volume_confirmation=5, cloud_thickness=3,
-            candle_quality=3, factor_score=4,
+            cloud_slope=1, candle_quality=3, factor_score=3,
         )
         assert score.level == "low"
 
@@ -378,7 +378,7 @@ class TestConvictionScorer:
         score = ConvictionScore(
             total=10, cloud_alignment=5, mtf_confluence=2,
             volume_confirmation=1, cloud_thickness=1,
-            candle_quality=0.5, factor_score=0.5,
+            cloud_slope=0, candle_quality=0.5, factor_score=0.5,
         )
         assert score.level == "none"
 
