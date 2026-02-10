@@ -119,6 +119,10 @@ class StrategySelector:
         self._ripster_strategies: dict = {}
         self._load_ripster_strategies()
 
+        # Qullamaggie strategies (lazy-loaded)
+        self._qullamaggie_strategies: dict = {}
+        self._load_qullamaggie_strategies()
+
         # Performance tracking for A/B comparison
         self._strategy_stats: dict[str, dict[str, float]] = {
             "ema_cloud": {"signals": 0, "wins": 0, "total_pnl": 0.0},
@@ -126,6 +130,9 @@ class StrategySelector:
             "pullback_to_cloud": {"signals": 0, "wins": 0, "total_pnl": 0.0},
             "trend_day": {"signals": 0, "wins": 0, "total_pnl": 0.0},
             "session_scalp": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "qullamaggie_breakout": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "qullamaggie_ep": {"signals": 0, "wins": 0, "total_pnl": 0.0},
+            "qullamaggie_parabolic_short": {"signals": 0, "wins": 0, "total_pnl": 0.0},
         }
 
     def _load_ripster_strategies(self) -> None:
@@ -141,6 +148,20 @@ class StrategySelector:
             }
         except ImportError:
             self._ripster_strategies = {}
+
+    def _load_qullamaggie_strategies(self) -> None:
+        """Load Qullamaggie strategies for momentum routing."""
+        try:
+            from src.qullamaggie.breakout_strategy import QullamaggieBreakoutStrategy
+            from src.qullamaggie.episodic_pivot_strategy import EpisodicPivotStrategy
+            from src.qullamaggie.parabolic_short_strategy import ParabolicShortStrategy
+            self._qullamaggie_strategies = {
+                "qullamaggie_breakout": QullamaggieBreakoutStrategy(),
+                "qullamaggie_ep": EpisodicPivotStrategy(),
+                "qullamaggie_parabolic_short": ParabolicShortStrategy(),
+            }
+        except ImportError:
+            self._qullamaggie_strategies = {}
 
     def select(
         self,
@@ -199,6 +220,22 @@ class StrategySelector:
         mr_signal = None
         if strategy_name == "mean_reversion":
             mr_signal = self._mr_strategy.analyze(ticker, closes)
+
+        # 3b. Try Qullamaggie strategies when strong trend + opens/volumes available
+        if strategy_name == "ema_cloud" and opens and volumes and self._qullamaggie_strategies:
+            q_name, q_conf = self._try_qullamaggie(
+                ticker, opens, highs, lows, closes, volumes, strength, adx,
+            )
+            if q_name:
+                return StrategyChoice(
+                    ticker=ticker,
+                    selected_strategy=q_name,
+                    trend_strength=strength,
+                    adx_value=adx,
+                    regime=regime,
+                    confidence=q_conf,
+                    reasoning=f"{strength.value} (ADX={adx:.1f}) → {q_name}",
+                )
 
         # 4. Refine EMA Cloud to specific Ripster sub-strategy
         if strategy_name == "ema_cloud" and opens and volumes:
@@ -301,6 +338,60 @@ class StrategySelector:
                 pass
 
         return "ema_cloud", 70.0
+
+    def _try_qullamaggie(
+        self,
+        ticker: str,
+        opens: list[float],
+        highs: list[float],
+        lows: list[float],
+        closes: list[float],
+        volumes: list[float],
+        trend_strength: TrendStrength,
+        adx: float,
+    ) -> tuple[str | None, float]:
+        """Try Qullamaggie strategies when ADX shows strong trend.
+
+        Priority:
+          1. qullamaggie_breakout (strong trend + consolidation detected)
+          2. qullamaggie_ep (gap-up with volume)
+          3. qullamaggie_parabolic_short (exhaustion after surge)
+
+        Returns:
+            (strategy_name, confidence) or (None, 0) if no signal.
+        """
+        # Breakout requires strong or moderate trend
+        if trend_strength in (TrendStrength.STRONG_TREND, TrendStrength.MODERATE_TREND):
+            bo = self._qullamaggie_strategies.get("qullamaggie_breakout")
+            if bo:
+                try:
+                    sig = bo.analyze(ticker, opens, highs, lows, closes, volumes)
+                    if sig:
+                        return "qullamaggie_breakout", 85.0
+                except Exception:
+                    pass
+
+        # EP can fire in any trending condition
+        ep = self._qullamaggie_strategies.get("qullamaggie_ep")
+        if ep:
+            try:
+                sig = ep.analyze(ticker, opens, highs, lows, closes, volumes)
+                if sig:
+                    return "qullamaggie_ep", 80.0
+            except Exception:
+                pass
+
+        # Parabolic short — counter-trend, only when exhaustion detected
+        ps = self._qullamaggie_strategies.get("qullamaggie_parabolic_short")
+        if ps:
+            try:
+                sig = ps.analyze(ticker, opens, highs, lows, closes, volumes)
+                if sig:
+                    return "qullamaggie_parabolic_short", 75.0
+            except Exception:
+                pass
+
+        return None, 0.0
 
     def select_batch(
         self,

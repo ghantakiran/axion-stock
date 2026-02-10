@@ -256,19 +256,19 @@ REVERSAL_CANDIDATES_SCAN = Scanner(
 # All Preset Scanners
 # =============================================================================
 
-PRESET_SCANNERS = {
+_BASE_PRESETS = {
     # Price Action
     "gap_up": GAP_UP_SCAN,
     "gap_down": GAP_DOWN_SCAN,
     "new_high": NEW_HIGH_SCAN,
     "new_low": NEW_LOW_SCAN,
     "breakout": BREAKOUT_SCAN,
-    
+
     # Volume
     "volume_spike": VOLUME_SPIKE_SCAN,
     "unusual_volume": UNUSUAL_VOLUME_SCAN,
     "high_dollar_volume": HIGH_DOLLAR_VOLUME,
-    
+
     # Technical
     "rsi_oversold": RSI_OVERSOLD_SCAN,
     "rsi_overbought": RSI_OVERBOUGHT_SCAN,
@@ -278,7 +278,7 @@ PRESET_SCANNERS = {
     "macd_bearish": MACD_BEARISH_SCAN,
     "above_sma200": ABOVE_SMA200_SCAN,
     "below_sma200": BELOW_SMA200_SCAN,
-    
+
     # Momentum
     "big_gainers": BIG_GAINERS_SCAN,
     "big_losers": BIG_LOSERS_SCAN,
@@ -287,16 +287,43 @@ PRESET_SCANNERS = {
 }
 
 
+_extensions_merged = False
+
+
+def _ensure_extensions() -> None:
+    """Lazily merge extension presets (e.g. Qullamaggie) into PRESET_SCANNERS.
+
+    Deferred to avoid circular dependency: src.scanner.__init__ imports
+    presets.py at package init time, before extension modules that depend
+    on src.scanner.models have finished loading.
+    """
+    global _extensions_merged
+    if _extensions_merged:
+        return
+    _extensions_merged = True
+    try:
+        from src.qullamaggie.scanner import QULLAMAGGIE_PRESETS
+        PRESET_SCANNERS.update(QULLAMAGGIE_PRESETS)
+    except (ImportError, AttributeError):
+        pass
+
+
+PRESET_SCANNERS = dict(_BASE_PRESETS)
+
+
 def get_preset_scanner(name: str) -> Scanner:
     """Get a preset scanner by name."""
+    _ensure_extensions()
     return PRESET_SCANNERS.get(name)
 
 
 def get_presets_by_category(category: ScanCategory) -> list[Scanner]:
     """Get preset scanners by category."""
+    _ensure_extensions()
     return [s for s in PRESET_SCANNERS.values() if s.category == category]
 
 
 def get_all_presets() -> list[Scanner]:
     """Get all preset scanners."""
+    _ensure_extensions()
     return list(PRESET_SCANNERS.values())

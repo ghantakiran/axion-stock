@@ -22,7 +22,7 @@ class StrategyDecision:
     """Pipeline-friendly strategy decision."""
 
     ticker: str
-    strategy: str  # 'ema_cloud', 'mean_reversion', 'pullback_to_cloud', 'trend_day', 'session_scalp'
+    strategy: str  # 'ema_cloud', 'mean_reversion', 'pullback_to_cloud', 'trend_day', 'session_scalp', 'qullamaggie_breakout', 'qullamaggie_ep', 'qullamaggie_parabolic_short'
     confidence: float
     adx_value: float
     reasoning: str

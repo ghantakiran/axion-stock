@@ -13,6 +13,9 @@ from src.strategies.rsi_divergence import RSIDivergenceStrategy
 from src.strategies.pullback_strategy import PullbackToCloudStrategy
 from src.strategies.trend_day_strategy import TrendDayStrategy
 from src.strategies.session_scalp_strategy import SessionScalpStrategy
+from src.qullamaggie.breakout_strategy import QullamaggieBreakoutStrategy
+from src.qullamaggie.episodic_pivot_strategy import EpisodicPivotStrategy
+from src.qullamaggie.parabolic_short_strategy import ParabolicShortStrategy
 
 __all__ = [
     "BotStrategy",
@@ -23,4 +26,7 @@ __all__ = [
     "PullbackToCloudStrategy",
     "TrendDayStrategy",
     "SessionScalpStrategy",
+    "QullamaggieBreakoutStrategy",
+    "EpisodicPivotStrategy",
+    "ParabolicShortStrategy",
 ]

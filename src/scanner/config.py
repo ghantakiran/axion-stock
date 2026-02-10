@@ -184,6 +184,12 @@ SCAN_FIELDS = {
     "pe_ratio": "P/E Ratio",
     "float_shares": "Float",
     "short_float": "Short % of Float",
+
+    # Qullamaggie-specific
+    "adr_pct": "ADR % (20d)",
+    "perf_1m": "1-Month Performance %",
+    "perf_3m": "3-Month Performance %",
+    "consecutive_up_days": "Consecutive Up Days",
 }
 
 

@@ -1,7 +1,7 @@
 """Navigation configuration for Axion platform.
 
 Defines all page groupings, display names, and icons for st.navigation().
-All 149 pages organized into 10 collapsible sections.
+All 156 pages organized into 10 collapsible sections.
 """
 
 import streamlit as st
@@ -107,6 +107,10 @@ def build_navigation_pages() -> dict[str, list]:
             st.Page("pages/trend_day_strategy.py", title="Trend Day Strategy", icon=":material/trending_up:"),
             st.Page("pages/session_scalp_strategy.py", title="Session Scalp", icon=":material/schedule:"),
             st.Page("pages/bot_dashboard.py", title="Bot Dashboard", icon=":material/dashboard_customize:"),
+            st.Page("pages/qullamaggie_breakout.py", title="Qullamaggie Breakout", icon=":material/flag:"),
+            st.Page("pages/qullamaggie_ep.py", title="Qullamaggie EP", icon=":material/bolt:"),
+            st.Page("pages/qullamaggie_parabolic.py", title="Parabolic Short", icon=":material/trending_down:"),
+            st.Page("pages/qullamaggie_scanner.py", title="Qullamaggie Scanner", icon=":material/search:"),
         ],
 
         # ── Portfolio & Risk ─────────────────────────────────

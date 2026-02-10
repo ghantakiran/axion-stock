@@ -22,6 +22,9 @@ from src.strategies import (
     PullbackToCloudStrategy,
     TrendDayStrategy,
     SessionScalpStrategy,
+    QullamaggieBreakoutStrategy,
+    EpisodicPivotStrategy,
+    ParabolicShortStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,6 +48,9 @@ def _get_registry() -> StrategyRegistry:
     _registry.register(PullbackToCloudStrategy(), description="Pullback to EMA cloud", category="trend")
     _registry.register(TrendDayStrategy(), description="Trend day momentum", category="trend")
     _registry.register(SessionScalpStrategy(), description="Intraday session scalping", category="scalping")
+    _registry.register(QullamaggieBreakoutStrategy(), description="Qullamaggie flag breakout", category="momentum")
+    _registry.register(EpisodicPivotStrategy(), description="Qullamaggie episodic pivot", category="momentum")
+    _registry.register(ParabolicShortStrategy(), description="Qullamaggie parabolic short", category="momentum")
     return _registry
 
 
