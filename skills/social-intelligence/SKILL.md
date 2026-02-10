@@ -324,3 +324,8 @@ signal performance.
 `SignalArchive.replay()` yields signals in chronological order, suitable for
 feeding into `SocialSignalStrategy.run()` or `OutcomeValidator.validate()`.
 Use `get_signals(ticker, start, end)` for filtered queries.
+
+## See Also
+- **sentiment-analysis** — Social signals as one input to multi-source sentiment fusion
+- **trading-signal-generation** — Social conviction scores feed into signal generation pipeline
+- **backtesting-strategies** — Social signal backtester validates historical social signal accuracy

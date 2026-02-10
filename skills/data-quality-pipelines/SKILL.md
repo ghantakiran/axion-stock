@@ -1,5 +1,5 @@
 ---
-name: Data Quality Pipelines
+name: data-quality-pipelines
 description: >
   Build and orchestrate data quality pipelines for the Axion trading platform.
   Covers OHLCV and fundamental data validation (src/quality/), schema contracts

@@ -1,5 +1,5 @@
 ---
-name: Axion Visualization & Reporting
+name: visualization-reporting
 description: >
   Build charts, dashboards, and performance reports for the Axion trading platform.
   Covers advanced charting with 20+ technical indicators, pattern detection, trend analysis,

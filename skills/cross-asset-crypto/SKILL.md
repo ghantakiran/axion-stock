@@ -1,5 +1,5 @@
 ---
-name: Cross-Asset Crypto & Alternative Investments
+name: cross-asset-crypto
 description: >
   Analyze cross-asset relationships, crypto derivatives, blockchain settlement,
   credit risk, and ESG scoring on the Axion trading platform. Covers blockchain

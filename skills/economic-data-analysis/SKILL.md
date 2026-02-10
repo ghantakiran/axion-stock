@@ -455,3 +455,8 @@ detector = RegimeDetector()
 regime = detector.detect(summary, growth_score=0.2, inflation_score=-0.1)
 print(f"Regime: {regime.regime.value}, Confidence: {regime.probability}")
 ```
+
+## See Also
+- **market-regime-detection** — Macro regime signals complement HMM-based regime detection
+- **sentiment-analysis** — News sentiment overlaps with economic event analysis
+- **sector-rotation** — Economic cycle phases map to sector preferences

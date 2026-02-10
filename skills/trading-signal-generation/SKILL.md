@@ -387,3 +387,9 @@ DEFAULT_SOURCE_WEIGHTS = {
 - Momentum exhaustion needs `EXHAUSTION_CANDLES + 1` (4) bars
 - `VWAPStrategy` needs `rsi_period + 1` (15) bars
 - `ORBStrategy` needs `opening_range_bars + 2` (5) bars
+
+## See Also
+- **backtesting-strategies** — Validate signals historically with BacktestEngine and BotBacktestRunner
+- **risk-assessment** — Pre-trade risk checks (VaR, correlation guard) before signal execution
+- **order-execution** — Signal-to-order pipeline that consumes generated signals
+- **sentiment-analysis** — Sentiment scores as an additional signal source for fusion

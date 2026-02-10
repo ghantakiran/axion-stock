@@ -431,3 +431,8 @@ VaRConfig(
 5. Run weekly stress tests with `StressTestEngine`
 6. Apply `DrawdownProtection` rules when drawdown thresholds are hit
 7. `RegimeRiskAdapter` auto-adjusts limits based on current market regime
+
+## See Also
+- **order-execution** — RiskGate 8-check validation integrated into the execution pipeline
+- **portfolio-optimization** — VaR budgeting and correlation guards in portfolio construction
+- **trading-signal-generation** — UnifiedRiskContext checks applied to incoming signals

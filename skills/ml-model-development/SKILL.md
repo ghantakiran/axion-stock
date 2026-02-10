@@ -1,5 +1,5 @@
 ---
-name: axion-ml-model-development
+name: ml-model-development
 description: >
   Build and serve ML models for stock prediction on the Axion platform.
   Covers the factor engine (6 categories, regime-adaptive weights),

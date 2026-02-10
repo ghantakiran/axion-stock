@@ -483,3 +483,7 @@ flow = PressureAnalyzer().compute_pressure(
     tick_metrics.buy_volume, tick_metrics.sell_volume, "AAPL")
 # Combine: spread bps, Kyle's lambda, flow direction, cumulative delta
 ```
+
+## See Also
+- **trading-signal-generation** — Feed insider clusters, correlation divergence, and microstructure signals into fusion
+- **risk-assessment** — Correlation guard and regime detection inform risk checks

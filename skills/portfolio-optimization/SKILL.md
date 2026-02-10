@@ -369,3 +369,8 @@ TaxConfig(short_term_rate=0.37, long_term_rate=0.20, min_harvest_loss=500.0)
 6. Monitor drift with `DriftMonitor`
 7. Rebalance using `RebalancePlanner` when thresholds are breached
 8. Use `TaxLossHarvester` before year-end for tax efficiency
+
+## See Also
+- **risk-assessment** — VaR budgeting, correlation guards, and drawdown limits for portfolio construction
+- **sector-rotation** — Sector allocation signals that feed into optimization constraints
+- **backtesting-strategies** — Historical validation of portfolio optimization strategies

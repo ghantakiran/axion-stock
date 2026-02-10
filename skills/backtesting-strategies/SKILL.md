@@ -483,17 +483,16 @@ Apply these in order for maximum fidelity:
 
 ### Typical Backtest Workflow
 
-1. Define strategy implementing the `Strategy` protocol (`on_bar`, `on_fill`)
-2. Configure `BacktestConfig` with dates, capital, and cost model
-3. Load OHLCV data and run `BacktestEngine.run(strategy)`
-4. Analyze `BacktestResult.metrics` (Sharpe, drawdown, win rate)
-5. Run `WalkForwardOptimizer` to validate out-of-sample performance
-6. Run `MonteCarloSimulator` for confidence intervals
-7. Use `SignalAttributor` to identify best/worst signal types
-8. Use `SignalReplay` to A/B test different risk configurations
-9. Generate `TearSheetGenerator.generate()` for reporting
-10. Apply `SurvivorshipFilter` + `ConvexImpactModel` for enhanced realism
+1. Define strategy (`on_bar`, `on_fill`), configure `BacktestConfig`, run `BacktestEngine.run()`
+2. Analyze `BacktestResult.metrics` (Sharpe, drawdown, win rate)
+3. Run `WalkForwardOptimizer` and `MonteCarloSimulator` for robustness
+4. Use `SignalAttributor` and `SignalReplay` for attribution and A/B testing
+5. Generate tear sheet and apply `SurvivorshipFilter` + `ConvexImpactModel` for realism
 
 ### Bot Backtest vs. Standard Backtest
 
-`BacktestEngine` takes a Price DataFrame with generic `Strategy` protocol and outputs `BacktestResult` with symbol-level attribution. `BotBacktestRunner` takes OHLCV dicts, uses `EMACloudStrategy` adapter with `TradeSignal`/`SignalType`, and outputs `EnrichedBacktestResult` with per-signal-type/direction/exit attribution plus `SignalReplay` for A/B risk config testing.
+`BacktestEngine` uses a generic `Strategy` protocol with `BacktestResult`. `BotBacktestRunner` uses `EMACloudStrategy` with `EnrichedBacktestResult` (per-signal-type attribution + `SignalReplay` A/B testing).
+
+## See Also
+- **trading-signal-generation** — Signal sources and fusion weights that feed into backtests
+- **risk-assessment** — Risk parameters (VaR, drawdown limits) used in backtest configuration

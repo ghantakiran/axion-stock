@@ -1,5 +1,5 @@
 ---
-name: Axion Compliance & Enterprise
+name: compliance-enterprise
 description: >
   Implement compliance checks, enterprise features, and notifications for the Axion
   trading platform. Covers trade surveillance (wash trade, layering, spoofing detection),

@@ -301,3 +301,9 @@ The `get_sentiment_regime()` method classifies overall market mood:
 - `neutral`: avg between -0.1 and 0.1
 - `bearish`: avg < -0.1
 - `extreme_bearish`: avg < -0.3
+
+## See Also
+- **ml-model-development** — Use sentiment scores as features in ML factor models
+- **social-intelligence** — Social media signals as a sentiment source (crawling, scoring)
+- **trading-signal-generation** — Sentiment as one of 7 fusion sources in SignalFusion
+- **economic-data-analysis** — News and macro sentiment overlap with economic analysis

@@ -412,3 +412,8 @@ sentiment, net = flow_det.compute_net_sentiment()
 - `ScalpPosition`: ticker, option_symbol, strike, contracts, entry_price, delta, theta, pnl
 - `StrikeSelection`: strike, expiry, dte, delta, theta, iv, mid, spread_pct, score
 - `GreeksDecision`: approved (bool), reason, adjustments
+
+## See Also
+- **order-execution** — InstrumentRouter handles options order routing and Greeks validation
+- **broker-integration** — Options-first brokers (tastytrade, IBKR) with multi-leg order support
+- **risk-assessment** — Greeks-based risk checks for options positions

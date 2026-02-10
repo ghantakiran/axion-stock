@@ -312,3 +312,8 @@ consensus_overweight = favored & top_momentum
 - `Trend`: UP, DOWN, NEUTRAL
 - `SignalStrength`: WEAK, MODERATE, STRONG
 - `MarketHealthLevel`: VERY_BULLISH, BULLISH, NEUTRAL, BEARISH, VERY_BEARISH
+
+## See Also
+- **portfolio-optimization** — Sector weights as constraints in portfolio optimization
+- **market-regime-detection** — Regime state influences sector rotation timing (risk-on/off)
+- **economic-data-analysis** — Business cycle indicators drive sector preference mapping

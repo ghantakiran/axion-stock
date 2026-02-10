@@ -1,5 +1,5 @@
 ---
-name: axion-portfolio-tracking
+name: portfolio-tracking
 description: >
   Build portfolio tracking features on the Axion trading platform using five
   integrated modules: watchlists with price alerts, a trade journal with
