@@ -247,7 +247,7 @@ print(f"By strategy: {snap.by_strategy}")
 
 ### `BotOrchestrator` (src/bot_pipeline/orchestrator.py)
 - `process_signal(signal, account, regime, returns_by_ticker) -> PipelineResult`
-- `close_position(ticker, exit_reason, exit_price) -> Optional[Position]`
+- `close_position(ticker, exit_reason, exit_price, partial_qty=None) -> Optional[Position]`
 - `get_pipeline_stats() -> dict`
 - Properties: `positions`, `execution_history`, `config`
 
@@ -355,6 +355,28 @@ The kill switch, daily P&L, and circuit breaker persist in `.bot_state/bot_state
 | PUT | `/api/v1/bot/config` | write | Hot-update config |
 | GET | `/api/v1/bot/config` | read | Get current config |
 
+### Strategy API Endpoints (`src/api/routes/strategies.py`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/strategies` | read | List all registered strategies |
+| GET | `/api/v1/strategies/stats` | read | A/B comparison stats from StrategySelector |
+| GET | `/api/v1/strategies/{name}` | read | Get single strategy details |
+| PUT | `/api/v1/strategies/{name}/enable` | write | Enable a strategy |
+| PUT | `/api/v1/strategies/{name}/disable` | write | Disable a strategy |
+| POST | `/api/v1/strategies/{name}/analyze` | write | Run strategy on OHLCV data |
+
+### Strategy Routing (StrategySelector + StrategyBridge)
+
+The `StrategySelector` (`src/strategy_selector/selector.py`) uses ADX to gate between trending and ranging strategies. When EMA Cloud is selected and OHLCV data is available, it further refines to specific Ripster sub-strategies via `refine_ema_strategy()`:
+
+1. **Strong trend + ORB breakout** → TrendDayStrategy (confidence 90)
+2. **Moderate+ trend + pullback** → PullbackToCloudStrategy (confidence 80)
+3. **Any trend + session match** → SessionScalpStrategy (confidence 65)
+4. **Fallback** → generic EMA Cloud signals (confidence 70)
+
+The `StrategyBridge` (`src/bot_pipeline/strategy_bridge.py`) passes full OHLCV arrays to `StrategySelector.select()` for Ripster refinement.
+
 ### Source files
 
 - `src/bot_pipeline/__init__.py` -- public API exports
@@ -376,3 +398,6 @@ The kill switch, daily P&L, and circuit breaker persist in `.bot_state/bot_state
 - `src/bot_analytics/metrics.py` -- sharpe_ratio, sortino_ratio, calmar_ratio, max_drawdown
 - `src/api/routes/bot.py` -- REST API router (11 endpoints)
 - `src/api/routes/bot_ws.py` -- WebSocket endpoint (/ws/bot)
+- `src/api/routes/strategies.py` -- Strategy registry REST API (6 endpoints)
+- `src/strategy_selector/selector.py` -- ADX-gated strategy routing with Ripster refinement
+- `src/strategies/` -- BotStrategy protocol, StrategyRegistry, 6 built-in strategies

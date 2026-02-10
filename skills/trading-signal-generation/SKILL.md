@@ -29,9 +29,9 @@ OHLCV DataFrame -> EMACloudCalculator.compute_clouds() -> SignalDetector.detect(
 ```
 
 **Source files:**
-- `src/ema_signals/clouds.py` -- EMA cloud computation (4 layers)
-- `src/ema_signals/detector.py` -- Signal detection (10 types)
-- `src/ema_signals/conviction.py` -- Conviction scoring (0-100)
+- `src/ema_signals/clouds.py` -- EMA cloud computation (5 layers incl. 72/89 long-term)
+- `src/ema_signals/detector.py` -- Signal detection (12 types incl. candlestick patterns)
+- `src/ema_signals/conviction.py` -- Conviction scoring 0-100 (7 factors incl. slope)
 - `src/ema_signals/mtf.py` -- Multi-timeframe confluence engine
 - `src/ema_signals/scanner.py` -- Universe scanner for batch detection
 
@@ -63,8 +63,38 @@ StrategyRegistry.register(strategy) -> registry.analyze_all(ticker, OHLCV) -> [(
 - `src/strategies/vwap_strategy.py` -- VWAP mean-reversion
 - `src/strategies/orb_strategy.py` -- Opening range breakout
 - `src/strategies/rsi_divergence.py` -- RSI divergence detection
+- `src/strategies/pullback_strategy.py` -- Ripster pullback-to-cloud entry
+- `src/strategies/trend_day_strategy.py` -- ORB + cloud alignment trend day
+- `src/strategies/session_scalp_strategy.py` -- Session-aware intraday routing
 
-### 4. Close the Feedback Loop
+### 4. TradingView Scanner Signals
+
+Use the TV Scanner for live market screening as an additional signal source:
+
+```
+TVScreener.scan(preset) -> ScreenerResult[] -> SignalBridge.to_raw_signals() -> RawSignal[]
+```
+
+**Source files:**
+- `src/tv_scanner/screener.py` -- TradingView screener (6 asset classes, 14 presets)
+- `src/tv_scanner/presets.py` -- Momentum, value, volume, growth, crypto presets
+- `src/tv_scanner/bridge.py` -- Cross-module bridge to signal/EMA systems
+- `src/tv_scanner/streaming.py` -- Continuous scan streaming mode
+
+### 5. Signal Persistence and Audit Trail
+
+Record every signal through the pipeline for full traceability:
+
+```
+SignalRecord -> FusionRecord -> RiskDecisionRecord -> ExecutionRecord
+```
+
+**Source files:**
+- `src/signal_persistence/store.py` -- Thread-safe signal store
+- `src/signal_persistence/models.py` -- SignalRecord, FusionRecord, RiskDecisionRecord, ExecutionRecord
+- `src/signal_persistence/query.py` -- Query builder for signal audit trail
+
+### 6. Close the Feedback Loop
 
 Track signal source performance and adapt fusion weights:
 
@@ -92,20 +122,22 @@ from src.ema_signals import (
     SignalType,
 )
 
-# Configure the 4 cloud layers (Ripster methodology)
+# Configure the 5 cloud layers (Ripster methodology)
 config = CloudConfig(
     fast_short=5,    fast_long=12,     # Fast cloud
     pullback_short=8, pullback_long=9,  # Pullback cloud
     trend_short=20,  trend_long=21,     # Trend cloud
     macro_short=34,  macro_long=50,     # Macro cloud
+    long_term_short=72, long_term_long=89,  # Long-term cloud
 )
 
-# Compute clouds from OHLCV DataFrame (needs 50+ bars)
+# Compute clouds from OHLCV DataFrame (needs 89+ bars for 5th layer)
 calculator = EMACloudCalculator(config)
 cloud_df = calculator.compute_clouds(ohlcv_df)
-cloud_states = calculator.get_cloud_states(cloud_df)
+cloud_states = calculator.get_cloud_states(cloud_df)  # 5 CloudState objects
+# Each CloudState has: is_bullish, thickness, slope, slope_direction
 
-# Detect signals across all 4 cloud layers
+# Detect signals across all 5 cloud layers
 detector = SignalDetector(config)
 signals = detector.detect(ohlcv_df, ticker="AAPL", timeframe="5m")
 
@@ -215,11 +247,17 @@ orb = ORBStrategy(ORBConfig(
 ))
 rsi_div = RSIDivergenceStrategy()
 
+# Import Ripster strategies
+from src.strategies import PullbackToCloudStrategy, TrendDayStrategy, SessionScalpStrategy
+
 # Register all strategies
 registry = StrategyRegistry()
 registry.register(vwap, description="VWAP mean-reversion", category="mean_reversion")
 registry.register(orb, description="Opening range breakout", category="breakout")
 registry.register(rsi_div, description="RSI divergence", category="divergence")
+registry.register(PullbackToCloudStrategy(), description="Pullback to cloud", category="trend")
+registry.register(TrendDayStrategy(), description="Trend day detection", category="trend")
+registry.register(SessionScalpStrategy(), description="Session-aware scalping", category="scalping")
 
 # Run all enabled strategies on a ticker
 results = registry.analyze_all(
@@ -296,9 +334,9 @@ print(f"New weights: {update.new_weights}")
 
 | Class | Key Methods | Purpose |
 |---|---|---|
-| `EMACloudCalculator` | `compute_clouds(df)`, `get_cloud_states(df)`, `cloud_thickness(df, name)` | Compute 4-layer EMA clouds |
-| `SignalDetector` | `detect(df, ticker, timeframe)` | Detect 10 signal types from cloud states |
-| `ConvictionScorer` | `score(signal, volume_data, factor_scores)` | Score conviction 0-100 from 6 factors |
+| `EMACloudCalculator` | `compute_clouds(df)`, `get_cloud_states(df)`, `cloud_thickness(df, name)` | Compute 5-layer EMA clouds (incl. 72/89) |
+| `SignalDetector` | `detect(df, ticker, timeframe)` | Detect 12 signal types (incl. candlestick patterns) |
+| `ConvictionScorer` | `score(signal, volume_data, factor_scores)` | Score conviction 0-100 from 7 factors (incl. slope) |
 | `MTFEngine` | `analyze(ticker, data_by_tf)` | Multi-timeframe confluence |
 | `UniverseScanner` | `scan(tickers, data)` | Batch scan across ticker universe |
 
@@ -319,6 +357,9 @@ print(f"New weights: {update.new_weights}")
 | `VWAPStrategy` | `analyze()`, `_compute_vwap()`, `_compute_rsi()` | VWAP mean-reversion |
 | `ORBStrategy` | `analyze()` | Opening range breakout |
 | `RSIDivergenceStrategy` | `analyze()` | RSI divergence detection |
+| `PullbackToCloudStrategy` | `analyze()` | Ripster pullback-to-cloud entry |
+| `TrendDayStrategy` | `analyze()` | ORB + cloud + volume trend day |
+| `SessionScalpStrategy` | `analyze()` | Session-aware intraday routing |
 
 ### Feedback Loop (`src/signal_feedback/`)
 
@@ -343,6 +384,8 @@ print(f"New weights: {update.new_weights}")
 | `TREND_ALIGNED_SHORT` | short | All 4 clouds bearish, price below all |
 | `MOMENTUM_EXHAUSTION` | reversal | 3+ candles outside fast cloud |
 | `MTF_CONFLUENCE` | context | Multiple timeframes agree on direction |
+| `CANDLESTICK_BULLISH` | long | Hammer/engulfing/pin bar at cloud boundary |
+| `CANDLESTICK_BEARISH` | short | Bearish engulfing/pin bar at cloud boundary |
 
 ### Default Signal Source Weights
 
@@ -358,16 +401,17 @@ DEFAULT_SOURCE_WEIGHTS = {
 }
 ```
 
-### Conviction Scoring Weights (total = 100)
+### Conviction Scoring Weights (7 factors, total = 100)
 
 | Factor | Weight | Source |
 |---|---|---|
-| Cloud alignment | 25 | Number of clouds agreeing with direction |
+| Cloud alignment | 25 | Number of 5 clouds agreeing with direction |
 | MTF confluence | 25 | Number of timeframes confirming |
 | Volume | 15 | Current vs. average volume ratio |
 | Factor score | 15 | Axion composite factor score |
-| Cloud thickness | 10 | Wider cloud = stronger support |
 | Candle quality | 10 | Full-body vs. wicks/dojis |
+| Cloud slope | 5 | Aligned rising/falling slopes on clouds 3-5 |
+| Cloud thickness | 5 | Wider cloud = stronger support |
 
 ### Recommendation Action Thresholds
 
@@ -381,7 +425,7 @@ DEFAULT_SOURCE_WEIGHTS = {
 
 ### Minimum Data Requirements
 
-- `EMACloudCalculator` needs 50+ bars (macro_long period)
+- `EMACloudCalculator` needs 89+ bars (long_term_long period)
 - `SignalDetector.detect()` needs `max_period + 2` bars minimum
 - Cloud bounce detection needs at least 4 bars
 - Momentum exhaustion needs `EXHAUSTION_CANDLES + 1` (4) bars
