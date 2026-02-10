@@ -62,7 +62,7 @@ def _make_independent_pair(n=300, seed=99):
 # Config Tests
 # ===========================================================================
 
-class TestConfig:
+class TestPairsConfig:
     """Test configuration enums and dataclasses."""
 
     def test_signal_type_values(self):
@@ -112,7 +112,7 @@ class TestConfig:
 # Model Tests
 # ===========================================================================
 
-class TestModels:
+class TestPairsModels:
     """Test data models."""
 
     def test_cointegration_result_properties(self):
@@ -232,7 +232,7 @@ class TestCointegrationTester:
 # Spread Analyzer Tests
 # ===========================================================================
 
-class TestSpreadAnalyzer:
+class TestPairsSpreadAnalyzer:
     """Test spread analysis."""
 
     def test_compute_spread(self):
@@ -398,7 +398,7 @@ class TestPairSelector:
 # Integration Tests
 # ===========================================================================
 
-class TestIntegration:
+class TestPairsIntegration:
     """End-to-end integration tests."""
 
     def test_full_pipeline(self):
@@ -444,7 +444,7 @@ class TestIntegration:
 # Module Import Tests
 # ===========================================================================
 
-class TestModuleImports:
+class TestPairsModuleImports:
     """Test module imports work correctly."""
 
     def test_top_level_imports(self):

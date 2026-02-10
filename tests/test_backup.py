@@ -540,7 +540,7 @@ class TestBackupMonitor:
         assert "alerts" in data
 
 
-class TestDataclasses:
+class TestBackupDataclasses:
     """Tests for dataclass models."""
 
     def test_backup_artifact(self):

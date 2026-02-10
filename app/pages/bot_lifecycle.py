@@ -8,9 +8,12 @@
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone
 
 st.set_page_config(page_title="Bot Lifecycle", page_icon=":material/cycle:", layout="wide")
+
+inject_global_styles()
 st.title("Bot Lifecycle Hardening")
 st.caption("PRD-171 — Signal guard, position lifecycle, exit monitoring & emergency controls")
 

@@ -9,6 +9,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.audit.config import AuditConfig, EventCategory, EventOutcome
 from src.audit.events import Actor, AuditEvent, Resource
@@ -18,6 +19,8 @@ try:
     st.set_page_config(page_title="Audit Trail", page_icon="📜", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("📜 Audit Trail & Event Sourcing")
 

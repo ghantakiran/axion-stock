@@ -9,6 +9,7 @@ Comprehensive enterprise interface with:
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import datetime, date, timedelta
 
@@ -22,6 +23,8 @@ try:
     )
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 # Import enterprise module

@@ -68,7 +68,7 @@ def _make_inverted_curve():
 # ── Config Tests ─────────────────────────────────────────────
 
 
-class TestConfig:
+class TestMacroConfig:
     def test_regime_type_values(self):
         assert RegimeType.EXPANSION.value == "expansion"
         assert RegimeType.SLOWDOWN.value == "slowdown"
@@ -123,7 +123,7 @@ class TestConfig:
 # ── Model Tests ──────────────────────────────────────────────
 
 
-class TestModels:
+class TestMacroModels:
     def test_economic_indicator_properties(self):
         ind = EconomicIndicator(
             name="GDP", value=3.2, previous=2.8,
@@ -361,7 +361,7 @@ class TestYieldCurveAnalyzer:
 # ── Regime Detector Tests ────────────────────────────────────
 
 
-class TestRegimeDetector:
+class TestMacroRegimeDetector:
     def _make_summary(self, breadth=0.7):
         n_imp = int(10 * breadth)
         n_det = 10 - n_imp
@@ -503,7 +503,7 @@ class TestMacroFactorModel:
 # ── Integration Tests ────────────────────────────────────────
 
 
-class TestIntegration:
+class TestMacroIntegration:
     def test_full_pipeline(self):
         """End-to-end: indicators -> regime -> factors."""
         # Track indicators
@@ -542,7 +542,7 @@ class TestIntegration:
         assert factors.dominant_factor in factor_series
 
 
-class TestModuleImports:
+class TestMacroModuleImports:
     def test_top_level_imports(self):
         from src.macro import (
             IndicatorTracker,

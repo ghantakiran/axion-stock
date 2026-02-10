@@ -34,7 +34,7 @@ from src.events.signals import EventSignalGenerator
 # ── Config Tests ────────────────────────────────────────────────────
 
 
-class TestConfig:
+class TestEventsConfig:
     """Test configuration."""
 
     def test_enums(self):
@@ -63,7 +63,7 @@ class TestConfig:
 # ── Model Tests ─────────────────────────────────────────────────────
 
 
-class TestModels:
+class TestEventsModels:
     """Test data models."""
 
     def test_earnings_event_surprise(self):
@@ -630,7 +630,7 @@ class TestEventSignalGenerator:
 # ── Integration Tests ───────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestEventsIntegration:
     """Integration tests."""
 
     def test_full_workflow(self):

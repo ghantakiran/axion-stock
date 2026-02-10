@@ -48,7 +48,7 @@ from src.anomaly_detection.manager import (
 # ── Config / Enum Tests ──────────────────────────────────────────────
 
 
-class TestEnums:
+class TestAnomalyDetectionEnums:
     """Tests for all enum types."""
 
     def test_anomaly_type_values(self):
@@ -86,7 +86,7 @@ class TestEnums:
         assert AnomalyStatus.FALSE_POSITIVE.value == "false_positive"
 
 
-class TestConfigs:
+class TestAnomalyDetectionConfigs:
     """Tests for dataclass configurations."""
 
     def test_detector_config_defaults(self):

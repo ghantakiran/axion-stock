@@ -1,6 +1,7 @@
 """PRD-125: Cost & Usage Metering + Billing Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone, timedelta
 
 from src.billing import (
@@ -83,6 +84,8 @@ def render():
         st.set_page_config(page_title="Billing & Metering", layout="wide")
     except st.errors.StreamlitAPIException:
         pass
+
+inject_global_styles()
     st.title("Cost & Usage Metering + Billing")
 
     meter, engine, inv_mgr, analytics, config, workspaces = _create_sample_data()

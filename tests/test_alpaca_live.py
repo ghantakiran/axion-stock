@@ -185,7 +185,7 @@ class TestAlpacaClient:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestResponseModels:
+class TestAlpacaLiveResponseModels:
     """Tests for API response model parsing."""
 
     def test_account_from_api(self):
@@ -663,7 +663,7 @@ class TestMarketData:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports:
+class TestAlpacaLiveModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

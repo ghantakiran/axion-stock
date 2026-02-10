@@ -538,7 +538,7 @@ class TestAuditConfig:
 # =============================================================================
 
 
-class TestORMModels:
+class TestComplianceORMModels:
     """Tests for ORM model definitions."""
 
     def test_compliance_rule_model(self):
@@ -627,7 +627,7 @@ class TestORMModels:
 # =============================================================================
 
 
-class TestEnums:
+class TestComplianceEnums:
     """Tests for enum definitions."""
 
     def test_compliance_rule_type_enum(self):

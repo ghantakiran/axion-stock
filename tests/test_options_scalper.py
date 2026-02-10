@@ -541,7 +541,7 @@ class TestETFScalpPosition(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestOptionsScalperModuleImports(unittest.TestCase):
     """Test that all public symbols are importable."""
 
     def test_import_all(self):

@@ -14,6 +14,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -30,6 +31,8 @@ try:
     )
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 # Import ML module

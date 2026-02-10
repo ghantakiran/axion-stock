@@ -1,11 +1,14 @@
 """Model Providers Dashboard — Configure and manage LLM backends."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 try:
     st.set_page_config(page_title="Model Providers", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Model Providers")
 

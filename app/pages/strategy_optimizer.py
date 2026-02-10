@@ -5,6 +5,9 @@ GA optimization, performance evaluation, and drift monitoring.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.strategy_optimizer.parameters import build_default_parameter_space
 from src.strategy_optimizer.evaluator import PerformanceMetrics, StrategyEvaluator

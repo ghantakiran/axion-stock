@@ -666,7 +666,7 @@ class TestWorkspaceStats:
 # =============================================================================
 
 
-class TestSubscriptionLimits:
+class TestWorkspacesSubscriptionLimits:
     """Tests for subscription tier limits."""
 
     def test_enterprise_has_team_workspace(self):
@@ -722,7 +722,7 @@ class TestSubscriptionLimits:
 # =============================================================================
 
 
-class TestORMModels:
+class TestWorkspacesORMModels:
     """Tests for ORM model definitions."""
 
     def test_workspace_model(self):
@@ -802,7 +802,7 @@ class TestORMModels:
 # =============================================================================
 
 
-class TestEnums:
+class TestWorkspacesEnums:
     """Tests for enum definitions."""
 
     def test_workspace_role_enum(self):

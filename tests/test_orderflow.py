@@ -34,7 +34,7 @@ from src.orderflow.pressure import PressureAnalyzer
 # Config Tests
 # ===========================================================================
 
-class TestConfig:
+class TestOrderflowConfig:
     """Test configuration enums and dataclasses."""
 
     def test_flow_signal_values(self):
@@ -90,7 +90,7 @@ class TestConfig:
 # Model Tests
 # ===========================================================================
 
-class TestModels:
+class TestOrderflowModels:
     """Test data models."""
 
     def test_orderbook_snapshot_properties(self):
@@ -377,7 +377,7 @@ class TestPressureAnalyzer:
 # Integration Tests
 # ===========================================================================
 
-class TestIntegration:
+class TestOrderflowIntegration:
     """End-to-end integration tests."""
 
     def test_full_order_flow_pipeline(self):
@@ -430,7 +430,7 @@ class TestIntegration:
 # Module Import Tests
 # ===========================================================================
 
-class TestModuleImports:
+class TestOrderflowModuleImports:
     """Test module imports work correctly."""
 
     def test_top_level_imports(self):

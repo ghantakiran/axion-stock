@@ -8,6 +8,7 @@ import random
 from datetime import datetime, timezone
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.testing.config import LoadProfile, TestConfig, TestType
 from src.testing.load import LoadTestRunner
@@ -16,6 +17,8 @@ try:
     st.set_page_config(page_title="Testing Framework", page_icon="🧪", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("🧪 Integration & Load Testing Framework")
 

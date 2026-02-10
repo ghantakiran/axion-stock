@@ -63,7 +63,7 @@ def _multi_asset_returns(seed: int = 42) -> dict:
 # ---------------------------------------------------------------------------
 # Config enums
 # ---------------------------------------------------------------------------
-class TestConfig:
+class TestCrossassetConfig:
     def test_asset_class_values(self):
         assert AssetClass.EQUITY.value == "equity"
         assert AssetClass.CURRENCY.value == "currency"

@@ -1,11 +1,14 @@
 """PRD-121: Event-Driven Architecture & Message Bus — Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 try:
     st.set_page_config(page_title="Event Bus", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Event-Driven Architecture & Message Bus")
 

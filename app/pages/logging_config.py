@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.logging_config.config import LogFormat, LoggingConfig, LogLevel
 from src.logging_config.context import RequestContext, generate_request_id
@@ -20,6 +21,8 @@ try:
     st.set_page_config(page_title="Structured Logging", page_icon="📋", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("📋 Structured Logging & Request Tracing")
 

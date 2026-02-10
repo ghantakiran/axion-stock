@@ -579,7 +579,7 @@ class TestProfilingIntegration:
 # ── Module Import Test ───────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestProfilingModuleImports:
     def test_import_all(self):
         import src.profiling as prof
 

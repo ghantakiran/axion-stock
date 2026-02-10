@@ -41,7 +41,7 @@ from src.social.leaderboard import LeaderboardManager
 from src.social.feed import FeedManager
 
 
-class TestConfig:
+class TestSocialConfig:
     """Test configuration."""
 
     def test_profile_visibility(self):
@@ -685,7 +685,7 @@ class TestFeedManager:
         assert stats["posts_by_type"]["commentary"] == 1
 
 
-class TestFullWorkflow:
+class TestSocialFullWorkflow:
     """Integration tests for the full social trading workflow."""
 
     def test_complete_social_workflow(self):
@@ -779,7 +779,7 @@ class TestFullWorkflow:
         assert updated.stats.total_return == 0.08
 
 
-class TestModuleImports:
+class TestSocialModuleImports:
     """Test that all module exports work."""
 
     def test_top_level_imports(self):

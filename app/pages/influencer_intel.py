@@ -5,6 +5,9 @@ performance tracking, network analysis, and alert monitoring.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 

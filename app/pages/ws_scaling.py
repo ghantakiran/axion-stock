@@ -2,6 +2,7 @@
 
 import random
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta
 
 from src.ws_scaling import (
@@ -21,6 +22,8 @@ def render():
         st.set_page_config(page_title="WebSocket Scaling", page_icon="\U0001f50c")
     except st.errors.StreamlitAPIException:
         pass
+
+inject_global_styles()
     st.title("\U0001f50c WebSocket Scaling & Real-time Infrastructure")
 
     tabs = st.tabs(["Connections", "Message Throughput", "Backpressure", "Health"])

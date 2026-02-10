@@ -148,7 +148,7 @@ class TestBuildDefaultSpace:
 # ── PerformanceMetrics ───────────────────────────────────────────────────
 
 
-class TestPerformanceMetrics:
+class TestStrategyOptimizerPerformanceMetrics:
 
     def test_defaults(self):
         m = PerformanceMetrics()

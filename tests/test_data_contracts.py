@@ -35,7 +35,7 @@ from src.data_contracts.sla_monitor import (
 # ── Config Tests ─────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestDataContractsEnums:
     """Test all configuration enums."""
 
     def test_contract_status_values(self):
@@ -1133,7 +1133,7 @@ class TestSLAMonitor:
 # ── Integration Tests ────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestDataContractsIntegration:
     """End-to-end integration tests."""
 
     def test_full_lifecycle(self):

@@ -1,6 +1,7 @@
 """PRD-103: Observability & Metrics Export."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime
 
 from src.observability import (
@@ -13,6 +14,7 @@ from src.observability import (
 
 
 def render():
+inject_global_styles()
     st.title("Observability & Metrics Export")
 
     tabs = st.tabs(["Overview", "Trading Metrics", "System Metrics", "Prometheus Export"])

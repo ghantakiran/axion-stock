@@ -39,7 +39,7 @@ from src.alerts.channels.webhook import WebhookChannel
 from src.alerts.channels.slack import SlackChannel
 
 
-class TestConfig:
+class TestAlertsConfig:
     """Test configuration enums and constants."""
 
     def test_alert_types(self):
@@ -840,7 +840,7 @@ class TestAlertEngine:
         assert stats["alerts_by_type"]["technical"] == 1
 
 
-class TestAlertManager:
+class TestAlertsAlertManager:
     """Test the alert manager."""
 
     def test_create_alert(self):
@@ -1032,7 +1032,7 @@ class TestAlertManager:
         assert alert.expires_at > datetime.now(timezone.utc)
 
 
-class TestFullWorkflow:
+class TestAlertsFullWorkflow:
     """Integration tests for the complete alerting workflow."""
 
     def test_price_alert_workflow(self):
@@ -1125,7 +1125,7 @@ class TestFullWorkflow:
         assert len(events) == 0
 
 
-class TestModuleImports:
+class TestAlertsModuleImports:
     """Test that all module exports work."""
 
     def test_top_level_imports(self):

@@ -412,7 +412,7 @@ class TestSafeFloat(unittest.TestCase):
 
 # ── Module Import Tests ────────────────────────────────────────────
 
-class TestModuleImports(unittest.TestCase):
+class TestTvScannerModuleImports(unittest.TestCase):
     """Verify all public symbols are importable."""
 
     def test_import_all(self):

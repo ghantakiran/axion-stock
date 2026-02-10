@@ -41,7 +41,7 @@ class MockDailyReview:
             setattr(self, k, v)
 
 
-class TestPerformanceMetrics:
+class TestTradeJournalPerformanceMetrics:
     """Test performance metric calculations."""
 
     def test_win_rate_calculation(self):

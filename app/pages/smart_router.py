@@ -1,6 +1,7 @@
 """PRD-98: Smart Order Router Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.smart_router import (
     SmartRouter,
@@ -13,6 +14,7 @@ from src.smart_router import (
 
 
 def render():
+inject_global_styles()
     st.title("Smart Order Router")
 
     tabs = st.tabs(["Route Order", "Venues", "Cost Analysis", "Audit Log"])

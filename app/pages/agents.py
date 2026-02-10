@@ -1,12 +1,15 @@
 """Agent Hub Dashboard — Browse, chat with, and manage AI agents."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone
 
 try:
     st.set_page_config(page_title="Agent Hub", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Agent Hub")
 

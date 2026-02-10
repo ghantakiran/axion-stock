@@ -6,7 +6,10 @@ Unified command center for the autonomous trading bot.
 
 try:
     import streamlit as st
+from app.styles import inject_global_styles
     st.set_page_config(page_title="Bot Control", layout="wide")
+
+inject_global_styles()
 except Exception:
     import streamlit as st
 

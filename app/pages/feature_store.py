@@ -1,6 +1,7 @@
 """PRD-123: Feature Store & ML Feature Management."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta, timezone
 
 from src.feature_store import (
@@ -158,6 +159,8 @@ def render():
         st.set_page_config(page_title="Feature Store", layout="wide")
     except st.errors.StreamlitAPIException:
         pass
+
+inject_global_styles()
     st.title("Feature Store & ML Feature Management")
 
     tabs = st.tabs(["Feature Catalog", "Online/Offline Status", "Lineage", "Monitoring"])

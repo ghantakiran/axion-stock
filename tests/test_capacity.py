@@ -38,7 +38,7 @@ from src.capacity.cost import (
 # ── Enum Tests ───────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestCapacityEnums:
     def test_resource_types(self):
         assert len(ResourceType) == 7
         assert ResourceType.CPU.value == "cpu"
@@ -76,7 +76,7 @@ class TestEnums:
 # ── Config Tests ─────────────────────────────────────────────────────
 
 
-class TestConfig:
+class TestCapacityConfig:
     def test_resource_threshold_defaults(self):
         t = ResourceThreshold()
         assert t.warning_pct == 70.0
@@ -957,7 +957,7 @@ class TestCostAnalyzer:
 # ── Integration Tests ────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestCapacityIntegration:
     def setup_method(self):
         self.config = CapacityConfig(enable_auto_scaling=True)
         self.monitor = ResourceMonitor(config=self.config)

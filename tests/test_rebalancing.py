@@ -63,7 +63,7 @@ def _make_holdings(drifted: bool = False) -> list[Holding]:
 # Config Tests
 # ===========================================================================
 
-class TestConfig:
+class TestRebalancingConfig:
     """Test configuration enums and dataclasses."""
 
     def test_trigger_values(self):
@@ -124,7 +124,7 @@ class TestConfig:
 # Model Tests
 # ===========================================================================
 
-class TestModels:
+class TestRebalancingModels:
     """Test data models."""
 
     def test_holding_unrealized_pnl(self):
@@ -422,7 +422,7 @@ class TestRebalanceScheduler:
 # Integration Tests
 # ===========================================================================
 
-class TestIntegration:
+class TestRebalancingIntegration:
     """End-to-end integration tests."""
 
     def test_drift_to_plan_pipeline(self):
@@ -475,7 +475,7 @@ class TestIntegration:
 # Module Import Tests
 # ===========================================================================
 
-class TestModuleImports:
+class TestRebalancingModuleImports:
     """Test module imports work correctly."""
 
     def test_top_level_imports(self):

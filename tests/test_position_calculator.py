@@ -32,7 +32,7 @@ from src.position_calculator.drawdown import DrawdownMonitor
 # =========================================================================
 
 
-class TestConfig:
+class TestPositionCalculatorConfig:
     def test_stop_types(self):
         assert len(StopType) == 3
         assert StopType.FIXED.value == "fixed"
@@ -91,7 +91,7 @@ class TestConfig:
 # =========================================================================
 
 
-class TestModels:
+class TestPositionCalculatorModels:
     def test_sizing_inputs_risk_per_share(self):
         inputs = SizingInputs(
             account_value=100_000,
@@ -690,7 +690,7 @@ class TestDrawdownMonitor:
 # =========================================================================
 
 
-class TestIntegration:
+class TestPositionCalculatorIntegration:
     def test_sizing_with_heat_check(self):
         """Full workflow: size a trade, check heat, apply drawdown."""
         engine = PositionSizingEngine()
@@ -789,7 +789,7 @@ class TestIntegration:
 # =========================================================================
 
 
-class TestModuleImports:
+class TestPositionCalculatorModuleImports:
     def test_top_level_imports(self):
         from src.position_calculator import (
             PositionSizingEngine,

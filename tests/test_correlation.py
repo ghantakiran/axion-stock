@@ -64,7 +64,7 @@ def _make_corr_matrix(correlations: np.ndarray, symbols: list[str]) -> Correlati
 # =========================================================================
 
 
-class TestConfig:
+class TestCorrelationConfig:
     def test_correlation_methods(self):
         assert len(CorrelationMethod) == 3
         assert CorrelationMethod.PEARSON.value == "pearson"
@@ -115,7 +115,7 @@ class TestConfig:
 # =========================================================================
 
 
-class TestModels:
+class TestCorrelationModels:
     def test_correlation_matrix_properties(self):
         values = np.array([
             [1.0, 0.8, 0.3],
@@ -529,7 +529,7 @@ class TestDiversificationAnalyzer:
 # =========================================================================
 
 
-class TestIntegration:
+class TestCorrelationIntegration:
     def test_full_workflow(self):
         """Compute matrix, detect regime, score diversification."""
         engine = CorrelationEngine()
@@ -578,7 +578,7 @@ class TestIntegration:
 # =========================================================================
 
 
-class TestModuleImports:
+class TestCorrelationModuleImports:
     def test_top_level_imports(self):
         from src.correlation import (
             CorrelationEngine,

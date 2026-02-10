@@ -25,7 +25,7 @@ from src.blockchain.monitor import TransactionMonitor
 # ── Config Tests ──
 
 
-class TestEnums:
+class TestBlockchainEnums:
     def test_networks(self):
         assert BlockchainNetwork.ETHEREUM.value == "ethereum"
         assert len(BlockchainNetwork) == 7
@@ -350,7 +350,7 @@ class TestTransactionMonitor:
 # ── Module Import Test ──
 
 
-class TestModuleImports:
+class TestBlockchainModuleImports:
     def test_top_level_imports(self):
         from src.blockchain import (
             SettlementEngine,

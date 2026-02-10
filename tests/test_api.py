@@ -715,7 +715,7 @@ class TestFastAPIRoutes:
 # =============================================================================
 
 
-class TestModuleImports:
+class TestApiModuleImports:
     """Test that all public API module exports work."""
 
     def test_import_config(self):

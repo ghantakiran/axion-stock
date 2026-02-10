@@ -836,7 +836,7 @@ class TestAttributionEngine(unittest.TestCase):
 # 8. TestModuleImports
 # ---------------------------------------------------------------------------
 
-class TestModuleImports(unittest.TestCase):
+class TestTradeAttributionModuleImports(unittest.TestCase):
     """Tests for module exports and importability."""
 
     def test_all_exports_importable(self):

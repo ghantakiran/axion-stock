@@ -9,6 +9,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.api_errors.config import ERROR_STATUS_MAP, ErrorCode, ErrorSeverity
 
@@ -16,6 +17,8 @@ try:
     st.set_page_config(page_title="API Error Handling", page_icon="🛡️", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("🛡️ API Error Handling & Validation")
 

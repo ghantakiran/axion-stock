@@ -571,7 +571,7 @@ class TestMentionTimeseries:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports:
+class TestSocialIntelligenceModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

@@ -1,12 +1,15 @@
 """Tail Risk Hedging Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 
 try:
     st.set_page_config(page_title="Tail Risk Hedging", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Tail Risk Management")
 

@@ -1,6 +1,7 @@
 """PRD-117: Performance Profiling & Query Optimization Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta
 
 from src.profiling import (
@@ -18,6 +19,8 @@ try:
     st.set_page_config(page_title="Performance Profiling", page_icon="\U0001f4ca")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 

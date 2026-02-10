@@ -5,6 +5,9 @@ vote visualization, debate monitoring, and audit trail.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.agent_consensus.voter import VoterConfig, VoteCollector
 from src.agent_consensus.consensus import ConsensusConfig, ConsensusEngine

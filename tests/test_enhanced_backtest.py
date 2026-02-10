@@ -619,7 +619,7 @@ class TestGapSimulator(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestEnhancedBacktestModuleImports(unittest.TestCase):
     """Verify public API is importable from the package."""
 
     def test_import_from_package(self):

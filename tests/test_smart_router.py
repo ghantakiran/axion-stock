@@ -34,7 +34,7 @@ from src.smart_router.cost import CostOptimizer
 # ── Config Tests ──────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestSmartRouterEnums:
     def test_venue_types(self):
         assert len(VenueType) == 5
         assert VenueType.LIT_EXCHANGE.value == "lit_exchange"
@@ -423,7 +423,7 @@ class TestSmartRouter:
 # ── Integration Tests ─────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestSmartRouterIntegration:
     def test_full_routing_workflow(self):
         """End-to-end: venues -> scoring -> cost -> routing -> audit."""
         mgr = VenueManager.create_default_venues()
@@ -470,7 +470,7 @@ class TestIntegration:
 # ── Module Import Test ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestSmartRouterModuleImports:
     def test_import_all(self):
         import src.smart_router as sr
         assert hasattr(sr, "SmartRouter")

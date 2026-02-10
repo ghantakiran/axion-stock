@@ -607,7 +607,7 @@ class TestNewsAlertManager:
 # Integration Tests
 # =============================================================================
 
-class TestIntegration:
+class TestNewsIntegration:
     """Integration tests combining multiple components."""
     
     def test_full_news_workflow(self):

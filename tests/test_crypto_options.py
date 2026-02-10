@@ -28,7 +28,7 @@ from src.crypto_options.analytics import CryptoDerivativesAnalyzer
 # ── Config Tests ──
 
 
-class TestEnums:
+class TestCryptoOptionsEnums:
     def test_option_types(self):
         assert CryptoOptionType.CALL.value == "call"
         assert CryptoOptionType.PUT.value == "put"
@@ -434,7 +434,7 @@ class TestCryptoDerivativesAnalyzer:
 # ── Module Import Test ──
 
 
-class TestModuleImports:
+class TestCryptoOptionsModuleImports:
     def test_top_level_imports(self):
         from src.crypto_options import (
             CryptoOptionPricer,

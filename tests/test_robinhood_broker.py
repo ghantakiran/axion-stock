@@ -192,7 +192,7 @@ class TestRobinhoodClient:
 # =====================================================================
 
 
-class TestResponseModels:
+class TestRobinhoodBrokerResponseModels:
     """Test from_api and to_dict for response models."""
 
     def test_account_from_api(self):
@@ -454,7 +454,7 @@ class TestStreamingModels:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestRobinhoodBrokerModuleImports:
     """Test that all public exports are importable."""
 
     def test_all_exports(self):

@@ -5,6 +5,9 @@ circuit breaker status, kill switch control, and market hours.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 from datetime import datetime, timezone
 
 from src.risk_manager.portfolio_risk import (

@@ -1,6 +1,7 @@
 """PRD-114: Notification & Alerting System Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta
 import random
 
@@ -23,6 +24,8 @@ try:
     st.set_page_config(page_title="Alerting", page_icon="\U0001f514")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 

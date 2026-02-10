@@ -8,6 +8,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.lifecycle.config import AppState, HealthStatus, LifecycleConfig, ShutdownPhase
 from src.lifecycle.manager import LifecycleEvent, LifecycleManager
@@ -16,6 +17,8 @@ try:
     st.set_page_config(page_title="Lifecycle Management", page_icon="🔄", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("🔄 Application Lifecycle Management")
 

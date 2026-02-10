@@ -1,6 +1,7 @@
 """News & Events Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import date, datetime, timedelta, timezone
 
@@ -8,6 +9,8 @@ try:
     st.set_page_config(page_title="News & Events", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("📰 News & Events")
 

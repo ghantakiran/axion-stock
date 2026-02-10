@@ -35,7 +35,7 @@ from src.breadth.sector import SectorBreadthAnalyzer
 # =========================================================================
 
 
-class TestConfig:
+class TestBreadthConfig:
     def test_breadth_indicators(self):
         assert len(BreadthIndicator) == 7
 
@@ -87,7 +87,7 @@ class TestConfig:
 # =========================================================================
 
 
-class TestModels:
+class TestBreadthModels:
     def test_advance_decline_properties(self):
         ad = AdvanceDecline(
             date=date(2026, 1, 31),
@@ -528,7 +528,7 @@ class TestSectorBreadthAnalyzer:
 # =========================================================================
 
 
-class TestIntegration:
+class TestBreadthIntegration:
     def test_full_workflow(self):
         """Process multiple days and score market health."""
         ind = BreadthIndicators()
@@ -599,7 +599,7 @@ class TestIntegration:
 # =========================================================================
 
 
-class TestModuleImports:
+class TestBreadthModuleImports:
     def test_top_level_imports(self):
         from src.breadth import (
             BreadthIndicators,

@@ -27,7 +27,7 @@ from src.options.flow import FlowDetector
 # Config Tests
 # ===========================================================================
 
-class TestConfig:
+class TestOptionsChainConfig:
     """Test new configuration enums and dataclasses."""
 
     def test_flow_type_values(self):
@@ -69,7 +69,7 @@ class TestConfig:
 # Model Tests
 # ===========================================================================
 
-class TestModels:
+class TestOptionsChainModels:
     """Test data models."""
 
     def test_option_greeks_to_dict(self):
@@ -410,7 +410,7 @@ class TestFlowDetector:
 # Integration Tests
 # ===========================================================================
 
-class TestIntegration:
+class TestOptionsChainIntegration:
     """End-to-end integration tests."""
 
     def test_full_chain_analysis_pipeline(self):
@@ -458,7 +458,7 @@ class TestIntegration:
 # Module Import Tests
 # ===========================================================================
 
-class TestModuleImports:
+class TestOptionsChainModuleImports:
     """Test module imports work correctly."""
 
     def test_top_level_imports(self):

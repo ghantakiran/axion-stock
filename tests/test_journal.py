@@ -120,7 +120,7 @@ def _make_open_entry(symbol: str = "TSLA") -> MockJournalEntry:
 # ---------------------------------------------------------------------------
 # TestPerformanceMetrics (dataclass)
 # ---------------------------------------------------------------------------
-class TestPerformanceMetrics:
+class TestJournalPerformanceMetrics:
     def test_default_values(self):
         pm = PerformanceMetrics()
         assert pm.total_trades == 0

@@ -21,7 +21,7 @@ from src.crowding.consensus import ConsensusAnalyzer
 # ── Config Tests ─────────────────────────────────────────────
 
 
-class TestConfig:
+class TestCrowdingConfig:
     def test_crowding_level_values(self):
         assert CrowdingLevel.LOW.value == "low"
         assert CrowdingLevel.EXTREME.value == "extreme"
@@ -67,7 +67,7 @@ class TestConfig:
 # ── Model Tests ──────────────────────────────────────────────
 
 
-class TestModels:
+class TestCrowdingModels:
     def test_crowding_score_is_crowded(self):
         s = CrowdingScore(symbol="AAPL", score=0.75, level=CrowdingLevel.HIGH)
         assert s.is_crowded
@@ -378,7 +378,7 @@ class TestConsensusAnalyzer:
 # ── Integration Tests ────────────────────────────────────────
 
 
-class TestIntegration:
+class TestCrowdingIntegration:
     def test_full_pipeline(self):
         """End-to-end: crowding + overlap + short interest + consensus."""
         # Crowding detection
@@ -413,7 +413,7 @@ class TestIntegration:
         assert snap.rating in (ConsensusRating.BUY, ConsensusRating.STRONG_BUY)
 
 
-class TestModuleImports:
+class TestCrowdingModuleImports:
     def test_top_level_imports(self):
         from src.crowding import (
             CrowdingDetector, OverlapAnalyzer,

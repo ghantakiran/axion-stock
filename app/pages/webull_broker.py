@@ -5,6 +5,9 @@ extended-hours trading, market data, and stock screening.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.webull_broker import WebullClient, WebullConfig
 

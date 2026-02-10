@@ -344,7 +344,7 @@ class TestPerformanceContributor:
 # ── Integration Tests ───────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestAttributionExtendedIntegration:
     """Integration tests combining risk and performance."""
 
     def test_risk_and_performance_together(self):

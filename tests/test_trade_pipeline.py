@@ -677,7 +677,7 @@ class TestPositionStore:
 # ── Module imports ───────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestTradePipelineModuleImports:
 
     def test_all_exports(self):
         from src.trade_pipeline import __all__

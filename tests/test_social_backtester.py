@@ -722,7 +722,7 @@ class TestSocialSignalStrategy(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestSocialBacktesterModuleImports(unittest.TestCase):
     """Verify all public exports from social_backtester package."""
 
     def test_all_exports_importable(self):

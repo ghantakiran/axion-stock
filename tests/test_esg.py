@@ -26,7 +26,7 @@ from src.esg.impact import ImpactTracker
 # ── Config Tests ──
 
 
-class TestEnums:
+class TestEsgEnums:
     def test_esg_category_values(self):
         assert ESGCategory.ENVIRONMENTAL.value == "environmental"
         assert ESGCategory.SOCIAL.value == "social"
@@ -384,7 +384,7 @@ class TestImpactTracker:
 # ── Module Import Test ──
 
 
-class TestModuleImports:
+class TestEsgModuleImports:
     def test_top_level_imports(self):
         from src.esg import ESGScorer, ImpactTracker, ESGConfig, ESGScore
         assert ESGScorer is not None

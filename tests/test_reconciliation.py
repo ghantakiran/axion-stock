@@ -43,7 +43,7 @@ def _make_trade(
 # ── Config Tests ───────────────────────────────────────────────────
 
 
-class TestConfig:
+class TestReconciliationConfig:
     def setup_method(self):
         self.config = ReconciliationConfig()
         self.tolerances = ToleranceConfig()

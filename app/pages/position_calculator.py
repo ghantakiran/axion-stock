@@ -1,12 +1,15 @@
 """Position Calculator Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 
 try:
     st.set_page_config(page_title="Position Calculator", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Position Calculator")
 

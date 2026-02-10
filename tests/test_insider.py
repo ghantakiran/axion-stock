@@ -314,7 +314,7 @@ class TestSignalGenerator:
 # Test Alert Manager
 # =============================================================================
 
-class TestAlertManager:
+class TestInsiderAlertManager:
     """Tests for AlertManager."""
     
     def test_default_alerts(self):

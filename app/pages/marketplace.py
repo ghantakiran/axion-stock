@@ -1,6 +1,7 @@
 """Strategy Marketplace Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -9,6 +10,8 @@ try:
     st.set_page_config(page_title="Strategy Marketplace", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Strategy Marketplace")
 

@@ -515,7 +515,7 @@ class TestScreener:
 # =====================================================================
 
 
-class TestTokenManager:
+class TestWebullBrokerTokenManager:
     """Tests for Webull device-based token manager."""
 
     def test_initial_state(self):
@@ -546,7 +546,7 @@ class TestTokenManager:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestWebullBrokerModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

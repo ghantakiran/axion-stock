@@ -1,12 +1,15 @@
 """Push Notifications Settings Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone
 
 try:
     st.set_page_config(page_title="Notification Settings", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Push Notification Settings")
 

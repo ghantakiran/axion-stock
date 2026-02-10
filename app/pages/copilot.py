@@ -1,12 +1,15 @@
 """AI Trading Copilot Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone
 
 try:
     st.set_page_config(page_title="AI Trading Copilot", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("AI Trading Copilot")
 

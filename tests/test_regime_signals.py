@@ -99,7 +99,7 @@ def tracker() -> PerformanceTracker:
 # ---------------------------------------------------------------------------
 
 
-class TestConfig:
+class TestRegimeSignalsConfig:
     """Test configuration enums and defaults."""
 
     def test_regime_types(self):
@@ -148,7 +148,7 @@ class TestConfig:
 # ---------------------------------------------------------------------------
 
 
-class TestModels:
+class TestRegimeSignalsModels:
     """Test data models."""
 
     def test_regime_state(self):
@@ -304,7 +304,7 @@ class TestModels:
 # ---------------------------------------------------------------------------
 
 
-class TestRegimeDetector:
+class TestRegimeSignalsRegimeDetector:
     """Test regime detection."""
 
     def test_detect_regime_uptrend(self, detector: RegimeDetector, uptrend_prices: list[float]):
@@ -520,7 +520,7 @@ class TestParameterOptimizer:
 # ---------------------------------------------------------------------------
 
 
-class TestPerformanceTracker:
+class TestRegimeSignalsPerformanceTracker:
     """Test performance tracking."""
 
     def test_start_tracking(self, tracker: PerformanceTracker):
@@ -705,7 +705,7 @@ class TestPerformanceTracker:
 # ---------------------------------------------------------------------------
 
 
-class TestIntegration:
+class TestRegimeSignalsIntegration:
     """Integration tests combining multiple components."""
 
     def test_full_workflow(

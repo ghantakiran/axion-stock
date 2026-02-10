@@ -5,6 +5,9 @@ aspect extraction, entity resolution, and sentiment prediction.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 from datetime import datetime, timedelta, timezone
 
 from src.llm_sentiment.analyzer import (

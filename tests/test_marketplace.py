@@ -538,7 +538,7 @@ class TestSubscriptionManager:
         assert stats["active_subscriptions"] == 2
 
 
-class TestPerformanceTracker:
+class TestMarketplacePerformanceTracker:
     """Tests for performance tracker."""
 
     def test_record_snapshot(self):

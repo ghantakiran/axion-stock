@@ -1,11 +1,14 @@
 """PRD-126: Trade Reconciliation & Settlement — Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 try:
     st.set_page_config(page_title="Trade Reconciliation", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Trade Reconciliation & Settlement Engine")
 

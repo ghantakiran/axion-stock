@@ -691,7 +691,7 @@ class TestAggregatedModels:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestMultiBrokerModuleImports:
     """Tests for module-level imports and exports (3 tests)."""
 
     def test_all_exports(self):

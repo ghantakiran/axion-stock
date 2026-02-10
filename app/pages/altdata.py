@@ -1,12 +1,15 @@
 """Alternative Data Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 
 try:
     st.set_page_config(page_title="Alternative Data", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Alternative Data")
 

@@ -18,6 +18,7 @@ import uuid
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -26,6 +27,8 @@ try:
     st.set_page_config(page_title="Workspaces", page_icon="👥", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 # Try to import enterprise modules

@@ -82,7 +82,7 @@ def layout_manager() -> LayoutManager:
 # ---------------------------------------------------------------------------
 
 
-class TestConfig:
+class TestChartingConfig:
     """Test configuration enums and defaults."""
 
     def test_chart_types(self):
@@ -134,7 +134,7 @@ class TestConfig:
 # ---------------------------------------------------------------------------
 
 
-class TestModels:
+class TestChartingModels:
     """Test data models."""
 
     def test_ohlcv(self):
@@ -967,7 +967,7 @@ class TestLayoutManager:
 # ---------------------------------------------------------------------------
 
 
-class TestIntegration:
+class TestChartingIntegration:
     """Integration tests combining multiple components."""
 
     def test_full_workflow(

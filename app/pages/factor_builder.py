@@ -1,6 +1,7 @@
 """PRD-80: Custom Factor Builder Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 import numpy as np
 
@@ -19,6 +20,7 @@ def get_builder() -> CustomFactorBuilder:
 
 
 def render():
+inject_global_styles()
     st.title("Custom Factor Builder")
 
     tabs = st.tabs(["Build Factor", "Factor Library", "Compute & Rank", "Factor Analysis"])

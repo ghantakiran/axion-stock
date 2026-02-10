@@ -425,7 +425,7 @@ class TestReportConfig:
 # =============================================================================
 
 
-class TestSubscriptionLimits:
+class TestReportingSubscriptionLimits:
     """Tests for subscription tier report limits."""
 
     def test_free_tier_no_custom_reports(self):
@@ -459,7 +459,7 @@ class TestSubscriptionLimits:
 # =============================================================================
 
 
-class TestORMModels:
+class TestReportingORMModels:
     """Tests for ORM model definitions."""
 
     def test_report_template_model(self):
@@ -543,7 +543,7 @@ class TestORMModels:
 # =============================================================================
 
 
-class TestEnums:
+class TestReportingEnums:
     """Tests for enum definitions."""
 
     def test_report_type_enum(self):

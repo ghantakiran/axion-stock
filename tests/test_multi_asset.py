@@ -50,7 +50,7 @@ from src.multi_asset.risk import UnifiedRiskManager
 # =============================================================================
 
 
-class TestConfig:
+class TestMultiAssetConfig:
     """Test configuration and constants."""
 
     def test_asset_class_enum(self):
@@ -98,7 +98,7 @@ class TestConfig:
 # =============================================================================
 
 
-class TestModels:
+class TestMultiAssetModels:
     """Test data models."""
 
     def test_crypto_asset(self):
@@ -578,7 +578,7 @@ class TestUnifiedRiskManager:
 # =============================================================================
 
 
-class TestModuleImports:
+class TestMultiAssetModuleImports:
     """Test all public exports."""
 
     def test_import_config(self):

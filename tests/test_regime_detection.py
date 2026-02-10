@@ -47,7 +47,7 @@ def _generate_regime_returns(seed: int = 42) -> list[float]:
 # ---------------------------------------------------------------------------
 # Config enums
 # ---------------------------------------------------------------------------
-class TestConfig:
+class TestRegimeDetectionConfig:
     def test_regime_type_values(self):
         assert RegimeType.BULL.value == "bull"
         assert RegimeType.CRISIS.value == "crisis"

@@ -715,7 +715,7 @@ class TestSecretsClient:
 # ── Dataclass Tests ───────────────────────────────────────────────────
 
 
-class TestDataclasses:
+class TestSecretsVaultDataclasses:
     def test_secret_entry_fields(self):
         entry = SecretEntry(
             secret_id="abc123",

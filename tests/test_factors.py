@@ -178,7 +178,7 @@ class TestFactorCalculatorStaticMethods:
 # ---------------------------------------------------------------------------
 # TestValueFactors
 # ---------------------------------------------------------------------------
-class TestValueFactors:
+class TestFactorsValueFactors:
     def test_init_registers_factors(self):
         vf = ValueFactors()
         assert vf.category.name == "value"
@@ -229,7 +229,7 @@ class TestValueFactors:
 # ---------------------------------------------------------------------------
 # TestMomentumFactors
 # ---------------------------------------------------------------------------
-class TestMomentumFactors:
+class TestFactorsMomentumFactors:
     def test_init_registers_factors(self):
         mf = MomentumFactors()
         assert mf.category.name == "momentum"
@@ -358,7 +358,7 @@ class TestGrowthFactors:
 # ---------------------------------------------------------------------------
 # TestVolatilityFactors
 # ---------------------------------------------------------------------------
-class TestVolatilityFactors:
+class TestFactorsVolatilityFactors:
     def test_init_registers_factors(self):
         vf = VolatilityFactors()
         assert vf.category.name == "volatility"
@@ -410,7 +410,7 @@ class TestVolatilityFactors:
 # ---------------------------------------------------------------------------
 # TestTechnicalFactors
 # ---------------------------------------------------------------------------
-class TestTechnicalFactors:
+class TestFactorsTechnicalFactors:
     def test_init_registers_factors(self):
         tf = TechnicalFactors()
         assert tf.category.name == "technical"
@@ -475,7 +475,7 @@ class TestTechnicalFactors:
 # ---------------------------------------------------------------------------
 # TestFactorRegistry
 # ---------------------------------------------------------------------------
-class TestFactorRegistry:
+class TestFactorsFactorRegistry:
     def test_init_empty(self):
         reg = FactorRegistry()
         assert reg.categories == []

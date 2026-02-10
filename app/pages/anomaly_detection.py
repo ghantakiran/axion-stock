@@ -3,6 +3,9 @@
 import random
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 from datetime import datetime, timedelta, timezone
 
 from src.anomaly_detection import (

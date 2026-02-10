@@ -53,7 +53,7 @@ def _make_benchmark_returns(n=252, mean=0.0003, std=0.012, seed=99):
     return pd.Series(returns, index=dates)
 
 
-class TestConfig:
+class TestAttributionConfig:
     """Test configuration."""
 
     def test_attribution_methods(self):
@@ -462,7 +462,7 @@ class TestTearSheetGenerator:
         assert "tracking_error" in summary
 
 
-class TestFullWorkflow:
+class TestAttributionFullWorkflow:
     """Integration tests."""
 
     def test_complete_attribution_workflow(self):
@@ -525,7 +525,7 @@ class TestFullWorkflow:
         assert len(sheet.rolling_sharpe) > 0
 
 
-class TestModuleImports:
+class TestAttributionModuleImports:
     """Test module exports."""
 
     def test_top_level_imports(self):

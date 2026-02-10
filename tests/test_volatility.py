@@ -57,7 +57,7 @@ def _make_ohlc(n: int = 300, seed: int = 42) -> tuple[pd.Series, pd.Series, pd.S
 # Config Tests
 # ===========================================================================
 
-class TestConfig:
+class TestVolatilityConfig:
     """Test configuration enums and dataclasses."""
 
     def test_vol_method_values(self):
@@ -128,7 +128,7 @@ class TestConfig:
 # Model Tests
 # ===========================================================================
 
-class TestModels:
+class TestVolatilityModels:
     """Test data models."""
 
     def test_vol_estimate_defaults(self):
@@ -580,7 +580,7 @@ class TestVolRegimeDetector:
 # Integration Tests
 # ===========================================================================
 
-class TestIntegration:
+class TestVolatilityIntegration:
     """End-to-end integration tests."""
 
     def test_full_vol_analysis_pipeline(self):
@@ -628,7 +628,7 @@ class TestIntegration:
 # Module Import Tests
 # ===========================================================================
 
-class TestModuleImports:
+class TestVolatilityModuleImports:
     """Test module imports work correctly."""
 
     def test_top_level_imports(self):

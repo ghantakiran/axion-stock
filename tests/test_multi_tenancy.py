@@ -833,7 +833,7 @@ class TestPolicyEngine:
 # ── Dataclass Tests ──────────────────────────────────────────────────
 
 
-class TestDataclasses:
+class TestMultiTenancyDataclasses:
     def test_query_audit_entry(self):
         entry = QueryAuditEntry(
             workspace_id="ws1",

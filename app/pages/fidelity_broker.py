@@ -5,6 +5,9 @@ trading, market data, and mutual fund research.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.fidelity_broker import FidelityClient, FidelityConfig
 

@@ -533,7 +533,7 @@ class TestInfluencerAlertBridge:
 # ── TestModuleImports ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestInfluencerIntelModuleImports:
     """Test that all __all__ exports are importable."""
 
     def test_all_imports(self):

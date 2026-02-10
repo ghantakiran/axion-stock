@@ -155,7 +155,7 @@ class TestPasswordHasher:
         assert hasher.verify("wrongpassword", hash_str) is False
 
 
-class TestTokenManager:
+class TestEnterpriseTokenManager:
     """Test JWT token management."""
 
     def test_create_access_token(self):

@@ -118,7 +118,7 @@ class TestSourcePerformance(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestPerformanceTracker(unittest.TestCase):
+class TestSignalFeedbackPerformanceTracker(unittest.TestCase):
     """Tests for the PerformanceTracker engine."""
 
     def setUp(self):
@@ -463,7 +463,7 @@ class TestFeedbackIntegration(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestSignalFeedbackModuleImports(unittest.TestCase):
     """Verify public API is importable from the package."""
 
     def test_import_from_package(self):

@@ -6,11 +6,14 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 try:
     st.set_page_config(page_title="EMA Cloud Signals", layout="wide")
 except st.errors.StreamlitAPIError:
     pass
+
+inject_global_styles()
 
 # ── Path Setup ────────────────────────────────────────────────────────
 

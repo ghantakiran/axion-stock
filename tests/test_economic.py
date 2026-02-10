@@ -269,7 +269,7 @@ class TestFedWatcher:
 # Test Alert Manager
 # =============================================================================
 
-class TestAlertManager:
+class TestEconomicAlertManager:
     """Tests for EconomicAlertManager."""
     
     def test_add_alert(self):

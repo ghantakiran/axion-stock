@@ -10,6 +10,7 @@ Professional backtesting interface with:
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -26,6 +27,8 @@ try:
     )
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 # Import backtesting module

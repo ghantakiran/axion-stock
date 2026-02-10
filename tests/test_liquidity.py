@@ -52,7 +52,7 @@ def slippage_tracker() -> SlippageTracker:
 # ---------------------------------------------------------------------------
 
 
-class TestConfig:
+class TestLiquidityConfig:
     def test_liquidity_tiers(self):
         assert LiquidityTier.HIGHLY_LIQUID.value == "highly_liquid"
         assert LiquidityTier.ILLIQUID.value == "illiquid"
@@ -84,7 +84,7 @@ class TestConfig:
 # ---------------------------------------------------------------------------
 
 
-class TestModels:
+class TestLiquidityModels:
     def test_liquidity_score(self):
         score = LiquidityScore(
             symbol="AAPL",
@@ -267,7 +267,7 @@ class TestLiquidityScorer:
 # ---------------------------------------------------------------------------
 
 
-class TestSpreadAnalyzer:
+class TestLiquiditySpreadAnalyzer:
     def test_record_spread(self, spread_analyzer: SpreadAnalyzer):
         snap = spread_analyzer.record_spread("AAPL", 149.95, 150.05, 1000, 800)
 
@@ -524,7 +524,7 @@ class TestSlippageTracker:
 # ---------------------------------------------------------------------------
 
 
-class TestIntegration:
+class TestLiquidityIntegration:
     def test_full_workflow(
         self,
         scorer: LiquidityScorer,

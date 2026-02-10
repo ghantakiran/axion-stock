@@ -474,7 +474,7 @@ class TestBatchDigest:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports:
+class TestAlertNetworkModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

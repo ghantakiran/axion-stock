@@ -1,6 +1,9 @@
 """PRD-102: Resilience Patterns Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 import time
 import random
 from datetime import datetime

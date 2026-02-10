@@ -548,7 +548,7 @@ class TestMarketHoursEnforcer:
 # ── Module imports ───────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestRiskManagerModuleImports:
 
     def test_all_exports(self):
         from src.risk_manager import __all__

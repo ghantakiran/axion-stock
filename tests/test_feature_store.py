@@ -94,7 +94,7 @@ class TestFeatureStoreConfig:
 # ── Dataclass Tests ───────────────────────────────────────────────────
 
 
-class TestDataclasses:
+class TestFeatureStoreDataclasses:
     def test_feature_definition_defaults(self):
         fd = FeatureDefinition(name="test_feature")
         assert fd.feature_id  # Auto-generated
@@ -865,7 +865,7 @@ class TestFeatureLineage:
 # ── Integration Tests ─────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestFeatureStoreIntegration:
     def test_end_to_end_workflow(self):
         """Full workflow: register features, store values, serve online, track lineage."""
         # 1. Register features in catalog
@@ -972,7 +972,7 @@ class TestIntegration:
 # ── Module Import Test ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestFeatureStoreModuleImports:
     def test_import_all(self):
         import src.feature_store as fs
         assert hasattr(fs, "FeatureType")

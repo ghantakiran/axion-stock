@@ -56,7 +56,7 @@ def _run_async(coro):
 # ── Config Tests ─────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestResilienceEnums:
     def test_circuit_states(self):
         assert len(CircuitState) == 3
         assert CircuitState.CLOSED.value == "closed"
@@ -92,7 +92,7 @@ class TestEnums:
         assert BulkheadType.THREAD_POOL.value == "thread_pool"
 
 
-class TestConfigs:
+class TestResilienceConfigs:
     def test_circuit_breaker_config_defaults(self):
         cfg = CircuitBreakerConfig()
         assert cfg.failure_threshold == 5
@@ -1139,7 +1139,7 @@ class TestBulkheadDecorator:
 # ── Integration Tests ────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestResilienceIntegration:
     def test_circuit_breaker_with_retry(self):
         """Circuit breaker wrapping a retried function."""
         registry = CircuitBreakerRegistry()

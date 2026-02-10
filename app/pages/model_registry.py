@@ -1,6 +1,7 @@
 """PRD-113: ML Model Registry & Deployment Pipeline Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta, timezone
 
 from src.model_registry import (
@@ -95,6 +96,8 @@ def render():
         st.set_page_config(page_title="Model Registry", page_icon="\U0001f9e0", layout="wide")
     except st.errors.StreamlitAPIException:
         pass
+
+inject_global_styles()
     st.title("\U0001f9e0 ML Model Registry & Deployment Pipeline")
 
     registry, manager, tracker, ab_manager, server = _build_sample_data()

@@ -5,6 +5,9 @@ performance tuning, and regime transition monitoring.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.regime_adaptive.profiles import ProfileRegistry
 from src.regime_adaptive.adapter import AdapterConfig, RegimeAdapter

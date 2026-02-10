@@ -1,6 +1,7 @@
 """PRD-115: API Gateway & Advanced Rate Limiting Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta, timezone
 
 from src.api_gateway import (
@@ -221,5 +222,7 @@ try:
     st.set_page_config(page_title="API Gateway", page_icon="\U0001f310", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 render()

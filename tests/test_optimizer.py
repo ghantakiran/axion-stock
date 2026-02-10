@@ -738,7 +738,7 @@ class TestWhatIfAnalyzer:
 # ---------------------------------------------------------------------------
 # Module imports
 # ---------------------------------------------------------------------------
-class TestModuleImports:
+class TestOptimizerModuleImports:
     def test_import_all(self):
         from src.optimizer import (
             OptimizationConfig,

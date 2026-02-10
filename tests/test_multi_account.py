@@ -794,7 +794,7 @@ class TestPerformanceHistory:
 # =============================================================================
 
 
-class TestSubscriptionLimits:
+class TestMultiAccountSubscriptionLimits:
     """Tests for subscription tier limits."""
 
     def test_free_tier_limits(self):
@@ -831,7 +831,7 @@ class TestSubscriptionLimits:
 # =============================================================================
 
 
-class TestORMModels:
+class TestMultiAccountORMModels:
     """Tests for ORM model definitions."""
 
     def test_trading_account_model(self):
@@ -904,7 +904,7 @@ class TestORMModels:
 # =============================================================================
 
 
-class TestEnums:
+class TestMultiAccountEnums:
     """Tests for enum definitions."""
 
     def test_account_type_enum(self):

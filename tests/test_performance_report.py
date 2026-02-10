@@ -41,7 +41,7 @@ from src.performance_report.generator import GIPSReportGenerator
 # ── Config Tests ──────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestPerformanceReportEnums:
     def test_return_methods(self):
         assert len(ReturnMethod) == 4
         assert ReturnMethod.TIME_WEIGHTED.value == "time_weighted"
@@ -609,7 +609,7 @@ class TestGIPSReportGenerator:
 # ── Integration Tests ─────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestPerformanceReportIntegration:
     def test_end_to_end_workflow(self):
         """Full workflow: create composite -> add portfolios -> calculate -> report."""
         # 1. Create composite
@@ -686,7 +686,7 @@ class TestIntegration:
 # ── Module Import Test ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestPerformanceReportModuleImports:
     def test_import_all(self):
         import src.performance_report as pr
         assert hasattr(pr, "CompositeManager")

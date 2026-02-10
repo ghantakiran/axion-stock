@@ -33,7 +33,7 @@ from src.compliance_engine.reporting import RegulatoryReporter
 # ── Config Tests ──────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestComplianceEngineEnums:
     def test_surveillance_types(self):
         assert len(SurveillanceType) == 8
         assert SurveillanceType.WASH_TRADE.value == "wash_trade"
@@ -53,7 +53,7 @@ class TestEnums:
         assert len(ReportType) == 5
 
 
-class TestConfigs:
+class TestComplianceEngineConfigs:
     def test_surveillance_config(self):
         cfg = SurveillanceConfig()
         assert cfg.wash_trade_window == 300
@@ -494,7 +494,7 @@ class TestRegulatoryReporter:
 # ── Integration Tests ─────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestComplianceEngineIntegration:
     def test_full_compliance_workflow(self):
         """End-to-end: surveillance -> blackout -> execution -> reporting."""
         # 1. Surveillance
@@ -565,7 +565,7 @@ class TestIntegration:
 # ── Module Import Test ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestComplianceEngineModuleImports:
     def test_import_all(self):
         import src.compliance_engine as ce
         assert hasattr(ce, "SurveillanceEngine")

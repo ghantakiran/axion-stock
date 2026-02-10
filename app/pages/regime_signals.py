@@ -1,6 +1,7 @@
 """PRD-63: Regime-Aware Signals Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import datetime, timezone, timedelta
 import random
@@ -27,6 +28,8 @@ try:
     st.set_page_config(page_title="Regime-Aware Signals", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Regime-Aware Signals")
 

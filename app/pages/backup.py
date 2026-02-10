@@ -1,12 +1,15 @@
 """PRD-116: Disaster Recovery & Automated Backup — Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone
 
 try:
     st.set_page_config(page_title="Backup & Recovery", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Disaster Recovery & Automated Backup")
 

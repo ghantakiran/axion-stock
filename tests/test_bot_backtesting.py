@@ -776,7 +776,7 @@ class TestSignalReplay(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestBotBacktestingModuleImports(unittest.TestCase):
     """Test that all module exports are importable."""
 
     def test_all_symbols_importable(self):

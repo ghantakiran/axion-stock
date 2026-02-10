@@ -1,6 +1,7 @@
 """PRD-118: Data Archival & GDPR Compliance Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta
 
 from src.archival import (
@@ -22,6 +23,8 @@ try:
     st.set_page_config(page_title="Data Archival", page_icon="\U0001F4E6", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 

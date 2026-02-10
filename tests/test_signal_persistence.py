@@ -583,7 +583,7 @@ class TestSignalQueryBuilder(unittest.TestCase):
 # ── TestModuleImports ────────────────────────────────────────────────
 
 
-class TestModuleImports(unittest.TestCase):
+class TestSignalPersistenceModuleImports(unittest.TestCase):
     """Tests that all module exports are accessible."""
 
     def test_all_exports(self):

@@ -33,7 +33,7 @@ from src.altdata.scoring import AltDataScorer
 # ─── Config Tests ───────────────────────────────────────────────
 
 
-class TestConfig:
+class TestAltdataConfig:
     def test_enums(self):
         assert DataSource.SATELLITE.value == "satellite"
         assert SignalQuality.HIGH.value == "high"
@@ -67,7 +67,7 @@ class TestConfig:
 # ─── Model Tests ────────────────────────────────────────────────
 
 
-class TestModels:
+class TestAltdataModels:
     def test_satellite_signal_properties(self):
         sig = SatelliteSignal(
             symbol="WMT", satellite_type=SatelliteType.PARKING_LOT,

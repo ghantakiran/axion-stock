@@ -1,6 +1,7 @@
 """PRD-122: Data Isolation & Row-Level Security Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timezone
 
 from src.multi_tenancy import (
@@ -260,5 +261,7 @@ try:
     )
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 render()

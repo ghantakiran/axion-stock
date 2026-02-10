@@ -196,7 +196,7 @@ class TestSchwabClient:
 # =====================================================================
 
 
-class TestResponseModels:
+class TestSchwabBrokerResponseModels:
     """Tests for API response model parsing."""
 
     def test_account_from_api(self):
@@ -507,7 +507,7 @@ class TestResearchModelsFromApi:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestSchwabBrokerModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

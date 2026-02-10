@@ -639,7 +639,7 @@ class TestSentimentPredictor:
 # ── TestModuleImports ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestLlmSentimentModuleImports:
     """Test that all __all__ exports are importable."""
 
     def test_all_imports(self):

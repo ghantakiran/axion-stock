@@ -63,7 +63,7 @@ def sample_returns():
 # ============================================================================
 
 
-class TestValueFactors:
+class TestFactorEngineValueFactors:
     def test_compute_returns_series(self, sample_prices, sample_fundamentals, sample_returns):
         from src.factor_engine.factors.value import ValueFactors
 
@@ -85,7 +85,7 @@ class TestValueFactors:
         assert scores["META"] > scores["AMZN"]
 
 
-class TestMomentumFactors:
+class TestFactorEngineMomentumFactors:
     def test_compute_returns_series(self, sample_prices, sample_fundamentals, sample_returns):
         from src.factor_engine.factors.momentum import MomentumFactors
 
@@ -150,7 +150,7 @@ class TestGrowthFactors:
         assert scores["META"] == scores.max()
 
 
-class TestVolatilityFactors:
+class TestFactorEngineVolatilityFactors:
     def test_compute_returns_series(self, sample_prices, sample_fundamentals, sample_returns):
         from src.factor_engine.factors.volatility import VolatilityFactors
 
@@ -172,7 +172,7 @@ class TestVolatilityFactors:
         assert len(sub_scores.columns) > 0
 
 
-class TestTechnicalFactors:
+class TestFactorEngineTechnicalFactors:
     def test_compute_returns_series(self, sample_prices, sample_fundamentals, sample_returns):
         from src.factor_engine.factors.technical import TechnicalFactors
 
@@ -198,7 +198,7 @@ class TestTechnicalFactors:
 # ============================================================================
 
 
-class TestRegimeDetector:
+class TestFactorEngineRegimeDetector:
     def test_classify_returns_regime(self):
         from src.factor_engine.regime import RegimeDetector, MarketRegime
 
@@ -440,7 +440,7 @@ class TestBackwardCompatibility:
 # ============================================================================
 
 
-class TestFactorRegistry:
+class TestFactorEngineFactorRegistry:
     def test_all_categories_registered(self):
         from src.factor_engine.factors import FactorRegistry
 

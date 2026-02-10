@@ -1,6 +1,7 @@
 """PRD-127: Workflow Engine & Approval System Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.workflow import (
     ApprovalLevel,
@@ -17,6 +18,7 @@ from src.workflow import (
 
 
 def render():
+inject_global_styles()
     st.title("Workflow Engine & Approval System")
 
     tabs = st.tabs(["Active Workflows", "Approvals", "Pipelines", "Templates"])

@@ -16,12 +16,15 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 
 try:
     st.set_page_config(page_title="Authentication", page_icon="🔐", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 # Try to import auth modules

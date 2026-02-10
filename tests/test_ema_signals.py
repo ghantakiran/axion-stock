@@ -673,7 +673,7 @@ class TestDataFeed:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports:
+class TestEmaSignalsModuleImports:
     """Test that the module exports work correctly."""
 
     def test_import_ema_cloud_engine(self):

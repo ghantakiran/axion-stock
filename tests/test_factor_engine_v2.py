@@ -99,7 +99,7 @@ def sample_sector_map():
 # Factor Registry Tests
 # ============================================================================
 
-class TestFactorRegistry:
+class TestFactorEngineV2FactorRegistry:
     """Tests for the factor registry."""
     
     def test_registry_creation(self):
@@ -138,7 +138,7 @@ class TestFactorRegistry:
 # Individual Factor Tests
 # ============================================================================
 
-class TestValueFactors:
+class TestFactorEngineV2ValueFactors:
     """Tests for value factors."""
     
     def test_value_factor_compute(self, sample_prices, sample_fundamentals):
@@ -162,7 +162,7 @@ class TestValueFactors:
         assert composite.max() <= 1
 
 
-class TestMomentumFactors:
+class TestFactorEngineV2MomentumFactors:
     """Tests for momentum factors."""
     
     def test_momentum_factor_compute(self, sample_prices, sample_fundamentals):
@@ -188,7 +188,7 @@ class TestMomentumFactors:
         assert not scores.empty
 
 
-class TestVolatilityFactors:
+class TestFactorEngineV2VolatilityFactors:
     """Tests for volatility factors."""
     
     def test_volatility_factor_compute(self, sample_prices, sample_fundamentals, sample_market_prices):
@@ -211,7 +211,7 @@ class TestVolatilityFactors:
         assert scores['beta'].max() <= 1
 
 
-class TestTechnicalFactors:
+class TestFactorEngineV2TechnicalFactors:
     """Tests for technical factors."""
     
     def test_technical_factor_compute(self, sample_prices, sample_fundamentals):
@@ -229,7 +229,7 @@ class TestTechnicalFactors:
 # Regime Detection Tests
 # ============================================================================
 
-class TestRegimeDetector:
+class TestFactorEngineV2RegimeDetector:
     """Tests for market regime detection."""
     
     def test_regime_classification(self, sample_market_prices):

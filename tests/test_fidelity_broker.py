@@ -464,7 +464,7 @@ class TestFidelityResearch:
 # =====================================================================
 
 
-class TestTokenManager:
+class TestFidelityBrokerTokenManager:
     """Tests for OAuth2 token management."""
 
     def test_initial_expired(self):
@@ -554,7 +554,7 @@ class TestOptionChain:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestFidelityBrokerModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

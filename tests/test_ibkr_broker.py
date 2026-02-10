@@ -497,7 +497,7 @@ class TestIBKRGateway:
 # =====================================================================
 
 
-class TestTokenManager:
+class TestIbkrBrokerTokenManager:
     """Tests for OAuth2 token management."""
 
     def test_initial_expired(self):
@@ -578,7 +578,7 @@ class TestContractSearch:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestIbkrBrokerModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

@@ -1,6 +1,7 @@
 """PRD-124: Secrets Management & API Credential Vaulting Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta, timezone
 
 from src.secrets_vault import (
@@ -19,6 +20,8 @@ try:
     st.set_page_config(page_title="Secrets Vault", page_icon="🔐", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 

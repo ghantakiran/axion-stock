@@ -17,7 +17,7 @@ from src.factors.builder import (
 # ── Enum Tests ──
 
 
-class TestEnums:
+class TestFactorBuilderEnums:
     def test_transform_types(self):
         assert TransformType.PERCENTILE_RANK.value == "percentile_rank"
         assert len(TransformType) == 6
@@ -291,7 +291,7 @@ class TestFactorComputation:
 # ── Module Import Test ──
 
 
-class TestModuleImports:
+class TestFactorBuilderModuleImports:
     def test_builder_imports(self):
         from src.factors.builder import CustomFactorBuilder, CustomFactor, FactorComponent
         assert CustomFactorBuilder is not None

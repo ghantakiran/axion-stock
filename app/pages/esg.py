@@ -1,6 +1,7 @@
 """ESG Scoring & Impact Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.esg import (
     ESGScorer,
@@ -16,6 +17,8 @@ try:
     st.set_page_config(page_title="ESG Scoring", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("ESG Scoring & Impact Tracking")
 

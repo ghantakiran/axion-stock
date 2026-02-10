@@ -1,6 +1,7 @@
 """Watchlist Management Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import date
 
@@ -8,6 +9,8 @@ try:
     st.set_page_config(page_title="Watchlist", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("📋 Watchlist Management")
 

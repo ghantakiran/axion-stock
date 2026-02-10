@@ -238,7 +238,7 @@ class TestSyncAdapter:
 # ============================================================================
 
 
-class TestModels:
+class TestDataServiceModels:
     def test_instrument_model(self):
         from src.db.models import Instrument, AssetType
         inst = Instrument(ticker="AAPL", name="Apple Inc", asset_type=AssetType.STOCK)

@@ -147,7 +147,7 @@ class TestBotController(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestPerformanceMetrics(unittest.TestCase):
+class TestBotDashboardPerformanceMetrics(unittest.TestCase):
     """Test performance metric calculations."""
 
     def setUp(self):
@@ -293,7 +293,7 @@ class TestCloudChartRenderer(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestBotDashboardModuleImports(unittest.TestCase):
     """Test that all public symbols are importable."""
 
     def test_import_all(self):

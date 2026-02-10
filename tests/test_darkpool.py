@@ -77,7 +77,7 @@ def _make_prints(symbol="AAPL", n=50, mid=150.0):
 # ── Config Tests ─────────────────────────────────────────────
 
 
-class TestConfig:
+class TestDarkpoolConfig:
     def test_print_type_values(self):
         assert PrintType.BLOCK.value == "block"
         assert PrintType.MIDPOINT.value == "midpoint"
@@ -129,7 +129,7 @@ class TestConfig:
 # ── Model Tests ──────────────────────────────────────────────
 
 
-class TestModels:
+class TestDarkpoolModels:
     def test_dark_pool_volume_properties(self):
         v = DarkPoolVolume(
             symbol="AAPL", date="2026-01-01",
@@ -495,7 +495,7 @@ class TestLiquidityEstimator:
 # ── Integration Tests ────────────────────────────────────────
 
 
-class TestIntegration:
+class TestDarkpoolIntegration:
     def test_full_pipeline(self):
         """End-to-end: volume + prints -> blocks + liquidity."""
         records = _make_volume_records("AAPL", 20)
@@ -523,7 +523,7 @@ class TestIntegration:
         assert liquidity.liquidity_score > 0
 
 
-class TestModuleImports:
+class TestDarkpoolModuleImports:
     def test_top_level_imports(self):
         from src.darkpool import (
             VolumeTracker,

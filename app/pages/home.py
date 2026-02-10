@@ -10,11 +10,14 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 try:
     st.set_page_config(page_title="Axion - AI Chat", page_icon="", layout="wide")
 except Exception:
     pass
+
+inject_global_styles()
 
 from app.chat import get_chat_response, get_agent_response, get_api_key, format_api_error
 from app.charts import create_stock_chart, create_comparison_chart, create_factor_chart

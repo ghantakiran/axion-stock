@@ -5,6 +5,9 @@ execution, reconciliation quality, and position tracking.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.trade_pipeline.bridge import (
     SignalType, OrderSide, OrderType, PipelineOrder, SignalBridge,

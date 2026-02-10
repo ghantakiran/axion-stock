@@ -5,6 +5,7 @@ and validation results.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
 
 from src.config_service.config import (
     ConfigNamespace,
@@ -19,6 +20,8 @@ try:
     st.set_page_config(page_title="Configuration", page_icon="⚙️", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("⚙️ Configuration Management")
 

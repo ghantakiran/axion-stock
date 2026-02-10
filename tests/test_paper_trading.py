@@ -34,7 +34,7 @@ from src.paper_trading.session import SessionManager
 # =============================================================================
 
 
-class TestConfig:
+class TestPaperTradingConfig:
     """Test configuration enums and defaults."""
 
     def test_session_statuses(self):
@@ -74,7 +74,7 @@ class TestConfig:
 # =============================================================================
 
 
-class TestModels:
+class TestPaperTradingModels:
     """Test data models."""
 
     def test_portfolio_position_properties(self):
@@ -244,7 +244,7 @@ class TestDataFeed:
 # =============================================================================
 
 
-class TestPerformanceTracker:
+class TestPaperTradingPerformanceTracker:
     """Test performance computation."""
 
     def _make_session_with_snapshots(self, n=50, mean_return=0.001):
@@ -522,7 +522,7 @@ class TestSessionManager:
 # =============================================================================
 
 
-class TestFullWorkflow:
+class TestPaperTradingFullWorkflow:
     """Integration tests."""
 
     def test_complete_paper_trading_workflow(self):
@@ -560,7 +560,7 @@ class TestFullWorkflow:
         assert len(session.trades) > 0
 
 
-class TestModuleImports:
+class TestPaperTradingModuleImports:
     """Test module exports."""
 
     def test_top_level_imports(self):

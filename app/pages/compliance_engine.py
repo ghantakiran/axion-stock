@@ -1,6 +1,7 @@
 """PRD-99: Compliance Engine Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import date, timedelta
 
 from src.compliance_engine import (
@@ -15,6 +16,7 @@ from src.compliance_engine import (
 
 
 def render():
+inject_global_styles()
     st.title("Compliance Engine")
 
     tabs = st.tabs(["Surveillance", "Blackout Windows", "Best Execution", "Reports"])

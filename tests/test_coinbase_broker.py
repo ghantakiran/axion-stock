@@ -186,7 +186,7 @@ class TestCoinbaseClient:
 # =====================================================================
 
 
-class TestResponseModels:
+class TestCoinbaseBrokerResponseModels:
     """Tests for API response model from_api parsing."""
 
     def test_account_from_api(self):
@@ -511,7 +511,7 @@ class TestClientEdgeCases:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestCoinbaseBrokerModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

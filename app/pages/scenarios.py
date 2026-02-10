@@ -1,6 +1,7 @@
 """Portfolio Scenarios Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -9,6 +10,8 @@ try:
     st.set_page_config(page_title="Portfolio Scenarios", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("📊 Portfolio Scenarios")
 

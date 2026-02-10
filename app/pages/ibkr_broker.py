@@ -5,6 +5,9 @@ multi-asset trading (stocks, options, forex, futures), and gateway monitoring.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.ibkr_broker import IBKRClient, IBKRConfig
 

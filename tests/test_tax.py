@@ -635,7 +635,7 @@ class TestGainLossReport:
 # Integration Tests
 # =============================================================================
 
-class TestIntegration:
+class TestTaxIntegration:
     """Integration tests combining multiple components."""
     
     def test_full_harvest_workflow(self):

@@ -463,7 +463,7 @@ class TestBotEngine:
 # Integration Tests
 # =============================================================================
 
-class TestIntegration:
+class TestBotsIntegration:
     """Integration tests."""
     
     def test_full_dca_workflow(self):

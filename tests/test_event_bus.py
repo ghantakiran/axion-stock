@@ -579,7 +579,7 @@ class TestAsyncConsumer:
         assert stats["total_processed"] == 1
 
 
-class TestDataclasses:
+class TestEventBusDataclasses:
     """Tests for dataclass models."""
 
     def test_event_envelope(self):

@@ -83,7 +83,7 @@ class TestAlertConfig:
 # ── Alert Manager Tests ──────────────────────────────────────────────
 
 
-class TestAlertManager:
+class TestAlertingAlertManager:
     def setup_method(self):
         self.manager = AlertManager()
 

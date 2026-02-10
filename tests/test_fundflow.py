@@ -70,7 +70,7 @@ def _make_positions(symbol="AAPL", n=5):
 # ── Config Tests ─────────────────────────────────────────────
 
 
-class TestConfig:
+class TestFundflowConfig:
     def test_flow_direction_values(self):
         assert FlowDirection.INFLOW.value == "inflow"
         assert FlowDirection.OUTFLOW.value == "outflow"
@@ -123,7 +123,7 @@ class TestConfig:
 # ── Model Tests ──────────────────────────────────────────────
 
 
-class TestModels:
+class TestFundflowModels:
     def test_fund_flow_properties(self):
         f = FundFlow(fund_name="SPY", date="2026-01-01",
                      inflow=1e6, outflow=0.5e6, aum=100e6)
@@ -540,7 +540,7 @@ class TestSmartMoneyDetector:
 # ── Integration Tests ────────────────────────────────────────
 
 
-class TestIntegration:
+class TestFundflowIntegration:
     def test_full_pipeline(self):
         """End-to-end: flows -> tracker -> rotation + smart money."""
         rng = np.random.RandomState(42)
@@ -593,7 +593,7 @@ class TestIntegration:
         assert isinstance(result.signal, SmartMoneySignal)
 
 
-class TestModuleImports:
+class TestFundflowModuleImports:
     def test_top_level_imports(self):
         from src.fundflow import (
             FlowTracker,

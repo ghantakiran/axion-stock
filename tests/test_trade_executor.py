@@ -781,7 +781,7 @@ class TestTradeExecutor(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestTradeExecutorModuleImports(unittest.TestCase):
     """Test that all public symbols are importable."""
 
     def test_import_all(self):

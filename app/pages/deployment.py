@@ -1,6 +1,7 @@
 """PRD-120: Deployment Strategies & Rollback Automation Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime, timedelta
 
 from src.deployment import (
@@ -17,6 +18,8 @@ try:
     st.set_page_config(page_title="Deployment", page_icon="🚀")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 
 

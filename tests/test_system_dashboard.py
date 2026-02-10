@@ -29,7 +29,7 @@ from src.system_dashboard.alerts import SystemAlertManager
 # ── Config Tests ──────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestSystemDashboardEnums:
     def test_service_names(self):
         assert len(ServiceName) == 8
         assert ServiceName.API.value == "api"
@@ -46,7 +46,7 @@ class TestEnums:
         assert len(MetricType) == 4
 
 
-class TestConfigs:
+class TestSystemDashboardConfigs:
     def test_alert_thresholds(self):
         t = AlertThresholds()
         assert t.cpu_warn == 0.80
@@ -417,7 +417,7 @@ class TestSystemAlertManager:
 # ── Integration Tests ─────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestSystemDashboardIntegration:
     def test_full_monitoring_workflow(self):
         """End-to-end: health check -> metrics -> alerts -> summary."""
         # 1. Health check
@@ -477,7 +477,7 @@ class TestIntegration:
 # ── Module Import Test ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestSystemDashboardModuleImports:
     def test_import_all(self):
         import src.system_dashboard as sd
         assert hasattr(sd, "HealthChecker")

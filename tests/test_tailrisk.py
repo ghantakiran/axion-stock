@@ -61,7 +61,7 @@ def _drawdown_returns(seed: int = 42) -> list:
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-class TestConfig:
+class TestTailriskConfig:
     def test_cvar_method_values(self):
         assert CVaRMethod.HISTORICAL.value == "historical"
         assert CVaRMethod.CORNISH_FISHER.value == "cornish_fisher"

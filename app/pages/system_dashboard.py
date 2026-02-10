@@ -1,6 +1,7 @@
 """PRD-100: System Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import datetime
 
 from src.system_dashboard import (
@@ -12,6 +13,7 @@ from src.system_dashboard import (
 
 
 def render():
+inject_global_styles()
     st.title("System Dashboard")
 
     tabs = st.tabs(["Overview", "Services", "Metrics", "Alerts"])

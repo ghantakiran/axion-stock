@@ -595,7 +595,7 @@ class TestMultiLegOrders:
 # =====================================================================
 
 
-class TestModuleImports:
+class TestTastytradeBrokerModuleImports:
     """Tests for module import integrity."""
 
     def test_all_exports_importable(self):

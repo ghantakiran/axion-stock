@@ -5,6 +5,7 @@ custom filters, streaming mode, and cross-scanner integration.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import datetime
 
@@ -12,6 +13,8 @@ try:
     st.set_page_config(page_title="TradingView Scanner", layout="wide")
 except st.errors.StreamlitAPIError:
     pass
+
+inject_global_styles()
 
 st.title(":material/travel_explore: TradingView Scanner")
 

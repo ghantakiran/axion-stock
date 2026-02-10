@@ -1,12 +1,15 @@
 """Market Microstructure Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 
 try:
     st.set_page_config(page_title="Market Microstructure", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Market Microstructure")
 

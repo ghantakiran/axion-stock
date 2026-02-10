@@ -469,7 +469,7 @@ class TestStrategySelector(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestModuleImports(unittest.TestCase):
+class TestStrategySelectorModuleImports(unittest.TestCase):
     """Verify public API is importable from the package."""
 
     def test_import_from_package(self):

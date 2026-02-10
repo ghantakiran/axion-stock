@@ -1,6 +1,7 @@
 """PRD-97: GIPS Performance Report Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import date
 
 from src.performance_report import (
@@ -18,6 +19,7 @@ from src.performance_report import (
 
 
 def render():
+inject_global_styles()
     st.title("GIPS Performance Reporting")
 
     tabs = st.tabs(["Composites", "Performance", "Compliance", "Presentation"])

@@ -640,7 +640,7 @@ class TestFusionAgent:
 # ── TestModuleImports ─────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestSignalFusionModuleImports:
     """Tests that all module exports are accessible."""
 
     def test_all_exports(self):

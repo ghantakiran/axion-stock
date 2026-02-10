@@ -178,7 +178,7 @@ class TestWatchlistManager:
 # Test Alert Manager
 # =============================================================================
 
-class TestAlertManager:
+class TestWatchlistAlertManager:
     """Tests for AlertManager."""
     
     def test_create_alert(self):

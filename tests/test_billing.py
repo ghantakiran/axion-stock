@@ -92,7 +92,7 @@ class TestBillingConfig:
 # ── Dataclass Tests ───────────────────────────────────────────────────
 
 
-class TestDataclasses:
+class TestBillingDataclasses:
     def test_meter_definition(self):
         m = MeterDefinition(
             meter_id="m1", name="API", meter_type=MeterType.API_CALL,

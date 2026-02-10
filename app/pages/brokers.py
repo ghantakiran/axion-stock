@@ -1,6 +1,7 @@
 """Broker Integrations Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 import asyncio
 
@@ -8,6 +9,8 @@ try:
     st.set_page_config(page_title="Broker Integrations", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("🏦 Broker Integrations")
 

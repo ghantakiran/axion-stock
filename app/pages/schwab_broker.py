@@ -5,7 +5,10 @@
 
 try:
     import streamlit as st
+from app.styles import inject_global_styles
     st.set_page_config(page_title="Schwab Broker", layout="wide")
+
+inject_global_styles()
 except Exception:
     import streamlit as st
 

@@ -31,7 +31,7 @@ from src.credit.structure import DebtAnalyzer
 # ── Config Tests ────────────────────────────────────────────────────
 
 
-class TestConfig:
+class TestCreditConfig:
     """Test configuration."""
 
     def test_enums(self):
@@ -59,7 +59,7 @@ class TestConfig:
 # ── Model Tests ─────────────────────────────────────────────────────
 
 
-class TestModels:
+class TestCreditModels:
     """Test data models."""
 
     def test_credit_spread_pct(self):
@@ -138,7 +138,7 @@ class TestModels:
 # ── SpreadAnalyzer Tests ────────────────────────────────────────────
 
 
-class TestSpreadAnalyzer:
+class TestCreditSpreadAnalyzer:
     """Test spread analyzer."""
 
     def test_add_and_analyze(self):
@@ -489,7 +489,7 @@ class TestDebtAnalyzer:
 # ── Integration Tests ───────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestCreditIntegration:
     """Integration tests."""
 
     def test_full_credit_workflow(self):

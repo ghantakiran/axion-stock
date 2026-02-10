@@ -88,7 +88,7 @@ def _build_market_prices(n_days: int = 300, seed: int = 42) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # TestRegimeDetector
 # ---------------------------------------------------------------------------
-class TestRegimeDetector:
+class TestRegimeRegimeDetector:
     def test_init_creates_empty_cache(self):
         detector = RegimeDetector()
         assert detector._cache == {}

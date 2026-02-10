@@ -1,6 +1,7 @@
 """Crypto Options Platform Dashboard."""
 
 import streamlit as st
+from app.styles import inject_global_styles
 from datetime import date, timedelta
 
 from src.crypto_options import (
@@ -16,6 +17,8 @@ try:
     st.set_page_config(page_title="Crypto Options", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Crypto Options Platform")
 

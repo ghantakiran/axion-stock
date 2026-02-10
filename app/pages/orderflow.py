@@ -5,6 +5,7 @@ Uses ImbalanceAnalyzer, BlockDetector, PressureAnalyzer; loads/saves via reposit
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
 import pandas as pd
 from datetime import datetime, date, timedelta
 
@@ -71,6 +72,8 @@ try:
     st.set_page_config(page_title="Order Flow Analysis", layout="wide")
 except st.errors.StreamlitAPIException:
     pass
+
+inject_global_styles()
 
 st.title("Order Flow Analysis")
 

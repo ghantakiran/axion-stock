@@ -96,7 +96,7 @@ def sample_market():
 # =============================================================================
 
 
-class TestConfig:
+class TestCopilotConfig:
     """Tests for copilot configuration."""
 
     def test_default_config(self):
@@ -138,7 +138,7 @@ class TestConfig:
 # =============================================================================
 
 
-class TestModels:
+class TestCopilotModels:
     """Tests for copilot models."""
 
     def test_copilot_message_creation(self):
@@ -479,7 +479,7 @@ class TestAnalysisModule:
 # =============================================================================
 
 
-class TestIntegration:
+class TestCopilotIntegration:
     """Integration tests for the copilot."""
 
     def test_full_chat_workflow(self, engine, sample_preferences, sample_portfolio, sample_market):

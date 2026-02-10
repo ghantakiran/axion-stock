@@ -383,7 +383,7 @@ class TestBrokerManager:
 # Test Models
 # =============================================================================
 
-class TestModels:
+class TestBrokersModels:
     """Tests for data models."""
     
     def test_quote_properties(self):

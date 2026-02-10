@@ -564,7 +564,7 @@ class TestRegimeMonitor:
 # ── TestModuleImports ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestRegimeAdaptiveModuleImports:
     """Tests for module-level imports and __all__."""
 
     def test_all_importable(self):

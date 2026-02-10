@@ -36,7 +36,7 @@ from src.workflow.templates import (
 # ── Enum & Config Tests ──────────────────────────────────────────────
 
 
-class TestEnums:
+class TestWorkflowEnums:
     def test_workflow_status_values(self):
         assert len(WorkflowStatus) == 6
         assert WorkflowStatus.DRAFT.value == "draft"

@@ -5,6 +5,9 @@ options-focused trading, options chain analysis, and streaming.
 """
 
 import streamlit as st
+from app.styles import inject_global_styles
+
+inject_global_styles()
 
 from src.tastytrade_broker import TastytradeClient, TastytradeConfig
 

@@ -41,7 +41,7 @@ def reset_registry():
 # ── Config Tests ─────────────────────────────────────────────────────
 
 
-class TestEnums:
+class TestObservabilityEnums:
     def test_metric_types(self):
         assert len(MetricType) == 3
         assert MetricType.COUNTER.value == "counter"
@@ -916,7 +916,7 @@ class TestTrackErrors:
 # ── Integration Tests ────────────────────────────────────────────────
 
 
-class TestIntegration:
+class TestObservabilityIntegration:
     def test_full_pipeline(self):
         """End-to-end: register metrics, record data, export."""
         tm = TradingMetrics()

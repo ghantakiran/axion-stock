@@ -77,7 +77,7 @@ def _make_book(n_levels=5, mid=100.0, tick=0.01, base_size=1000):
 # ── Config Tests ─────────────────────────────────────────────
 
 
-class TestConfig:
+class TestMicrostructureConfig:
     def test_trade_classification_values(self):
         assert TradeClassification.LEE_READY.value == "lee_ready"
         assert TradeClassification.TICK_TEST.value == "tick_test"
@@ -134,7 +134,7 @@ class TestConfig:
 # ── Model Tests ──────────────────────────────────────────────
 
 
-class TestModels:
+class TestMicrostructureModels:
     def test_spread_metrics_properties(self):
         m = SpreadMetrics(
             symbol="AAPL",
@@ -266,7 +266,7 @@ class TestModels:
 # ── Spread Analyzer Tests ───────────────────────────────────
 
 
-class TestSpreadAnalyzer:
+class TestMicrostructureSpreadAnalyzer:
     def test_basic_analysis(self):
         trades, bids, asks, _ = _make_trades(100)
         analyzer = SpreadAnalyzer()
@@ -563,7 +563,7 @@ class TestImpactEstimator:
 # ── Integration Tests ────────────────────────────────────────
 
 
-class TestIntegration:
+class TestMicrostructureIntegration:
     def test_full_pipeline(self):
         """End-to-end: trades -> spread + tick + impact."""
         trades, bids_arr, asks_arr, mid = _make_trades(200, base_price=50.0)
@@ -590,7 +590,7 @@ class TestIntegration:
         assert snap.midpoint > 0
 
 
-class TestModuleImports:
+class TestMicrostructureModuleImports:
     def test_top_level_imports(self):
         from src.microstructure import (
             SpreadAnalyzer,

@@ -472,7 +472,7 @@ class TestStreamMonitor:
 # ── TestModuleImports ────────────────────────────────────────────────
 
 
-class TestModuleImports:
+class TestSignalStreamingModuleImports:
     """Test that all __all__ exports are importable."""
 
     def test_all_imports(self):
