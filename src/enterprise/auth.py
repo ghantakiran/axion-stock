@@ -358,6 +358,11 @@ class AuthService:
 
         return user, None
 
+    # ── Login rate limiting ──────────────────────────────────────
+    _MAX_FAILED_ATTEMPTS = 5
+    _LOCKOUT_MINUTES = 15
+    _MAX_SESSIONS_PER_USER = 10
+
     def login(
         self,
         email: str,
@@ -378,14 +383,29 @@ class AuthService:
         Returns:
             Tuple of (Session, error_message).
         """
+        # Check login rate limit
+        if not hasattr(self, "_failed_attempts"):
+            self._failed_attempts: dict = {}  # email -> (count, first_failure_time)
+
+        email_lower = email.lower()
+        if email_lower in self._failed_attempts:
+            count, first_time = self._failed_attempts[email_lower]
+            elapsed = (datetime.utcnow() - first_time).total_seconds() / 60
+            if count >= self._MAX_FAILED_ATTEMPTS and elapsed < self._LOCKOUT_MINUTES:
+                remaining = int(self._LOCKOUT_MINUTES - elapsed)
+                return None, f"Account locked — too many failed attempts. Try again in {remaining} min"
+            if elapsed >= self._LOCKOUT_MINUTES:
+                del self._failed_attempts[email_lower]
+
         # Find user
         user = None
         for u in self._users.values():
-            if u.email.lower() == email.lower():
+            if u.email.lower() == email_lower:
                 user = u
                 break
 
         if not user:
+            self._record_failed_attempt(email_lower)
             return None, "Invalid credentials"
 
         if not user.is_active:
@@ -393,7 +413,11 @@ class AuthService:
 
         # Verify password
         if not self.password_hasher.verify(password, user.password_hash):
+            self._record_failed_attempt(email_lower)
             return None, "Invalid credentials"
+
+        # Clear failed attempts on success
+        self._failed_attempts.pop(email_lower, None)
 
         # Check 2FA
         if user.totp_enabled:
@@ -401,6 +425,16 @@ class AuthService:
                 return None, "2FA code required"
             if not self.totp_manager.verify_code(user.totp_secret, totp_code):
                 return None, "Invalid 2FA code"
+
+        # Enforce session limit — evict oldest sessions
+        user_sessions = [
+            s for s in self._sessions.values()
+            if s.user_id == user.id and s.is_active
+        ]
+        if len(user_sessions) >= self._MAX_SESSIONS_PER_USER:
+            oldest = sorted(user_sessions, key=lambda s: s.created_at or datetime.min)
+            for old_sess in oldest[: len(user_sessions) - self._MAX_SESSIONS_PER_USER + 1]:
+                old_sess.is_active = False
 
         # Create session
         session = Session(
@@ -419,6 +453,14 @@ class AuthService:
 
         logger.info(f"User logged in: {user.email}")
         return session, None
+
+    def _record_failed_attempt(self, email_lower: str) -> None:
+        """Track failed login attempts for rate limiting."""
+        if email_lower in self._failed_attempts:
+            count, first_time = self._failed_attempts[email_lower]
+            self._failed_attempts[email_lower] = (count + 1, first_time)
+        else:
+            self._failed_attempts[email_lower] = (1, datetime.utcnow())
 
     def logout(self, session_id: str) -> bool:
         """Log out a session.

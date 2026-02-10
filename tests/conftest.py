@@ -1,5 +1,6 @@
 """Pytest configuration and shared fixtures."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -8,6 +9,10 @@ import pytest
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Enable dev mode for all tests so API auth is bypassed by default.
+# Individual tests that need auth enforcement set AXION_REQUIRE_API_KEY=true.
+os.environ.setdefault("AXION_DEV_MODE", "true")
 
 
 @pytest.fixture(autouse=True)

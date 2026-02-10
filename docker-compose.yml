@@ -16,12 +16,13 @@ services:
   # PostgreSQL + TimescaleDB
   # ---------------------------------------------------------------------------
   postgres:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.17.2-pg16
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-axion}
       POSTGRES_USER: ${POSTGRES_USER:-axion}
+      # SECURITY: Override via .env or environment variable in production
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-axion_dev}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -190,7 +191,7 @@ services:
   # Prometheus — Metrics Collection
   # ---------------------------------------------------------------------------
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.54.1
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
@@ -209,11 +210,12 @@ services:
   # Grafana — Dashboards & Visualization
   # ---------------------------------------------------------------------------
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.3.0
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # SECURITY: Change default admin password via .env in production
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:

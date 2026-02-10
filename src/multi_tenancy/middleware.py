@@ -91,7 +91,10 @@ class DataIsolationMiddleware:
         if not self.config.enabled:
             return True, None, "Multi-tenancy disabled"
 
-        # Extract claims from headers (simulating JWT extraction)
+        # SECURITY: These headers MUST be set by a trusted upstream gateway
+        # or JWT validation middleware — never trust raw client headers.
+        # In production, strip these headers from incoming requests at the
+        # API gateway and re-inject from validated JWT claims.
         workspace_id = headers.get("X-Workspace-ID", "")
         user_id = headers.get("X-User-ID", "")
         roles_str = headers.get("X-User-Roles", "")

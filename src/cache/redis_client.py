@@ -6,7 +6,7 @@ JSON storage, and TTL-based expiration.
 
 import json
 import logging
-import pickle
+from io import StringIO
 from typing import Any, Optional
 
 import pandas as pd
@@ -62,22 +62,23 @@ class RedisCache:
     # --- Async DataFrame Operations ---
 
     async def get_dataframe(self, key: str) -> Optional[pd.DataFrame]:
-        """Get a pickled DataFrame from Redis."""
+        """Get a JSON-serialized DataFrame from Redis."""
         try:
             client = await self.get_async_client()
             data = await client.get(key)
             if data is None:
                 return None
-            return pickle.loads(data)
+            return pd.read_json(StringIO(data) if isinstance(data, str) else StringIO(data.decode()), orient="split")
         except Exception as e:
             logger.debug("Redis get_dataframe miss for %s: %s", key, e)
             return None
 
     async def set_dataframe(self, key: str, df: pd.DataFrame, ttl: int) -> None:
-        """Store a DataFrame in Redis with TTL."""
+        """Store a DataFrame in Redis as JSON with TTL."""
         try:
             client = await self.get_async_client()
-            await client.setex(key, ttl, pickle.dumps(df, protocol=pickle.HIGHEST_PROTOCOL))
+            payload = df.to_json(orient="split", date_format="iso")
+            await client.setex(key, ttl, payload)
         except Exception as e:
             logger.warning("Redis set_dataframe failed for %s: %s", key, e)
 
@@ -118,22 +119,23 @@ class RedisCache:
     # --- Sync Operations (backward compatibility) ---
 
     def get_dataframe_sync(self, key: str) -> Optional[pd.DataFrame]:
-        """Synchronous DataFrame get."""
+        """Synchronous DataFrame get (JSON-serialized)."""
         try:
             client = self.get_sync_client()
             data = client.get(key)
             if data is None:
                 return None
-            return pickle.loads(data)
+            return pd.read_json(StringIO(data) if isinstance(data, str) else StringIO(data.decode()), orient="split")
         except Exception as e:
             logger.debug("Redis sync get_dataframe miss for %s: %s", key, e)
             return None
 
     def set_dataframe_sync(self, key: str, df: pd.DataFrame, ttl: int) -> None:
-        """Synchronous DataFrame set."""
+        """Synchronous DataFrame set (JSON-serialized)."""
         try:
             client = self.get_sync_client()
-            client.setex(key, ttl, pickle.dumps(df, protocol=pickle.HIGHEST_PROTOCOL))
+            payload = df.to_json(orient="split", date_format="iso")
+            client.setex(key, ttl, payload)
         except Exception as e:
             logger.warning("Redis sync set_dataframe failed for %s: %s", key, e)
 

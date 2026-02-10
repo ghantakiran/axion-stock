@@ -294,6 +294,9 @@ class WebhookSigner:
         Returns:
             Hex-encoded HMAC signature.
         """
+        _ALLOWED_ALGORITHMS = {"sha256", "sha384", "sha512"}
+        if algorithm not in _ALLOWED_ALGORITHMS:
+            raise ValueError(f"Unsupported algorithm '{algorithm}'. Allowed: {_ALLOWED_ALGORITHMS}")
         return hmac.new(
             secret.encode("utf-8"),
             payload.encode("utf-8"),
@@ -318,6 +321,9 @@ class WebhookSigner:
         Returns:
             True if signature is valid.
         """
+        _ALLOWED_ALGORITHMS = {"sha256", "sha384", "sha512"}
+        if algorithm not in _ALLOWED_ALGORITHMS:
+            raise ValueError(f"Unsupported algorithm '{algorithm}'. Allowed: {_ALLOWED_ALGORITHMS}")
         expected = hmac.new(
             secret.encode("utf-8"),
             payload.encode("utf-8"),

@@ -8,6 +8,7 @@ Report generation and management:
 - Distribution management
 """
 
+import html as html_mod
 import sys
 import os
 from datetime import datetime, date, timedelta
@@ -584,23 +585,24 @@ def render_branding():
     # Preview
     st.subheader("Branding Preview")
 
+    _e = html_mod.escape
     preview_html = f"""
     <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: white;">
-        <div style="border-bottom: 3px solid {branding['primary_color']}; padding-bottom: 15px; margin-bottom: 15px;">
-            <h2 style="color: {branding['primary_color']}; margin: 0;">{branding['company_name']}</h2>
-            <p style="color: {branding['secondary_color']}; margin: 5px 0 0 0; font-size: 14px;">{branding['header_text']}</p>
+        <div style="border-bottom: 3px solid {_e(branding['primary_color'])}; padding-bottom: 15px; margin-bottom: 15px;">
+            <h2 style="color: {_e(branding['primary_color'])}; margin: 0;">{_e(branding['company_name'])}</h2>
+            <p style="color: {_e(branding['secondary_color'])}; margin: 5px 0 0 0; font-size: 14px;">{_e(branding['header_text'])}</p>
         </div>
         <div style="min-height: 100px; padding: 10px;">
             <p style="color: #333;">Sample report content would appear here...</p>
-            <div style="background: {branding['accent_color']}20; padding: 10px; border-radius: 4px; margin-top: 10px;">
-                <strong style="color: {branding['accent_color']};">+12.4%</strong>
+            <div style="background: {_e(branding['accent_color'])}20; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                <strong style="color: {_e(branding['accent_color'])};">+12.4%</strong>
                 <span style="color: #666;"> YTD Return</span>
             </div>
         </div>
         <div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 15px; font-size: 12px; color: #666;">
-            <p>{branding['footer_text']}</p>
-            <p style="font-style: italic;">{branding['disclaimer'][:100]}...</p>
-            <p>{branding['contact_email']} | {branding['contact_phone']} | {branding['website']}</p>
+            <p>{_e(branding['footer_text'])}</p>
+            <p style="font-style: italic;">{_e(branding['disclaimer'][:100])}...</p>
+            <p>{_e(branding['contact_email'])} | {_e(branding['contact_phone'])} | {_e(branding['website'])}</p>
         </div>
     </div>
     """

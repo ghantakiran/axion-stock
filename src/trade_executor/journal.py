@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from src.ema_signals.detector import TradeSignal
@@ -206,7 +206,7 @@ class TradeJournalWriter:
         days: int = 30,
     ) -> list[TradeRecord]:
         """Query trade history with optional filters."""
-        cutoff = datetime.now(timezone.utc) - __import__("datetime").timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         result = [t for t in self._trades if t.exit_time >= cutoff]
         if ticker:

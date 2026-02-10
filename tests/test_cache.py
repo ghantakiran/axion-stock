@@ -10,7 +10,6 @@ Run: python3 -m pytest tests/test_cache.py -v
 import asyncio
 import json
 import os
-import pickle
 import sys
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
@@ -45,13 +44,14 @@ class TestCacheAsyncDataFrame(unittest.TestCase):
         result = self._run(self.cache.get_dataframe("axion:prices:AAPL:1d"))
         self.assertIsNone(result)
 
-    def test_get_dataframe_deserializes_pickle(self):
+    def test_get_dataframe_deserializes_json(self):
         df = pd.DataFrame({"close": [100.0, 101.0]})
-        self.mock_client.get = AsyncMock(return_value=pickle.dumps(df))
+        payload = df.to_json(orient="split", date_format="iso")
+        self.mock_client.get = AsyncMock(return_value=payload)
         result = self._run(self.cache.get_dataframe("axion:prices:AAPL:1d"))
-        pd.testing.assert_frame_equal(result, df)
+        pd.testing.assert_frame_equal(result, df, check_dtype=False)
 
-    def test_set_dataframe_calls_setex_with_pickle(self):
+    def test_set_dataframe_calls_setex_with_json(self):
         df = pd.DataFrame({"close": [150.0]})
         self.mock_client.setex = AsyncMock()
         self._run(self.cache.set_dataframe("k", df, 300))
@@ -59,8 +59,9 @@ class TestCacheAsyncDataFrame(unittest.TestCase):
         args = self.mock_client.setex.call_args
         self.assertEqual(args[0][0], "k")
         self.assertEqual(args[0][1], 300)
-        restored = pickle.loads(args[0][2])
-        pd.testing.assert_frame_equal(restored, df)
+        from io import StringIO
+        restored = pd.read_json(StringIO(args[0][2]), orient="split")
+        pd.testing.assert_frame_equal(restored, df, check_dtype=False)
 
     def test_get_dataframe_returns_none_on_exception(self):
         self.mock_client.get = AsyncMock(side_effect=ConnectionError("down"))
@@ -72,12 +73,13 @@ class TestCacheAsyncDataFrame(unittest.TestCase):
         # Should not raise
         self._run(self.cache.set_dataframe("k", pd.DataFrame(), 60))
 
-    def test_set_dataframe_uses_highest_protocol(self):
+    def test_set_dataframe_uses_json_split_format(self):
         df = pd.DataFrame({"a": [1]})
         self.mock_client.setex = AsyncMock()
         self._run(self.cache.set_dataframe("k", df, 10))
         raw = self.mock_client.setex.call_args[0][2]
-        self.assertEqual(pickle.loads(raw).iloc[0, 0], 1)
+        from io import StringIO
+        self.assertEqual(pd.read_json(StringIO(raw), orient="split").iloc[0, 0], 1)
 
 
 # =============================================================================
@@ -197,9 +199,9 @@ class TestCacheSyncOperations(unittest.TestCase):
 
     def test_get_dataframe_sync_deserializes(self):
         df = pd.DataFrame({"vol": [1000, 2000]})
-        self.mock_client.get.return_value = pickle.dumps(df)
+        self.mock_client.get.return_value = df.to_json(orient="split", date_format="iso")
         result = self.cache.get_dataframe_sync("k")
-        pd.testing.assert_frame_equal(result, df)
+        pd.testing.assert_frame_equal(result, df, check_dtype=False)
 
     def test_set_dataframe_sync_calls_setex(self):
         df = pd.DataFrame({"a": [1]})

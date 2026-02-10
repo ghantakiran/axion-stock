@@ -69,7 +69,7 @@ class QueryProfiler:
     ) -> QueryFingerprint:
         """Record a query execution and update its fingerprint stats."""
         normalized = self._normalize_query(query_text)
-        fp_hash = hashlib.md5(normalized.encode()).hexdigest()
+        fp_hash = hashlib.sha256(normalized.encode()).hexdigest()[:32]
 
         with self._lock:
             if fp_hash not in self._fingerprints:

@@ -39,8 +39,20 @@ def get_rate_limiter() -> RateLimiter:
 
 
 def _auth_required() -> bool:
-    """Check whether API key authentication is enabled."""
-    return os.environ.get("AXION_REQUIRE_API_KEY", "").lower() in ("true", "1", "yes")
+    """Check whether API key authentication is enabled.
+
+    Auth is REQUIRED by default. Disabled when either:
+    - AXION_DEV_MODE=true (recommended for local development)
+    - AXION_REQUIRE_API_KEY=false (legacy opt-out)
+    """
+    dev_mode = os.environ.get("AXION_DEV_MODE", "").lower() in ("true", "1", "yes")
+    if dev_mode:
+        return False
+    # Legacy: explicit opt-out via AXION_REQUIRE_API_KEY=false
+    legacy = os.environ.get("AXION_REQUIRE_API_KEY", "")
+    if legacy.lower() in ("false", "0", "no"):
+        return False
+    return True
 
 
 # ── User context returned by auth dependency ──────────────────────────

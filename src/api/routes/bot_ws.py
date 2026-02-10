@@ -16,6 +16,21 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from src.api.websocket import WebSocketManager
 
+# Lazy-loaded auth dependency
+_key_manager = None
+
+
+def _get_key_manager():
+    """Lazy-load APIKeyManager to avoid circular imports."""
+    global _key_manager
+    if _key_manager is None:
+        try:
+            from src.api.dependencies import get_key_manager, _auth_required
+            _key_manager = (get_key_manager, _auth_required)
+        except ImportError:
+            _key_manager = (None, lambda: False)
+    return _key_manager
+
 logger = logging.getLogger(__name__)
 
 # Shared WebSocket manager instance
@@ -33,8 +48,26 @@ async def bot_websocket_endpoint(websocket: WebSocket) -> None:
     (signals, orders, alerts, lifecycle, metrics). They can send
     JSON messages to subscribe/unsubscribe/heartbeat.
     """
+    # ── Authenticate before accepting ──────────────────────────────
+    get_mgr, auth_required = _get_key_manager()
+    if auth_required():
+        token = websocket.query_params.get("token")
+        if not token:
+            await websocket.close(code=4001, reason="Missing authentication token")
+            return
+        if get_mgr is not None:
+            mgr_inst = get_mgr()
+            metadata = mgr_inst.validate_key(token)
+            if metadata is None:
+                await websocket.close(code=4001, reason="Invalid or expired token")
+                return
+            user_id = metadata.get("user_id", "anonymous")
+        else:
+            user_id = "anonymous"
+    else:
+        user_id = websocket.query_params.get("user_id", "anonymous")
+
     await websocket.accept()
-    user_id = websocket.query_params.get("user_id", "anonymous")
     conn_id, success, msg = handle_bot_connect(user_id)
 
     if not success:

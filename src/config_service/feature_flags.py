@@ -134,7 +134,7 @@ class FeatureFlagService:
                 return False
             hash_input = f"{flag.name}:{ctx.user_id}"
             hash_value = int(
-                hashlib.md5(hash_input.encode()).hexdigest(), 16
+                hashlib.sha256(hash_input.encode()).hexdigest(), 16
             ) % 100
             return hash_value < flag.percentage
 

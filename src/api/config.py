@@ -68,7 +68,10 @@ class APIConfig:
         "http://localhost:3000",   # Grafana
     ])
     cors_methods: list[str] = field(default_factory=lambda: ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-    cors_headers: list[str] = field(default_factory=lambda: ["*"])
+    cors_headers: list[str] = field(default_factory=lambda: [
+        "Authorization", "Content-Type", "X-API-Key",
+        "X-Request-ID", "X-Workspace-ID",
+    ])
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 30
     api_key_prefix: str = "ax_"

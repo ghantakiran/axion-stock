@@ -984,7 +984,7 @@ class TestErrorHandlingMiddleware:
 
 
 class TestAuthDependencyDevMode:
-    """Test that auth dependencies pass-through in dev mode (no env var)."""
+    """Test that auth dependencies pass-through in dev mode (AXION_DEV_MODE=true)."""
 
     @pytest.fixture
     def app(self):
@@ -1038,6 +1038,7 @@ class TestAuthDependencyEnforced:
 
     @pytest.fixture(autouse=True)
     def _enable_auth(self, monkeypatch):
+        monkeypatch.delenv("AXION_DEV_MODE", raising=False)
         monkeypatch.setenv("AXION_REQUIRE_API_KEY", "true")
 
     def test_bot_start_rejected_no_key(self, client):
@@ -1157,6 +1158,7 @@ class TestRateLimiting:
 
     @pytest.fixture(autouse=True)
     def _enable_auth(self, monkeypatch):
+        monkeypatch.delenv("AXION_DEV_MODE", raising=False)
         monkeypatch.setenv("AXION_REQUIRE_API_KEY", "true")
 
     @pytest.fixture
@@ -1228,8 +1230,8 @@ class TestRateLimiting:
 class TestAllRoutesHaveAuth:
     """Verify rate-limit headers appear on endpoints from every route module.
 
-    In dev mode (no AXION_REQUIRE_API_KEY), the check_rate_limit dependency
-    still runs and injects X-RateLimit-* headers. This proves auth is wired.
+    In dev mode (AXION_DEV_MODE=true set in conftest), the check_rate_limit
+    dependency still runs and injects X-RateLimit-* headers. This proves auth is wired.
     """
 
     @pytest.fixture
@@ -1303,6 +1305,7 @@ class TestAllRoutesAuthEnforced:
 
     @pytest.fixture(autouse=True)
     def _enable_auth(self, monkeypatch):
+        monkeypatch.delenv("AXION_DEV_MODE", raising=False)
         monkeypatch.setenv("AXION_REQUIRE_API_KEY", "true")
 
     def test_market_data_401(self, client):
@@ -1368,6 +1371,7 @@ class TestKeyManagement:
 
     @pytest.fixture(autouse=True)
     def _enable_auth(self, monkeypatch):
+        monkeypatch.delenv("AXION_DEV_MODE", raising=False)
         monkeypatch.setenv("AXION_REQUIRE_API_KEY", "true")
 
     @pytest.fixture(autouse=True)

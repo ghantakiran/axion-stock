@@ -9,6 +9,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+try:
+    from cryptography.fernet import Fernet
+    _HAS_FERNET = True
+except ImportError:  # pragma: no cover
+    _HAS_FERNET = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,9 +69,22 @@ class SecretsManager:
         self._key = encryption_key or os.environ.get(
             "AXION_SECRETS_KEY", "default-dev-key-change-in-production"
         )
+        self._fernet = self._build_fernet(self._key)
         self._secrets: Dict[str, Secret] = {}
         self._access_log: List[SecretAccess] = []
         self._lock = threading.RLock()
+
+    @staticmethod
+    def _build_fernet(key: str) -> "Fernet | None":
+        """Derive a Fernet instance from the passphrase, or None."""
+        if not _HAS_FERNET:
+            logger.warning(
+                "cryptography not installed — using XOR fallback. "
+                "Install 'cryptography' for production use."
+            )
+            return None
+        derived = hashlib.sha256(key.encode()).digest()
+        return Fernet(base64.urlsafe_b64encode(derived))
 
     def store(
         self,
@@ -183,11 +202,10 @@ class SecretsManager:
             self._access_log.clear()
 
     def _encrypt(self, plaintext: str) -> str:
-        """Simple XOR encryption with base64 encoding.
-
-        NOTE: For demonstration only. Production should use
-        cryptography.fernet or cloud KMS.
-        """
+        """Encrypt with Fernet (AES-128-CBC + HMAC) or XOR fallback."""
+        if self._fernet is not None:
+            return self._fernet.encrypt(plaintext.encode()).decode()
+        # XOR fallback for dev/test without cryptography package
         key_bytes = hashlib.sha256(self._key.encode()).digest()
         plain_bytes = plaintext.encode()
         encrypted = bytes(
@@ -197,7 +215,9 @@ class SecretsManager:
         return base64.b64encode(encrypted).decode()
 
     def _decrypt(self, ciphertext: str) -> str:
-        """Decrypt a base64-encoded XOR-encrypted string."""
+        """Decrypt with Fernet or XOR fallback."""
+        if self._fernet is not None:
+            return self._fernet.decrypt(ciphertext.encode()).decode()
         key_bytes = hashlib.sha256(self._key.encode()).digest()
         encrypted = base64.b64decode(ciphertext.encode())
         decrypted = bytes(

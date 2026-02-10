@@ -1,11 +1,19 @@
 """PRD-124: Secrets Management & API Credential Vaulting - Vault Core."""
 
+import base64
+import hashlib
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from .config import SecretType, VaultConfig
+
+try:
+    from cryptography.fernet import Fernet
+    _HAS_FERNET = True
+except ImportError:  # pragma: no cover
+    _HAS_FERNET = False
 
 
 @dataclass
@@ -27,21 +35,53 @@ class SecretEntry:
 class SecretsVault:
     """Encrypted secrets vault with versioning and expiration.
 
-    Uses XOR-based encryption for demonstration purposes.
-    Production deployments should integrate with HSM or KMS.
+    Uses Fernet (AES-128-CBC + HMAC-SHA256) when the ``cryptography``
+    package is installed. Falls back to XOR for environments without
+    the dependency (dev/test only — logs a warning).
+    Production deployments should install ``cryptography`` or integrate
+    with HSM / KMS.
     """
 
     def __init__(self, config: Optional[VaultConfig] = None, encryption_key: str = "axion-vault-key"):
         self.config = config or VaultConfig()
         self._encryption_key = encryption_key
+        self._fernet = self._build_fernet(encryption_key)
         # key_path -> list of SecretEntry (ordered by version, latest last)
         self._store: Dict[str, List[SecretEntry]] = {}
         self._deleted: Dict[str, List[SecretEntry]] = {}
 
+    @staticmethod
+    def _build_fernet(key: str) -> "Fernet | None":
+        """Derive a Fernet key from the user-supplied passphrase."""
+        if not _HAS_FERNET:
+            import logging
+            logging.getLogger(__name__).warning(
+                "cryptography not installed — falling back to XOR encryption. "
+                "Install 'cryptography' for production use."
+            )
+            return None
+        # Derive a URL-safe 32-byte key via SHA-256
+        derived = hashlib.sha256(key.encode()).digest()
+        fernet_key = base64.urlsafe_b64encode(derived)
+        return Fernet(fernet_key)
+
     # ── Encryption ────────────────────────────────────────────────────
 
+    def _encrypt(self, plaintext: str) -> str:
+        """Encrypt using Fernet (preferred) or XOR fallback."""
+        if self._fernet is not None:
+            token = self._fernet.encrypt(plaintext.encode())
+            return token.decode()
+        return self._xor_encrypt(plaintext)
+
+    def _decrypt(self, ciphertext: str) -> str:
+        """Decrypt using Fernet (preferred) or XOR fallback."""
+        if self._fernet is not None:
+            return self._fernet.decrypt(ciphertext.encode()).decode()
+        return self._xor_decrypt(ciphertext)
+
     def _xor_encrypt(self, plaintext: str) -> str:
-        """XOR-based demo encryption."""
+        """XOR-based fallback encryption (dev/test only)."""
         key = self._encryption_key
         result = []
         for i, ch in enumerate(plaintext):
@@ -50,10 +90,9 @@ class SecretsVault:
         return "".join(result)
 
     def _xor_decrypt(self, ciphertext: str) -> str:
-        """XOR-based demo decryption."""
+        """XOR-based fallback decryption (dev/test only)."""
         key = self._encryption_key
         result = []
-        # Split hex string into 2-char chunks
         chunks = [ciphertext[i : i + 2] for i in range(0, len(ciphertext), 2)]
         for i, chunk in enumerate(chunks):
             xor_val = int(chunk, 16) ^ ord(key[i % len(key)])
@@ -72,7 +111,7 @@ class SecretsVault:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> SecretEntry:
         """Store or update a secret, creating a new version."""
-        encrypted = self._xor_encrypt(value)
+        encrypted = self._encrypt(value)
         ttl = ttl_seconds if ttl_seconds is not None else self.config.default_ttl_seconds
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl) if ttl > 0 else None
 
@@ -122,7 +161,7 @@ class SecretsVault:
         entry = self.get(key_path, version)
         if entry is None:
             return None
-        return self._xor_decrypt(entry.encrypted_value)
+        return self._decrypt(entry.encrypted_value)
 
     def delete(self, key_path: str) -> bool:
         """Delete all versions of a secret."""
