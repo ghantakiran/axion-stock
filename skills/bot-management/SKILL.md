@@ -401,3 +401,10 @@ The `StrategyBridge` (`src/bot_pipeline/strategy_bridge.py`) passes full OHLCV a
 - `src/api/routes/strategies.py` -- Strategy registry REST API (6 endpoints)
 - `src/strategy_selector/selector.py` -- ADX-gated strategy routing with Ripster refinement
 - `src/strategies/` -- BotStrategy protocol, StrategyRegistry, 6 built-in strategies
+- `src/qullamaggie/` -- 3 Qullamaggie strategies (breakout, EP, parabolic short) + 5 scanner presets
+
+## See Also
+
+- **ripster-ema-trading** — Ripster EMA Cloud signal detection and cloud layers
+- **qullamaggie-momentum** — Qullamaggie breakout/EP/parabolic short momentum strategies
+- **trading-signal-generation** — Signal pipeline, fusion weights, and strategy registration

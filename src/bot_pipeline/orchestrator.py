@@ -500,6 +500,14 @@ class BotOrchestrator:
                 instrument_type=position_instrument_type,
                 leverage=position_leverage,
             )
+            # Tag position with signal source for attribution
+            _meta = getattr(signal, "metadata", None) or {}
+            position._signal_source = (
+                _meta.get("strategy_name")
+                or _meta.get("signal_source")
+                or (signal.signal_type.value if hasattr(signal.signal_type, "value") else "ema_cloud")
+            )
+            position._strategy = _meta.get("strategy_name", position._signal_source)
             self.positions.append(position)
 
             # ── Stage 8: Record execution (PRD-162) ──────────────

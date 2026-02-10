@@ -434,6 +434,7 @@ DEFAULT_SOURCE_WEIGHTS = {
 
 ## See Also
 - **backtesting-strategies** — Validate signals historically with BacktestEngine and BotBacktestRunner
+- **qullamaggie-momentum** — Qullamaggie breakout/EP/parabolic short strategies with 5 scanner presets
 - **risk-assessment** — Pre-trade risk checks (VaR, correlation guard) before signal execution
 - **order-execution** — Signal-to-order pipeline that consumes generated signals
 - **sentiment-analysis** — Sentiment scores as an additional signal source for fusion

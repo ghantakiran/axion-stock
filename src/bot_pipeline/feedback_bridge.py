@@ -138,7 +138,13 @@ class FeedbackBridge:
             if sources:
                 self._current_weights = self._adjuster.get_recommended_weights(sources)
             else:
-                self._current_weights = {"ema_cloud": 0.5, "mean_reversion": 0.5}
+                self._current_weights = {
+                    "ema_cloud": 0.25,
+                    "mean_reversion": 0.15,
+                    "qullamaggie_breakout": 0.25,
+                    "qullamaggie_ep": 0.20,
+                    "qullamaggie_parabolic_short": 0.15,
+                }
 
         update = self._adjuster.compute_weights(self._current_weights)
 

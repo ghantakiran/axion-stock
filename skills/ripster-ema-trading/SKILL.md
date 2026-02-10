@@ -270,6 +270,7 @@ registry.register(MyStrategy())
 ## See Also
 
 - **trading-signal-generation** — Signal pipeline and fusion
+- **qullamaggie-momentum** — Qullamaggie breakout/EP/parabolic short strategies (complementary momentum setups)
 - **backtesting-strategies** — Strategy backtesting and walk-forward
 - **risk-assessment** — Risk management and position sizing
 - **order-execution** — Order routing and broker integration
