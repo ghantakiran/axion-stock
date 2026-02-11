@@ -1,0 +1,35 @@
+# Security Patterns
+
+## OWASP_Top_10
+
+```yaml
+OWASP_Top_10:
+  A01_Injection: "Parameterized queries, input validation, output encoding"
+  A02_Authentication: "Strong auth, secure sessions, MFA"
+  A03_Data_Exposure: "Strong encryption, data classification, secure storage"
+  A04_XXE: "Disable external entities, input validation"
+  A05_Access_Control: "Least privilege, proper auth checks, no IDOR"
+  A06_Configuration: "Secure defaults, hardening, no debug info"
+  A07_XSS: "Input validation, output encoding, CSP headers"
+  A08_Deserialization: "Input validation, integrity checks, isolation"
+  A09_Components: "Regular updates, vulnerability scanning"
+  A10_Monitoring: "Comprehensive logging, real-time monitoring, incident response"
+```
+
+## Validation_Levels
+
+```yaml
+Validation_Levels:
+  Quick_Scan:
+    Focus: ["Hardcoded secrets", "SQL injection", "XSS", "Known CVEs"]
+
+  Standard_Scan:
+    Focus: ["OWASP Top 10", "Dependency vulnerabilities", "Configuration issues"]
+
+  Deep_Scan:
+    Focus: ["Code analysis", "Architecture review", "Compliance checking"]
+
+  Compliance_Scan:
+    Frameworks: ["SOC 2", "PCI DSS", "HIPAA", "GDPR"]
+    Focus: ["Data protection", "Access controls", "Audit trails"]
+```

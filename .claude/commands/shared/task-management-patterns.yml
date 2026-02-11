@@ -1,0 +1,47 @@
+# Task Management Patterns
+
+## Task_Management_Hierarchy
+
+```yaml
+Task_Management_Hierarchy:
+  Level_1_Tasks: "High-level features (session persistence, git branching, requirement tracking)"
+  Level_2_Todos: "Immediate actionable steps (real-time execution tracking within session)"
+
+  Integration_Flow:
+    Task_Creation: "User request → Task breakdown → Todo generation"
+    Session_Start: "Scan tasks → Load context → Generate todos"
+    Progress_Sync: "Todo completion → Task progress update"
+    Session_End: "Save context → Update task status"
+```
+
+## Auto_Trigger_Rules
+
+```yaml
+Auto_Trigger_Rules:
+  By_Complexity:
+    Single_File: "No auto-trigger"
+    Multiple_Files_3_5: "Consider TodoList if interdependent"
+    Many_Files_6_Plus: "AUTO-TRIGGER TodoList"
+
+  By_Risk:
+    Low: "Optional todos"
+    Medium: "Recommend todos"
+    High: "REQUIRE todos"
+    Critical: "MANDATORY todos + checkpoints"
+
+  By_Command:
+    build + multiple_targets: "AUTO-TRIGGER"
+    migrate + database: "AUTO-TRIGGER"
+    deploy + production: "AUTO-TRIGGER"
+    refactor + architecture: "AUTO-TRIGGER"
+```
+
+## Task_Format
+
+```yaml
+Compressed_Task_Format:
+  Header: "T: {TITLE} | S: {STATUS} | P: {PRIORITY}"
+  Status_Codes: "P(Pending) | IP(InProgress) | B(Blocked) | C(Completed)"
+  Phase_Symbols: "□(pending) | ⏳(in-progress) | ⚠(blocked) | ✅(completed)"
+  Progress: "{COMPLETED}/{TOTAL} ({%})"
+```

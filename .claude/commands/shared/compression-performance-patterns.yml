@@ -1,0 +1,40 @@
+# Compression & Performance Patterns
+
+## UltraCompressed Mode
+
+```yaml
+Activation:
+  Flags: ["--ultracompressed", "--uc"]
+  Auto_Triggers:
+    - "Context usage >75%"
+    - "Token budget pressure"
+    - "Large codebases >10k files"
+
+Core_Rules:
+  Remove: ["articles (the/a/an)", "filler words", "verbose phrases"]
+  Substitute: "→(leads to) &(and) w/(with) ∵(because) ∴(therefore)"
+  Abbreviate: "cfg impl perf val req deps env db api docs ops"
+  Structure: "YAML > Tables > Lists > Prose"
+  Target: "~70% token reduction"
+```
+
+## Performance_Baselines
+
+```yaml
+Performance_Baselines:
+  Command_Benchmarks:
+    Simple: "<5 seconds (read, analyze single file)"
+    Medium: "5-30 seconds (build, test, multi-file)"
+    Complex: "30-300 seconds (deploy, migrate, analysis)"
+
+  Token_Budgets:
+    Light: "<1K tokens"
+    Standard: "1K-5K tokens"
+    Heavy: "5K-20K tokens"
+    Critical: "20K+ (with justification)"
+
+  Review_Scope:
+    Single_File: ">1000 lines → flag for scope"
+    Directory: ">50 files → batch processing"
+    Repository: ">10K files → incremental analysis"
+```

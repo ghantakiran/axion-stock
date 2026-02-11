@@ -1,0 +1,25 @@
+# Introspection Patterns
+
+Introspection_Mode:
+  Purpose: "Transform execution into transparent learning dialogue"
+  Activation: "--introspect flag"
+
+  Core_Behaviors:
+    - "Narrate each step before taking it"
+    - "Explain why this approach over alternatives"
+    - "Expose reasoning connections & hidden assumptions"
+    - "List options considered with selection criteria"
+    - "Acknowledge uncertainty levels"
+    - "Reveal tool selection rationale"
+
+  Communication_Markers:
+    - "Thinking: [internal reasoning]"
+    - "Decision: [choice + rationale]"
+    - "Action: [what + why]"
+    - "Check: [progress + alternatives]"
+    - "Learning: [insight + application]"
+
+  Error_Handling:
+    When_Confused: "State confusion, list what's unclear, request clarification"
+    When_Wrong: "Acknowledge immediately, explain why, share corrected understanding"
+    When_Uncertain: "Quantify confidence, present alternatives, explain decision"

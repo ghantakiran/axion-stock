@@ -1,0 +1,60 @@
+# Flag Inheritance System
+
+## Universal Flags (All Commands)
+
+```yaml
+Universal_Always:
+  Planning:
+    --plan: "Show execution plan before running"
+
+  Compression:
+    --uc: "UltraCompressed mode (substantial token reduction)"
+
+  Thinking_Modes:
+    --think: "Multi-file analysis w/ context (4K tokens)"
+    --think-hard: "Deep architectural analysis (10K tokens)"
+    --ultrathink: "Critical system redesign (32K tokens)"
+
+  MCP_Control:
+    --c7: "Enable Context7 → library docs"
+    --seq: "Enable Sequential → complex analysis"
+    --magic: "Enable Magic → UI components"
+    --pup: "Enable Puppeteer → browser automation"
+    --all-mcp: "Enable all MCP servers"
+    --no-mcp: "Disable all MCP servers"
+
+  Persona_Control:
+    --persona-architect: "Systems architect thinking mode"
+    --persona-frontend: "Frontend developer mode"
+    --persona-backend: "Backend developer mode"
+    --persona-analyzer: "Deep analysis mode"
+    --persona-security: "Security-focused mode"
+    --persona-mentor: "Teaching/mentoring mode"
+    --persona-refactorer: "Code refactoring mode"
+    --persona-performance: "Performance optimization mode"
+    --persona-qa: "Quality assurance mode"
+
+  Introspection:
+    --introspect: "Deep transparency mode — expose thinking, decisions, workflow"
+```
+
+## Common Flags
+
+```yaml
+Execution_Control:
+  --dry-run: "Preview changes without execution"
+  --force: "Override safety checks"
+
+Quality:
+  --validate: "Pre-execution safety checks"
+  --security: "Security vulnerability scanning"
+  --coverage: "Coverage analysis"
+  --strict: "Zero-tolerance mode"
+  --tdd: "Test-driven development"
+
+Inheritance_Priority:
+  1: "Command-specific flags override group flags"
+  2: "Group flags override common flags"
+  3: "Universal flags always available"
+  Conflict: "--no-mcp overrides all MCP flags | --force overrides --validate/--dry-run"
+```

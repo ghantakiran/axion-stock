@@ -1,0 +1,21 @@
+# System Configuration
+
+## Session_Settings
+
+```yaml
+Session_Settings:
+  Memory_Management:
+    Context_Limit: "High usage warning, very high critical"
+    Cache_Duration: "30 minutes active session"
+    Persistence: "Store successful workflows across sessions"
+
+  Context_Sharing:
+    Chain_Results: "Auto-pass relevant results between commands"
+    Intelligent_Workflows: "analyze→improve, build→test, scan→fix"
+    Invalidation: "Modified files trigger cache refresh"
+
+  Recovery:
+    Auto_Save: "Save state every 10 operations"
+    Retry: "3 attempts with exponential backoff"
+    Fallback: "Native tools if MCP fails"
+```
