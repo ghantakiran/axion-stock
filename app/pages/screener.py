@@ -148,27 +148,27 @@ def render_preset_screens():
     dividend_screens = [p for p in presets if "dividend" in p.tags]
     
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("**Value**")
         for s in value_screens[:3]:
-            if st.button(s.name, key=f"preset_{s.screen_id}"):
+            if st.button(s.name, key=f"preset_val_{s.screen_id}"):
                 return s
-        
+
         st.markdown("**Growth**")
         for s in growth_screens[:3]:
-            if st.button(s.name, key=f"preset_{s.screen_id}"):
+            if st.button(s.name, key=f"preset_grw_{s.screen_id}"):
                 return s
-    
+
     with col2:
         st.markdown("**Quality**")
         for s in quality_screens[:3]:
-            if st.button(s.name, key=f"preset_{s.screen_id}"):
+            if st.button(s.name, key=f"preset_qual_{s.screen_id}"):
                 return s
-        
+
         st.markdown("**Dividend**")
         for s in dividend_screens[:3]:
-            if st.button(s.name, key=f"preset_{s.screen_id}"):
+            if st.button(s.name, key=f"preset_div_{s.screen_id}"):
                 return s
     
     return None
